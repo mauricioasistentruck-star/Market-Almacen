@@ -1,0 +1,22 @@
+{
+  "short_name": "Market Almacén",
+  "name": "Market Almacén - Control de Inventario y Ventas",
+  "description": "Sistema de gestión integral de inventario, ventas, bodega y despachos - Market Almacén",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f1117",
+  "theme_color": "#f97316",
+  "display": "standalone",
+  "orientation": "any"
+}

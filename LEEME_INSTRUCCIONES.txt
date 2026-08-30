@@ -1,0 +1,30 @@
+======================================================================
+                  MARKET ALMACÉN - GUÍA RÁPIDA
+======================================================================
+
+Bienvenido a Market Almacén, el sistema integral para gestión de
+inventario, ventas, boletas, herramientas, guías y bitácora.
+
+ARCHIVOS Y ENTREGABLES PRINCIPALES:
+----------------------------------------------------------------------
+1. Market-Almacen.apk
+   - Aplicación instalable para celulares y tablets Android.
+   - Funciona sin internet (offline) y se sincroniza en tiempo real
+     cuando se conecta a la red.
+
+2. Market-Almacen-Web-Deploy.zip (o carpeta 'dist')
+   - Versión web compilada y optimizada para subir gratis a Netlify
+     (arrastrar a https://app.netlify.com/drop).
+
+3. supabase_setup.sql
+   - Script SQL listo para crear la tabla de sincronización en tu
+     nueva cuenta gratuita de Supabase.
+
+4. GUIA_NUEVA_CUENTA_SUPABASE_Y_NETLIFY.md
+   - Manual completo paso a paso para configurar tu nueva cuenta en
+     Supabase y Netlify en menos de 5 minutos.
+
+5. EJECUTAR_MARKET_ALMACEN.bat
+   - Ejecutable para abrir el sistema localmente en tu computadora.
+
+======================================================================

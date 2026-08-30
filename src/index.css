@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply m-0 p-0 overflow-x-hidden min-h-screen;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+/* ========================================================================= */
+/* TEMA 1: BLANCO CON TONOS AZULES (PRINCIPAL / POR DEFECTO)                 */
+/* ========================================================================= */
+.theme-white {
+  color-scheme: light;
+}
+
+.theme-white,
+.theme-white body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Títulos y Encabezados */
+.theme-white h1,
+.theme-white h2,
+.theme-white h3,
+.theme-white h4,
+.theme-white h5,
+.theme-white h6 {
+  color: #0f172a !important;
+  font-weight: 800;
+}
+
+/* Textos oscuros nítidos para fondos claros */
+.theme-white .text-slate-900,
+.theme-white .text-slate-800,
+.theme-white .text-slate-700 {
+  color: #0f172a !important;
+}
+
+.theme-white .text-slate-600,
+.theme-white .text-slate-500,
+.theme-white .text-slate-400 {
+  color: #475569 !important;
+}
+
+/* Tarjetas y Paneles en Blanco */
+.theme-white .bg-white {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.theme-white .bg-slate-50 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Tablas en Blanco */
+.theme-white thead,
+.theme-white th {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  font-weight: 800 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.theme-white td {
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-white tr:hover td {
+  background-color: #f1f5f9 !important;
+}
+
+/* Inputs y Selects en Blanco */
+.theme-white input,
+.theme-white select,
+.theme-white textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #94a3b8 !important;
+  font-weight: 600 !important;
+}
+
+.theme-white input::placeholder,
+.theme-white textarea::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+}
+
+/* Botones principales con fondo azul y TEXTO BLANCO */
+.theme-white button.bg-blue-600,
+.theme-white .bg-blue-600,
+.theme-white .bg-blue-700,
+.theme-white .bg-emerald-600,
+.theme-white .bg-red-600 {
+  color: #ffffff !important;
+}
+
+.theme-white button.bg-blue-600 *,
+.theme-white .bg-blue-600 *,
+.theme-white .bg-emerald-600 *,
+.theme-white .bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* ========================================================================= */
+/* TEMA 2: NEGRO CON TONOS ROJOS (DARK RED)                                  */
+/* ========================================================================= */
+.theme-dark-red {
+  color-scheme: dark;
+}
+
+.theme-dark-red,
+.theme-dark-red body {
+  background-color: #090a0f !important;
+  color: #f8fafc !important;
+}
+
+.theme-dark-red button.bg-red-600,
+.theme-dark-red .bg-red-600,
+.theme-dark-red .bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* ========================================================================= */
+/* TEMA 3: AZUL CON TONOS VERDES (OCEAN GREEN)                               */
+/* ========================================================================= */
+.theme-blue-green {
+  color-scheme: dark;
+}
+
+.theme-blue-green,
+.theme-blue-green body {
+  background-color: #081026 !important;
+  color: #f8fafc !important;
+}
+
+.theme-blue-green button.bg-emerald-600,
+.theme-blue-green .bg-emerald-600,
+.theme-blue-green .bg-emerald-600 * {
+  color: #ffffff !important;
+}
+
+/* Modal scroll chaining and background lock */
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+.modal-overlay,
+.fixed.inset-0 {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

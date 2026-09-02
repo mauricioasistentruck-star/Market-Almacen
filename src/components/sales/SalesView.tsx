@@ -10,6 +10,7 @@ import { formatCLP, formatRut, getDteLabel, getPaymentMethodLabel, generateSaleT
 import { exportSalesLedgerExcel } from '../../utils/salesExcelExporter';
 import { PDFViewerModal } from '../PDFViewerModal';
 import { SiiConfigModal } from './SiiConfigModal';
+import { CustomerManagerModal } from '../customers/CustomerManagerModal';
 import { SaleCheckoutModal } from './SaleCheckoutModal';
 import { SaleDetailsModal } from './SaleDetailsModal';
 import { CashClosingModal } from './CashClosingModal';
@@ -117,6 +118,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'pos' | 'history'>('pos');
   const [mobilePosTab, setMobilePosTab] = useState<'catalog' | 'cart'>('catalog');
   const [isConsultantOpen, setIsConsultantOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   // Perfil de Rubro y Servicios Contextuales de la Empresa
   const currentRubro = React.useMemo(() => {

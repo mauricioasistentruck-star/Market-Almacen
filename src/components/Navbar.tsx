@@ -93,23 +93,21 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
           
-          {/* Logo & App Title */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md ${themeClasses.accentBg}`}>
-              <ShoppingCart className="w-5 h-5" />
+          {/* Logo & App Title: Ahorro de espacio con icono MA y texto montado */}
+          <div className="flex items-center gap-2 shrink-0 select-none">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-md ${themeClasses.accentBg} shrink-0`}>
+              <span className="font-black text-sm sm:text-base tracking-tighter leading-none">
+                <span className="text-white">M</span>
+                <span className="text-cyan-300 font-extrabold">A</span>
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <span className="font-black text-base lg:text-lg tracking-tight text-slate-900 dark:text-slate-100">
-                  MARKET
-                </span>
-                <span className={`font-extrabold text-base lg:text-lg tracking-tight ${themeClasses.accent}`}>
-                  ALMACÉN
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider hidden sm:block">
-                Punto de Venta e Inventario
-              </p>
+            <div className="flex flex-col justify-center leading-none">
+              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-slate-900 dark:text-slate-100 uppercase">
+                MARKET
+              </span>
+              <span className={`font-black text-[10.5px] sm:text-xs tracking-wider ${themeClasses.accent} uppercase -mt-0.5`}>
+                ALMACÉN
+              </span>
             </div>
           </div>
 

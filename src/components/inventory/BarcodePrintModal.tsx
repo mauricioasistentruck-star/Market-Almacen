@@ -349,94 +349,155 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         {/* Body Amplio 2 Columnas (60% Selección / 40% Configuración) */}
         <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 overflow-y-auto">
           
-          {/* Columna Izquierda: Selector de Productos (7 Cols) */}
+          {/* Columna Izquierda: Modo Producto Único vs Selector General */}
           <div className="lg:col-span-7 space-y-3 flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4 text-blue-600" />
-                  <span>1. Seleccionar Productos ({selectedItems.size} seleccionados)</span>
-                </span>
-                <div className="flex items-center gap-2.5 text-xs">
-                  <button type="button" onClick={selectAllFiltered} className="text-blue-600 dark:text-blue-400 font-black hover:underline cursor-pointer">Seleccionar Todos</button>
-                  <span className="text-slate-400">•</span>
-                  <button type="button" onClick={clearSelection} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-bold cursor-pointer">Limpiar</button>
+            {initialSelectedProduct ? (
+              /* MODO PRODUCTO ÚNICO: Muestra y crea el código solo para este producto específico */
+              <div className={`p-4 sm:p-5 rounded-2xl border-2 ${themeClasses.border} ${themeClasses.cardSubtle} space-y-4 shadow-xs`}>
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+                  <Barcode className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                    Etiqueta de Código para este Producto
+                  </h4>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <span className="font-mono text-xs font-black text-purple-600 dark:text-purple-400 block">
+                    CÓDIGO / BARCODE: {initialSelectedProduct.code}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                    {initialSelectedProduct.name}
+                  </h3>
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 font-bold">
+                      Stock: <strong className="text-slate-800 dark:text-slate-200">{initialSelectedProduct.stock} {initialSelectedProduct.unit || 'UN'}</strong>
+                    </span>
+                    <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                      ${(initialSelectedProduct.price || 0).toLocaleString('es-CL')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Copias para este producto */}
+                <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <label className="text-xs font-black text-purple-950 dark:text-purple-200 block">
+                      Copias de Etiqueta a Imprimir:
+                    </label>
+                    <span className="text-[11px] text-purple-700 dark:text-purple-300">
+                      Define cuántas pegatinas deseas emitir
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={selectedItems.get(initialSelectedProduct.id!)?.quantity || 1}
+                      onChange={(e) => initialSelectedProduct.id && updateQuantity(initialSelectedProduct.id, Number(e.target.value))}
+                      className="w-20 px-2 py-1.5 text-center font-black font-mono text-sm rounded-xl border-2 border-purple-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => initialSelectedProduct.id && updateQuantity(initialSelectedProduct.id, Math.max(1, initialSelectedProduct.stock))}
+                      className="px-2.5 py-1.5 text-xs font-black rounded-xl bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-100 hover:bg-purple-300 transition cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      Copiar Stock ({initialSelectedProduct.stock})
+                    </button>
+                  </div>
                 </div>
               </div>
+            ) : (
+              /* MODO GENERAL: Lista todos los productos cuando se abre desde el botón fuera de las tarjetas */
+              <>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                      <span>1. Seleccionar Productos ({selectedItems.size} seleccionados)</span>
+                    </span>
+                    <div className="flex items-center gap-2.5 text-xs">
+                      <button type="button" onClick={selectAllFiltered} className="text-blue-600 dark:text-blue-400 font-black hover:underline cursor-pointer">Seleccionar Todos</button>
+                      <span className="text-slate-400">•</span>
+                      <button type="button" onClick={clearSelection} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-bold cursor-pointer">Limpiar</button>
+                    </div>
+                  </div>
 
-              {/* Barra de Búsqueda */}
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, código o marca..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2 text-xs font-medium rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg}`}
-                />
-              </div>
+                  {/* Barra de Búsqueda */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre, código o marca..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-2 text-xs font-medium rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg}`}
+                    />
+                  </div>
 
-              {/* Tabla de Productos Amplia con nombres completos */}
-              <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden max-h-56 overflow-y-auto shadow-xs">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 dark:bg-slate-900 sticky top-0 font-black text-slate-800 dark:text-slate-200 z-10 border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      <th className="p-2.5 w-10 text-center">SEL.</th>
-                      <th className="p-2.5">PRODUCTO</th>
-                      <th className="p-2.5">CÓDIGO SKU</th>
-                      <th className="p-2.5 text-right">PRECIO</th>
-                      <th className="p-2.5 w-20 text-center">COPIAS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredProducts.map((p) => {
-                      const isSelected = p.id ? selectedItems.has(p.id) : false;
-                      const selectedItem = p.id ? selectedItems.get(p.id) : undefined;
-                      return (
-                        <tr
-                          key={p.id}
-                          onClick={() => toggleSelectProduct(p)}
-                          className={`cursor-pointer transition hover:bg-blue-50/60 dark:hover:bg-slate-800/60 ${
-                            isSelected ? 'bg-blue-500/10 font-bold' : ''
-                          }`}
-                        >
-                          <td className="p-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectProduct(p)}
-                              className="rounded text-blue-600 cursor-pointer w-4 h-4"
-                            />
-                          </td>
-                          <td className="p-2.5">
-                            <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm leading-snug">{p.name}</div>
-                            <div className="text-[11px] text-slate-500 font-semibold">{p.brand || 'Genérico'}</div>
-                          </td>
-                          <td className="p-2.5 font-mono text-orange-600 dark:text-orange-400 font-bold text-xs whitespace-nowrap">{p.code}</td>
-                          <td className="p-2.5 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">${(p.price || 0).toLocaleString('es-CL')}</td>
-                          <td className="p-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                            {isSelected ? (
-                              <input
-                                type="number"
-                                min="1"
-                                value={selectedItem?.quantity || 1}
-                                onChange={(e) => p.id && updateQuantity(p.id, Number(e.target.value))}
-                                className="w-16 px-2 py-1 text-center font-black font-mono text-xs rounded-lg border-2 border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                              />
-                            ) : <span className="text-slate-400 text-xs">-</span>}
-                          </td>
+                  {/* Tabla de Productos Amplia con nombres completos */}
+                  <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden max-h-56 overflow-y-auto shadow-xs">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-100 dark:bg-slate-900 sticky top-0 font-black text-slate-800 dark:text-slate-200 z-10 border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th className="p-2.5 w-10 text-center">SEL.</th>
+                          <th className="p-2.5">PRODUCTO</th>
+                          <th className="p-2.5">CÓDIGO SKU</th>
+                          <th className="p-2.5 text-right">PRECIO</th>
+                          <th className="p-2.5 w-20 text-center">COPIAS</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {filteredProducts.map((p) => {
+                          const isSelected = p.id ? selectedItems.has(p.id) : false;
+                          const selectedItem = p.id ? selectedItems.get(p.id) : undefined;
+                          return (
+                            <tr
+                              key={p.id}
+                              onClick={() => toggleSelectProduct(p)}
+                              className={`cursor-pointer transition hover:bg-blue-50/60 dark:hover:bg-slate-800/60 ${
+                                isSelected ? 'bg-blue-500/10 font-bold' : ''
+                              }`}
+                            >
+                              <td className="p-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectProduct(p)}
+                                  className="rounded text-blue-600 cursor-pointer w-4 h-4"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm leading-snug">{p.name}</div>
+                                <div className="text-[11px] text-slate-500 font-semibold">{p.brand || 'Genérico'}</div>
+                              </td>
+                              <td className="p-2.5 font-mono text-orange-600 dark:text-orange-400 font-bold text-xs whitespace-nowrap">{p.code}</td>
+                              <td className="p-2.5 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">${(p.price || 0).toLocaleString('es-CL')}</td>
+                              <td className="p-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                {isSelected ? (
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={selectedItem?.quantity || 1}
+                                    onChange={(e) => p.id && updateQuantity(p.id, Number(e.target.value))}
+                                    className="w-16 px-2 py-1 text-center font-black font-mono text-xs rounded-lg border-2 border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                                  />
+                                ) : <span className="text-slate-400 text-xs">-</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between gap-3 pt-1 text-xs">
-              <span className="font-bold text-slate-600 dark:text-slate-400">Total etiquetas a imprimir: <strong className="text-blue-600 dark:text-blue-400 text-sm font-black">{totalLabelsToPrint}</strong></span>
-              <button type="button" onClick={matchQuantityToStock} className="text-blue-600 dark:text-blue-400 font-black hover:underline cursor-pointer">Copiar stock como cantidad de etiquetas</button>
-            </div>
+                <div className="flex items-center justify-between gap-3 pt-1 text-xs">
+                  <span className="font-bold text-slate-600 dark:text-slate-400">Total etiquetas a imprimir: <strong className="text-blue-600 dark:text-blue-400 text-sm font-black">{totalLabelsToPrint}</strong></span>
+                  <button type="button" onClick={matchQuantityToStock} className="text-blue-600 dark:text-blue-400 font-black hover:underline cursor-pointer">Copiar stock como cantidad de etiquetas</button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Columna Derecha: Configuración y Vista Previa Amplia (5 Cols) */}

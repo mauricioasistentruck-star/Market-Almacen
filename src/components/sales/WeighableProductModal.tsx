@@ -222,7 +222,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       {/* Modal Principal: Ancho fijo max-w-2xl, SIN SCROLL EXTERNO y con altura estable */}
-      <div className={`w-full max-w-2xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn`}>
+      <div className={`w-full max-w-2xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn max-h-[92vh] my-auto`}>
         
         {/* Header con icono naranja */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -249,7 +249,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
         </div>
 
         {/* Formulario con altura fija y sin saltos entre opciones */}
-        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3">
+        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3 overflow-y-auto flex-1 scrollbar-thin">
           
           {/* 1. Categoría de Producto a Pesar (10 botones en 5 columnas x 2 filas) */}
           <div>
@@ -423,19 +423,19 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
             </p>
           </div>
 
-          {/* Botones de Acción */}
-          <div className="flex items-center justify-end gap-3 pt-1">
+          {/* Botones de Acción Accesibles Siempre */}
+          <div className="flex items-center justify-between gap-3 pt-2 pb-1 border-t border-slate-200 dark:border-slate-800 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer border border-slate-300 dark:border-slate-700"
             >
-              Cancelar
+              ✕ Cerrar
             </button>
             <button
               type="submit"
               disabled={finalQuantityKg <= 0 || currentPricePerKg <= 0}
-              className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <ShoppingCart className="w-4 h-4" />
               <span>Agregar al Carrito ({formatCLP(finalSubtotal)})</span>

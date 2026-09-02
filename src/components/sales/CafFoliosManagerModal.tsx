@@ -482,8 +482,8 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
             </div>
           </div>
 
-          {/* Selector de Tipo de Documento: Boleta, Factura, Nota de Crédito */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+          {/* Selector de Tipo de Documento: Boleta, Factura, Nota de Crédito en 3 columnas iguales sin scroll */}
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
             {/* 1. Boletas Electrónicas (39) */}
             <button
               type="button"
@@ -491,13 +491,13 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                 setActiveDteTab('BOLETA');
                 setSuccessAlert(null);
               }}
-              className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeDteTab === 'BOLETA'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Receipt className="w-4 h-4 shrink-0" />
+              <Receipt className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Boletas (39)</span>
             </button>
 
@@ -508,13 +508,13 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                 setActiveDteTab('FACTURA');
                 setSuccessAlert(null);
               }}
-              className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeDteTab === 'FACTURA'
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Building className="w-4 h-4 shrink-0" />
+              <Building className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">Facturas (33)</span>
             </button>
 
@@ -525,14 +525,14 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                 setActiveDteTab('NOTA_CREDITO');
                 setSuccessAlert(null);
               }}
-              className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition flex items-center justify-center gap-1 cursor-pointer ${
                 activeDteTab === 'NOTA_CREDITO'
                   ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <FileCheck2 className="w-4 h-4 shrink-0" />
-              <span className="truncate">Notas de Crédito (61)</span>
+              <FileCheck2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">N. Crédito (61)</span>
             </button>
           </div>
 
@@ -761,60 +761,62 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
             </div>
 
             <div className={`rounded-2xl border ${themeClasses.border} overflow-hidden shadow-xs`}>
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className={`border-b ${themeClasses.border} ${themeClasses.cardSubtle} font-black text-slate-700 dark:text-slate-300`}>
-                  <tr>
-                    <th className="py-2.5 px-3">Carga</th>
-                    <th className="py-2.5 px-3">Fecha y Hora</th>
-                    <th className="py-2.5 px-3">Tipo DTE</th>
-                    <th className="py-2.5 px-3">Rango de Folios</th>
-                    <th className="py-2.5 px-3 text-center">Cantidad</th>
-                    <th className="py-2.5 px-3 text-center">Usados</th>
-                    <th className="py-2.5 px-3 text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-bold">
-                  {batches.map((batch) => (
-                    <tr key={batch.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
-                      <td className="py-2.5 px-3 font-mono font-black text-blue-600 dark:text-blue-400">
-                        Carga #{batch.batchNumber}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
-                        {batch.date} {batch.time}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10.5px] font-black ${
-                          batch.dteType === 'NOTA_CREDITO'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                            : batch.dteType === 'FACTURA'
-                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                        }`}>
-                          DTE {batch.tipoDteCode}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono font-black">
-                        #{batch.folioDesde} al #{batch.folioHasta}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-black text-slate-700 dark:text-slate-300">
-                        {batch.cantidad}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-black text-amber-600 dark:text-amber-400">
-                        {batch.foliosUsados}
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                          batch.status === 'ACTIVO'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                        }`}>
-                          {batch.status}
-                        </span>
-                      </td>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs border-collapse min-w-[580px]">
+                  <thead className={`border-b ${themeClasses.border} ${themeClasses.cardSubtle} font-black text-slate-700 dark:text-slate-300`}>
+                    <tr>
+                      <th className="py-2.5 px-3 whitespace-nowrap">Carga</th>
+                      <th className="py-2.5 px-3 whitespace-nowrap">Fecha y Hora</th>
+                      <th className="py-2.5 px-3 whitespace-nowrap">Tipo DTE</th>
+                      <th className="py-2.5 px-3 whitespace-nowrap">Rango de Folios</th>
+                      <th className="py-2.5 px-3 text-center whitespace-nowrap">Cantidad</th>
+                      <th className="py-2.5 px-3 text-center whitespace-nowrap">Usados</th>
+                      <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-bold">
+                    {batches.map((batch) => (
+                      <tr key={batch.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-2.5 px-3 font-mono font-black text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                          Carga #{batch.batchNumber}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          {batch.date} {batch.time}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded text-[10.5px] font-black ${
+                            batch.dteType === 'NOTA_CREDITO'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                              : batch.dteType === 'FACTURA'
+                              ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                          }`}>
+                            DTE {batch.tipoDteCode}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 font-mono font-black whitespace-nowrap">
+                          #{batch.folioDesde} al #{batch.folioHasta}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          {batch.cantidad}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-black text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                          {batch.foliosUsados}
+                        </td>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            batch.status === 'ACTIVO'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
+                            {batch.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

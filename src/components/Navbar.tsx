@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
+          <nav className="hidden xl:flex items-center gap-1.5 lg:gap-2">
             {tabs.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -157,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
 
                 {isCompanyMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2.5 z-50 animate-scaleIn">
+                  <div className="absolute left-0 sm:left-0 mt-2 w-80 max-w-[calc(100vw-24px)] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-3 z-50 animate-scaleIn">
                     <div className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 px-2 py-1 tracking-wider flex items-center justify-between">
                       <span>Empresas Registradas</span>
                       <span className="bg-purple-100 dark:bg-purple-950 px-1.5 py-0.5 rounded text-[9px]">{companies.length}</span>

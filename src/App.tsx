@@ -146,7 +146,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className={`${activeTab === 'sales' ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200 pb-16 md:pb-0`}>
+    <div className={`${activeTab === 'sales' ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200 pb-16 xl:pb-0`}>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}

@@ -118,6 +118,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'pos' | 'history'>('pos');
   const [mobilePosTab, setMobilePosTab] = useState<'catalog' | 'cart'>('catalog');
   const [isConsultantOpen, setIsConsultantOpen] = useState(false);
+  const [showQuick9Only, setShowQuick9Only] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   // Perfil de Rubro y Servicios Contextuales de la Empresa

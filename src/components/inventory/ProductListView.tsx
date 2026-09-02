@@ -389,8 +389,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       {/* Table of Products (Simplified Clean 6 Columns - Click row to open full details) */}
       <div className={`rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} overflow-hidden shadow-sm`}>
         
-        {/* Mobile View: Clean Card List (< sm) */}
-        <div className="sm:hidden divide-y divide-slate-200 dark:divide-slate-800">
+        {/* Mobile View: Clean Card List (< lg) */}
+        <div className="lg:hidden divide-y divide-slate-200 dark:divide-slate-800">
           {paginatedProducts.length === 0 ? (
             <div className="p-8 text-center text-slate-500 font-bold text-xs">
               No se encontraron productos en el inventario.
@@ -440,8 +440,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           )}
         </div>
 
-        {/* Desktop View: Table (>= sm) */}
-        <div className="hidden sm:block overflow-x-auto">
+        {/* Desktop View: Table (>= lg) */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead className="bg-slate-100 dark:bg-slate-900 font-black text-slate-900 dark:text-slate-100 border-b-2 border-slate-300 dark:border-slate-700 select-none">
               <tr>

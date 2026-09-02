@@ -24,9 +24,10 @@ import {
 interface CashClosingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onClosingSuccess?: () => void;
 }
 
-export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onClose }) => {
+export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onClose, onClosingSuccess }) => {
   useBodyScrollLock(Boolean(isOpen));
   const { themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
@@ -292,7 +293,7 @@ export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Cuerpo Ampliado (max-w-6xl) en 2 Columnas de Alto Contraste (Sin Scroll) */}
-        <div className="p-6 lg:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto">
+        <div className="p-3.5 sm:p-6 lg:p-7 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
           
           {/* Columna Izquierda (6 Cols): Resumen y Desglose por Medio de Pago */}
           <div className="lg:col-span-6 space-y-4 flex flex-col justify-between">

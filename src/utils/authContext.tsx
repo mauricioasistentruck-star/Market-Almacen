@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { AppUser, UserRole } from '../types';
+import type { AppUser, UserRole, UserPermissions } from '../types';
+import { getUserPermissions, DEFAULT_PERMISSIONS_BY_ROLE } from '../types';
 import { db } from '../db/database';
 import { triggerCloudSync, pullAllFromCloud, pushAllToCloud } from './cloudSync';
 
@@ -9,6 +10,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   isAdmin: boolean;
   isVentas: boolean;
+  isBodega: boolean;
+  permissions: UserPermissions;
   isReadOnly: boolean;
   canManageUsers: boolean;
   canManageCompanies: boolean;
@@ -19,6 +22,7 @@ interface AuthContextType {
   usersList: AppUser[];
   loadUsers: () => Promise<void>;
   createUser: (user: Omit<AppUser, 'id' | 'createdAt'>) => Promise<boolean>;
+  updateUser: (id: number, userData: Partial<AppUser>) => Promise<boolean>;
   deleteUser: (id: number) => Promise<boolean>;
 }
 
@@ -148,13 +152,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = async (id: number, userData: Partial<AppUser>): Promise<boolean> => {
+    try {
+      await db.users.update(id, userData);
+      await loadUsers();
+      if (currentUser?.id === id) {
+        const updated = { ...currentUser, ...userData };
+        setCurrentUser(updated);
+        localStorage.setItem('marketalmacen_logged_user', JSON.stringify(updated));
+      }
+      triggerCloudSync();
+      return true;
+    } catch (e: any) {
+      alert('Error al actualizar usuario: ' + e.message);
+      return false;
+    }
+  };
+
+  const permissions: UserPermissions = getUserPermissions(currentUser);
   const isSuperAdmin = currentUser?.role === 'SUPERADMIN';
   const isAdmin = isSuperAdmin || currentUser?.role === 'ADMIN';
   const isVentas = currentUser?.role === 'VENTAS';
+  const isBodega = currentUser?.role === 'BODEGA';
   const isReadOnly = false;
-  const canManageUsers = isSuperAdmin || currentUser?.role === 'ADMIN';
+  const canManageUsers = isSuperAdmin || currentUser?.role === 'ADMIN' || permissions.manageUsers;
   const canManageCompanies = isSuperAdmin;
-  const canExportImport = isSuperAdmin || currentUser?.role === 'ADMIN';
+  const canExportImport = isSuperAdmin || currentUser?.role === 'ADMIN' || permissions.inventory;
   const canDeleteProducts = isSuperAdmin || currentUser?.role === 'ADMIN';
 
   return (
@@ -165,6 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSuperAdmin,
         isAdmin,
         isVentas,
+        isBodega,
+        permissions,
         isReadOnly,
         canManageUsers,
         canManageCompanies,
@@ -175,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         usersList,
         loadUsers,
         createUser,
+        updateUser,
         deleteUser
       }}
     >

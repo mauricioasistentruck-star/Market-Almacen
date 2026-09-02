@@ -32,15 +32,33 @@ import { MasterBackupModal } from './components/MasterBackupModal';
 import { SupplierManagerModal } from './components/suppliers/SupplierManagerModal';
 import { CustomerManagerModal } from './components/customers/CustomerManagerModal';
 import { InventoryTakingModal } from './components/inventory/InventoryTakingModal';
+import { MobileBottomNav } from './components/common/MobileBottomNav';
+import { MobileMoreMenuModal } from './components/common/MobileMoreMenuModal';
+import { ProductConsultantModal } from './components/inventory/ProductConsultantModal';
+import { CashClosingModal } from './components/sales/CashClosingModal';
 
 export const App: React.FC = () => {
   const { themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany, companies } = useCompany();
-  const { isAuthenticated, isReadOnly } = useAuth();
+  const { isAuthenticated, isReadOnly, currentUser, permissions } = useAuth();
 
   // Pestaña inicial por defecto: Ventas y POS
   const [activeTab, setActiveTab] = useState<string>('sales');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [isConsultantOpen, setIsConsultantOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'BODEGA' || (!permissions.pos && permissions.inventory)) {
+        setActiveTab('inventory');
+      } else if (permissions.pos) {
+        setActiveTab('sales');
+      }
+    }
+  }, [currentUser?.username, currentUser?.role]);
 
   // Scanner state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -128,11 +146,12 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className={`${activeTab === 'sales' ? 'h-screen overflow-hidden' : 'min-h-screen'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200`}>
+    <div className={`${activeTab === 'sales' ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200 pb-16 md:pb-0`}>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onOpenConsultant={() => setIsConsultantOpen(true)}
         onOpenCompanies={() => setIsCompanyManagerOpen(true)}
         onOpenImport={() => setIsImportOpen(true)}
         onOpenUserManager={() => setIsUserManagerOpen(true)}
@@ -188,6 +207,8 @@ export const App: React.FC = () => {
               setScannerContext('sales');
               setIsScannerOpen(true);
             }}
+            onOpenConsultant={() => setIsConsultantOpen(true)}
+            onCartCountChange={(c) => setCartCount(c)}
             scannedBarcode={scannedBarcode}
             refreshTrigger={refreshTrigger}
           />
@@ -351,6 +372,44 @@ export const App: React.FC = () => {
         }}
         scannedBarcode={scannedBarcode}
       />
+      {/* Barra de Navegación Inferior Nativa para Celulares */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenMoreMenu={() => setIsMobileMoreOpen(true)}
+        onOpenConsultant={() => setIsConsultantOpen(true)}
+        cartCount={cartCount}
+      />
+
+      {/* Menú Desplegable "Más" para Celulares */}
+      <MobileMoreMenuModal
+        isOpen={isMobileMoreOpen}
+        onClose={() => setIsMobileMoreOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenConsultant={() => setIsConsultantOpen(true)}
+        onOpenCashClosing={() => setIsCashClosingOpen(true)}
+        onOpenSuppliers={() => setIsSupplierModalOpen(true)}
+        onOpenCustomers={() => setIsCustomerModalOpen(true)}
+        onOpenInventoryTaking={() => setIsInventoryTakingOpen(true)}
+        onOpenUserManager={() => setIsUserManagerOpen(true)}
+        onOpenBackup={() => setIsBackupOpen(true)}
+      />
+
+      {/* Consultor Rápido de Precios y Stock */}
+      <ProductConsultantModal
+        isOpen={isConsultantOpen}
+        onClose={() => setIsConsultantOpen(false)}
+      />
+
+      {/* Cierre Z de Caja */}
+      {isCashClosingOpen && (
+        <CashClosingModal
+          isOpen={isCashClosingOpen}
+          onClose={() => setIsCashClosingOpen(false)}
+          onClosingSuccess={() => triggerRefresh()}
+        />
+      )}
     </div>
   );
 };

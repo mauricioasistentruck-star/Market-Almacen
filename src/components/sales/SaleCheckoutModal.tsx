@@ -453,7 +453,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-4xl h-[610px] max-h-[96vh] flex flex-col rounded-3xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+      <div className="w-full max-w-4xl max-h-[96vh] flex flex-col rounded-3xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
         
         {/* Header con Alto Contraste */}
         <div className="px-5 py-3 sm:py-3.5 border-b-2 border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
@@ -483,10 +483,10 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 p-3.5 sm:p-4 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-4">
+        <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-4 custom-scrollbar">
           
           {/* Columna Izquierda: Opciones de Pago y Documento */}
-          <div className="lg:col-span-7 flex flex-col justify-between h-full space-y-2 overflow-hidden select-none">
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-2.5 select-none">
             
             {/* 1. Selección de Documento Tributario (altura ~54px) */}
             <div className="space-y-1 shrink-0">

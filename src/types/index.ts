@@ -1,7 +1,127 @@
 import type { WeighablePreset, CompanyServiceOption } from '../utils/rubroPresets';
 export type ThemeMode = 'white' | 'dark-red' | 'blue-green';
 
-export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'VENTAS';
+export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'VENTAS' | 'BODEGA' | 'CUSTOM';
+
+export interface UserPermissions {
+  pos: boolean;            // Terminal POS de ventas y cobros
+  priceConsultant: boolean; // Consultor rápido de precios y stock
+  inventory: boolean;      // Catálogo e inventario de productos
+  productHistory: boolean; // Historial de movimientos / Kardex
+  guides: boolean;         // Guías de despacho y recepción
+  purchases: boolean;      // Solicitud de productos / compras
+  mermas: boolean;         // Registro de mermas
+  cashClosing: boolean;    // Cierre de caja (Z)
+  reports: boolean;        // Informes y estadísticas
+  suppliers: boolean;      // Proveedores
+  customers: boolean;      // Clientes con factura
+  inventoryTaking: boolean;// Toma de inventario física
+  cafFolios: boolean;      // Sistema de Folios CAF (SII)
+  cloudSync: boolean;      // Sincronización Nube Supabase
+  backup: boolean;         // Copia de seguridad
+  manageUsers: boolean;    // Gestión de usuarios y permisos
+}
+
+export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
+  SUPERADMIN: {
+    pos: true,
+    priceConsultant: true,
+    inventory: true,
+    productHistory: true,
+    guides: true,
+    purchases: true,
+    mermas: true,
+    cashClosing: true,
+    reports: true,
+    suppliers: true,
+    customers: true,
+    inventoryTaking: true,
+    cafFolios: true,
+    cloudSync: true,
+    backup: true,
+    manageUsers: true,
+  },
+  ADMIN: {
+    pos: true,
+    priceConsultant: true,
+    inventory: true,
+    productHistory: true,
+    guides: true,
+    purchases: true,
+    mermas: true,
+    cashClosing: true,
+    reports: true,
+    suppliers: true,
+    customers: true,
+    inventoryTaking: true,
+    cafFolios: true,
+    cloudSync: true,
+    backup: true,
+    manageUsers: true,
+  },
+  VENTAS: {
+    pos: true,
+    priceConsultant: true,
+    inventory: false,
+    productHistory: false,
+    guides: false,
+    purchases: true,
+    mermas: true,
+    cashClosing: true,
+    reports: false,
+    suppliers: false,
+    customers: true,
+    inventoryTaking: false,
+    cafFolios: false,
+    cloudSync: false,
+    backup: false,
+    manageUsers: false,
+  },
+  BODEGA: {
+    pos: false,
+    priceConsultant: true,
+    inventory: true,
+    productHistory: true,
+    guides: true,
+    purchases: true,
+    mermas: true,
+    cashClosing: false,
+    reports: false,
+    suppliers: true,
+    customers: false,
+    inventoryTaking: true,
+    cafFolios: false,
+    cloudSync: false,
+    backup: false,
+    manageUsers: false,
+  },
+  CUSTOM: {
+    pos: true,
+    priceConsultant: true,
+    inventory: true,
+    productHistory: true,
+    guides: false,
+    purchases: true,
+    mermas: true,
+    cashClosing: false,
+    reports: false,
+    suppliers: false,
+    customers: false,
+    inventoryTaking: false,
+    cafFolios: false,
+    cloudSync: false,
+    backup: false,
+    manageUsers: false,
+  }
+};
+
+export function getUserPermissions(user: AppUser | null): UserPermissions {
+  if (!user) return DEFAULT_PERMISSIONS_BY_ROLE.VENTAS;
+  const role = user.role || 'VENTAS';
+  const defaults = DEFAULT_PERMISSIONS_BY_ROLE[role] || DEFAULT_PERMISSIONS_BY_ROLE.VENTAS;
+  if (!user.permissions) return defaults;
+  return { ...defaults, ...user.permissions };
+}
 
 export interface AppUser {
   id?: number;
@@ -11,6 +131,8 @@ export interface AppUser {
   role: UserRole;
   companyId?: string; // Empresa a la que pertenece ('ALL' para Superadmin Mauricio)
   createdAt: string;
+  permissions?: Partial<UserPermissions>;
+  defaultModule?: string;
 }
 
 export interface Company {

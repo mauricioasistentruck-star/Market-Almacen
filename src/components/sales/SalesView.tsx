@@ -14,6 +14,7 @@ import { SaleCheckoutModal } from './SaleCheckoutModal';
 import { SaleDetailsModal } from './SaleDetailsModal';
 import { CashClosingModal } from './CashClosingModal';
 import { WeighableProductModal } from './WeighableProductModal';
+import { ProductConsultantModal } from '../inventory/ProductConsultantModal';
 import {
   X,
   RotateCcw,
@@ -48,8 +49,10 @@ import {
 
 interface SalesViewProps {
   onOpenScanner?: () => void;
+  onOpenConsultant?: () => void;
   scannedBarcode?: string;
   refreshTrigger?: number;
+  onCartCountChange?: (count: number) => void;
 }
 
 // Subcomponente para edición libre y reactiva de cantidad de ítem en el carrito
@@ -102,14 +105,18 @@ const CartQuantityInput: React.FC<{
 
 export const SalesView: React.FC<SalesViewProps> = ({
   onOpenScanner,
+  onOpenConsultant,
   scannedBarcode,
-  refreshTrigger
+  refreshTrigger,
+  onCartCountChange
 }) => {
   const { theme, themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { isReadOnly, currentUser, isSuperAdmin, isAdmin } = useAuth();
 
   const [activeSubTab, setActiveSubTab] = useState<'pos' | 'history'>('pos');
+  const [mobilePosTab, setMobilePosTab] = useState<'catalog' | 'cart'>('catalog');
+  const [isConsultantOpen, setIsConsultantOpen] = useState(false);
 
   // Perfil de Rubro y Servicios Contextuales de la Empresa
   const currentRubro = React.useMemo(() => {
@@ -356,6 +363,10 @@ export const SalesView: React.FC<SalesViewProps> = ({
       return [...prev, saleItem];
     });
   };
+
+  useEffect(() => {
+    onCartCountChange?.(cart.reduce((a, b) => a + b.quantity, 0));
+  }, [cart, onCartCountChange]);
 
   const handleAddToCart = (product: Product, forceChoice?: 'NORMAL' | 'OFFER', requestedQty: number = 1) => {
     if (isReadOnly) return;
@@ -895,7 +906,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch flex-1 h-full min-h-0 overflow-hidden">
           
           {/* Columna Izquierda: Encabezado -> Buscador -> Categorías + 9 Favoritos en 1 sola línea -> Tarjetas */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden">
+          <div className={`lg:col-span-7 xl:col-span-8 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-16 lg:pb-0`}>
             
             {/* 1. ENCABEZADO POS */}
             <div className={`p-2.5 sm:p-3 rounded-2xl border ${themeClasses.card} shadow-xs flex flex-wrap items-center justify-between gap-2`}>
@@ -1117,7 +1128,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
           </div>
 
           {/* Columna Derecha: Carrito de Venta - Alargado hacia Abajo */}
-          <div className="lg:col-span-5 xl:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className={`lg:col-span-5 xl:col-span-4 ${mobilePosTab === 'cart' ? 'flex' : 'hidden lg:flex'} flex-col h-full min-h-0 overflow-hidden pb-16 lg:pb-0`}>
             <div className={`rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} shadow-xl p-3 sm:p-3.5 flex flex-col justify-between h-full min-h-[460px] sticky top-0`}>
               
               {/* Header del Carrito */}

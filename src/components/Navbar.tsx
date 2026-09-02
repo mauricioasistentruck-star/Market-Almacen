@@ -4,6 +4,7 @@ import { useCompany } from '../utils/companyContext';
 import { useAuth } from '../utils/authContext';
 import {
   ShoppingCart,
+  Search,
   FileSpreadsheet,
   BarChart3,
   Package,
@@ -31,6 +32,7 @@ export type TabType = 'sales' | 'inventory' | 'guides' | 'purchases' | 'mermas' 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
+  onOpenConsultant?: () => void;
   onOpenScanner?: () => void;
   onOpenCompanies?: () => void;
   onOpenUserManager?: () => void;
@@ -44,6 +46,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  onOpenConsultant,
   onOpenCompanies,
   onOpenUserManager,
   onOpenBackup,
@@ -53,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { theme, setTheme, themeClasses } = useTheme();
   const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany } = useCompany();
-  const { currentUser, isSuperAdmin, isAdmin, isVentas, logout } = useAuth();
+  const { currentUser, isSuperAdmin, isAdmin, isVentas, isBodega, permissions, logout } = useAuth();
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCompanyMenuOpen, setIsCompanyMenuOpen] = useState(false);
@@ -88,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className={`sticky top-0 z-40 w-full border-b ${themeClasses.border} ${themeClasses.card} shadow-sm backdrop-blur-md transition-colors duration-200`}>
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-6">
-        <div className="flex items-center justify-between h-16 gap-3">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
           
           {/* Logo & App Title */}
           <div className="flex items-center gap-2.5 shrink-0">
@@ -145,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setIsUserMenuOpen(false);
                     setIsThemeMenuOpen(false);
                   }}
-                  className="h-10 flex items-center gap-2 px-3 rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-950/50 text-xs font-black text-purple-900 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition shadow-sm max-w-[170px] lg:max-w-[240px] whitespace-nowrap cursor-pointer"
+                  className="h-9 sm:h-10 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-950/50 text-xs font-black text-purple-900 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition shadow-sm max-w-[120px] sm:max-w-[170px] lg:max-w-[240px] whitespace-nowrap cursor-pointer"
                   title="Superadmin: Cambiar o Gestionar Empresas"
                 >
                   <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
@@ -202,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               /* Indicador visual fijo de la empresa para Administradores y Personal (Sin permiso de cambio) */
               <div
-                className="h-10 flex items-center gap-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-xs font-black text-slate-800 dark:text-slate-200 max-w-[160px] lg:max-w-[220px] whitespace-nowrap shadow-sm select-none"
+                className="h-9 sm:h-10 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-xs font-black text-slate-800 dark:text-slate-200 max-w-[110px] sm:max-w-[160px] lg:max-w-[220px] whitespace-nowrap shadow-sm select-none"
                 title={`Empresa Activa: ${selectedCompany?.name || 'Bodega'}`}
               >
                 <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -213,6 +216,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             
+
+            {/* Consultor Rápido en Móvil */}
+            {permissions.priceConsultant && onOpenConsultant && (
+              <button
+                type="button"
+                onClick={onOpenConsultant}
+                className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition shadow-xs cursor-pointer"
+                title="Consultor de Precios y Stock"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Tema Switcher */}
             <div className="relative">

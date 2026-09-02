@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isSuperAdmin = currentUser?.role === 'SUPERADMIN' || currentUser?.username?.toLowerCase() === 'mauricio';
+  const isSuperAdmin = currentUser?.role === 'SUPERADMIN';
   const isAdmin = isSuperAdmin || currentUser?.role === 'ADMIN';
   const isVentas = currentUser?.role === 'VENTAS';
   const isReadOnly = false;

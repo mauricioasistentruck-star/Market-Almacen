@@ -1,10 +1,11 @@
 import { useBodyScrollLock } from '../../utils/scrollLock';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
-import type { Sale, SaleItem } from '../../types';
+import type { Sale, SaleItem, SiiConfig } from '../../types';
 import {
   formatCLP,
   formatRut,
@@ -13,7 +14,7 @@ import {
   generateSaleInvoicePDF,
   generateSaleThermalTicketPDF
 } from '../../utils/salesPdfGenerator';
-import { downloadPDF } from '../../utils/pdfGenerator';
+import { downloadPDF, printPDF } from '../../utils/pdfGenerator';
 import {
   Receipt,
   FileText,
@@ -28,7 +29,11 @@ import {
   Calendar,
   AlertTriangle,
   RotateCcw,
-  Trash2
+  Trash2,
+  ArrowRight,
+  Sparkles,
+  Building2,
+  Layers
 } from 'lucide-react';
 
 interface SaleDetailsModalProps {
@@ -49,7 +54,7 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
   useBodyScrollLock(Boolean(isOpen));
   const { themeClasses } = useTheme();
   const { selectedCompany } = useCompany();
-  const { currentUser } = useAuth();
+  const { currentUser, isSuperAdmin, isAdmin } = useAuth();
 
   const [currentSale, setCurrentSale] = useState<Sale | null>(initialSale);
 
@@ -72,24 +77,71 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
 
   const sale = currentSale;
 
-  const handlePrintTicket = async () => {
-    const config = await db.siiConfigs.where('companyId').equals(sale.companyId).first();
-    const doc = generateSaleThermalTicketPDF(sale, selectedCompany, config);
-    if (onPreviewPDF) {
-      onPreviewPDF(doc, `Ticket - ${sale.folio}`, `Ticket_${sale.folio}.pdf`);
-    } else {
-      downloadPDF(doc, `Ticket_${sale.folio}.pdf`);
+  // Precarga sincrónica de configuración SII
+  const [siiConfig, setSiiConfig] = useState<SiiConfig | null>(null);
+  const [printMode, setPrintMode] = useState<'THERMAL' | 'DTE' | null>(null);
+
+  useEffect(() => {
+    if (sale?.companyId) {
+      db.siiConfigs.where('companyId').equals(sale.companyId).first().then(cfg => {
+        if (cfg) setSiiConfig(cfg);
+      });
     }
+  }, [sale?.companyId]);
+
+  // Listener para restaurar estado tras impresión
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setPrintMode(null);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const handlePrintTicket = () => {
+    const config = siiConfig || undefined;
+    
+    // 1. Generar documento PDF y descargarlo automáticamente (garantía universal)
+    try {
+      const doc = generateSaleThermalTicketPDF(sale, selectedCompany, config);
+      downloadPDF(doc, `Ticket_${sale.folio || 'venta'}.pdf`);
+    } catch (err) {
+      console.error('Error al generar PDF del ticket:', err);
+    }
+
+    // 2. Disparar cuadro de impresión nativo del navegador (window.print)
+    setPrintMode('THERMAL');
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch (err) {
+        console.warn('window.print no disponible:', err);
+      }
+      setTimeout(() => setPrintMode(null), 1500);
+    }, 100);
   };
 
-  const handlePrintInvoice = async () => {
-    const config = await db.siiConfigs.where('companyId').equals(sale.companyId).first();
-    const doc = generateSaleInvoicePDF(sale, selectedCompany, config);
-    if (onPreviewPDF) {
-      onPreviewPDF(doc, `DTE - ${sale.folio}`, `Documento_${sale.folio}.pdf`);
-    } else {
-      downloadPDF(doc, `Documento_${sale.folio}.pdf`);
+  const handlePrintInvoice = () => {
+    const config = siiConfig || undefined;
+
+    // 1. Generar documento PDF oficial DTE y descargarlo automáticamente (garantía universal)
+    try {
+      const doc = generateSaleInvoicePDF(sale, selectedCompany, config);
+      downloadPDF(doc, `DTE_${sale.folio || 'documento'}.pdf`);
+    } catch (err) {
+      console.error('Error al generar PDF de factura/boleta:', err);
     }
+
+    // 2. Disparar cuadro de impresión nativo del navegador (window.print)
+    setPrintMode('DTE');
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch (err) {
+        console.warn('window.print no disponible:', err);
+      }
+      setTimeout(() => setPrintMode(null), 1500);
+    }, 100);
   };
 
   // Validar clave de administrador
@@ -287,9 +339,18 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
     }
   };
 
+  const emisorRut = formatRut(siiConfig?.rutEmisor || selectedCompany?.rut || '76.123.456-7');
+  const emisorNombre = (siiConfig?.razonSocial || selectedCompany?.name || 'MARKET ALMACÉN SpA').toUpperCase();
+  const emisorGiro = siiConfig?.giro || selectedCompany?.industry || 'VENTA AL POR MENOR EN ALMACENES Y MINIMARKET';
+  const emisorDir = siiConfig?.direccionOrigen || selectedCompany?.address || 'Av. Principal 1234';
+  const emisorComuna = siiConfig?.comunaOrigen || 'Santiago';
+  const dteLabel = getDteLabel(sale.dteType);
+  const payLabel = getPaymentMethodLabel(sale.paymentMethod);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className={`w-full max-w-2xl rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn max-h-[92vh]`}>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className={`w-full max-w-3xl rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn max-h-[92vh]`}>
         
         {/* Header con Alto Contraste */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/90 shrink-0">
@@ -591,71 +652,482 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
             </div>
           )}
 
-          {/* Totales con Alto Contraste */}
-          <div className="p-4 rounded-2xl bg-slate-900 dark:bg-slate-950 border-2 border-slate-800 space-y-2 text-xs text-white shadow-md">
-            <div className="flex justify-between items-center text-slate-300">
-              <span className="font-bold">Monto Neto:</span>
-              <span className="font-mono font-black text-sm text-white">{formatCLP(sale.subtotalNeto)}</span>
+          {/* Tarjeta de Resumen Financiero y Totales */}
+          <div className="p-4 rounded-3xl bg-slate-900 dark:bg-slate-950 border-2 border-slate-800 space-y-2.5 text-xs text-white shadow-lg">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span className="font-black text-slate-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <Receipt className="w-4 h-4 text-amber-400" />
+                Resumen de Totales Fiscales
+              </span>
+              <span className="font-mono text-xs text-slate-400 font-bold">Folio #{sale.folio}</span>
             </div>
-            <div className="flex justify-between items-center text-slate-300">
-              <span className="font-bold">19% I.V.A.:</span>
-              <span className="font-mono font-black text-sm text-white">{formatCLP(sale.iva)}</span>
-            </div>
-            {sale.discountTotal ? (
-              <div className="flex justify-between items-center text-emerald-400 font-bold">
-                <span>Descuento Aplicado:</span>
-                <span className="font-mono font-black text-sm">-{formatCLP(sale.discountTotal)}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+              <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Monto Neto</p>
+                <p className="text-sm font-black font-mono text-white">{formatCLP(sale.subtotalNeto)}</p>
               </div>
-            ) : null}
-            <div className="pt-2.5 border-t border-slate-700 flex justify-between items-baseline">
-              <span className="text-sm sm:text-base font-black text-white uppercase tracking-wide">TOTAL PAGADO:</span>
+              <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">19% I.V.A.</p>
+                <p className="text-sm font-black font-mono text-white">{formatCLP(sale.iva)}</p>
+              </div>
+              <div className="col-span-2 sm:col-span-1 p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Descuento</p>
+                <p className="text-sm font-black font-mono text-emerald-400">
+                  {sale.discountTotal ? `-${formatCLP(sale.discountTotal)}` : '$0'}
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-800 flex justify-between items-baseline">
+              <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">TOTAL A PAGAR:</span>
               <span className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{formatCLP(sale.total)}</span>
             </div>
           </div>
 
-        </div>
+          {/* ========================================================================= */}
+          {/* SECCIÓN DE OPCIONES Y ACCIONES CON FORMA DE TARJETAS                      */}
+          {/* ========================================================================= */}
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Opciones y Acciones del Documento</span>
+              </h3>
+              <span className="text-[10.5px] font-bold text-slate-500">Selecciona una tarjeta para proceder</span>
+            </div>
 
-        {/* Footer Actions */}
-        <div className="px-5 py-3 border-t-2 border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-100 dark:bg-slate-900/90 shrink-0">
-          <div>
-            {sale.status !== 'ANULADA' && !annulMode && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Tarjeta de Opción 1: Ticket Térmico POS */}
               <button
                 type="button"
-                onClick={() => {
-                  setAnnulMode('TOTAL');
-                  setAnnulReason('Cliente desistió de la compra completa');
-                  setAdminPassword('');
-                }}
-                className="px-3.5 py-2 rounded-xl text-xs font-black text-red-700 dark:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-950/50 border-2 border-red-500 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                onClick={handlePrintTicket}
+                className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
               >
-                <Ban className="w-4 h-4 stroke-[2.5]" />
-                <span>Anular Venta Completa</span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <Printer className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      Ticket Térmico POS
+                    </p>
+                    <span className="text-[10px] font-black font-mono text-blue-600 dark:text-blue-400">80mm</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                    Imprimir voucher de caja térmica o descargar ticket en formato estándar de rollo.
+                  </p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
+                    <span>Imprimir Comprobante</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                  </div>
+                </div>
               </button>
-            )}
+
+              {/* Tarjeta de Opción 2: Documento Oficial SII (DTE) */}
+              <button
+                type="button"
+                onClick={handlePrintInvoice}
+                className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
+                      Documento Oficial SII
+                    </p>
+                    <span className="text-[10px] font-black font-mono text-amber-600 dark:text-amber-400">PDF A4</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                    Generar boleta o factura reglamentaria con timbre electrónico TED para el cliente.
+                  </p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-amber-600 dark:text-amber-400">
+                    <span>Descargar PDF Tributario</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                  </div>
+                </div>
+              </button>
+
+              {/* Tarjeta de Opción 3: Anulación Total y Devolución a Bodega */}
+              {sale.status !== 'ANULADA' && !annulMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnnulMode('TOTAL');
+                    setAnnulReason('Cliente desistió de la compra completa');
+                    setAdminPassword('');
+                  }}
+                  className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-red-500 dark:hover:border-red-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Ban className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-red-600 dark:group-hover:text-red-400 transition">
+                        Anular Venta Completa
+                      </p>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300">Stock</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                      Anular documento y reponer automáticamente todos los artículos al inventario.
+                    </p>
+                    <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-red-600 dark:text-red-400">
+                      <span>Solicitar Anulación</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* Tarjeta de Opción 4: Eliminar Documento (Administrador) */}
+              {(isSuperAdmin || currentUser?.role === 'SUPERADMIN' || isAdmin || currentUser?.role === 'ADMIN') && !annulMode && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm(`¿Está seguro de ELIMINAR DEFINITIVAMENTE la venta ${sale.folio ? '#' + sale.folio : ''} del historial?\n\nEsta acción eliminará el documento de la base de datos permanentemente.`)) return;
+                    await db.sales.delete(sale.id!);
+                    if (onSaleUpdated) onSaleUpdated();
+                    onClose();
+                  }}
+                  className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-rose-500 dark:hover:border-rose-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                    <Trash2 className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition">
+                        Eliminar Registro
+                      </p>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">Admin</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                      Remover este documento permanentemente del historial del sistema.
+                    </p>
+                    <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-rose-600 dark:text-rose-400">
+                      <span>Eliminar Definitivamente</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePrintTicket}
-              className="px-4 py-2 rounded-xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-white border-2 border-slate-700 shadow-sm transition flex items-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <Printer className="w-4 h-4 text-orange-400" />
-              <span>Ticket Térmico (80mm)</span>
-            </button>
+        </div>
 
-            <button
-              type="button"
-              onClick={handlePrintInvoice}
-              className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <FileText className="w-4 h-4" />
-              <span>DTE Oficial (Carta / PDF)</span>
-            </button>
-          </div>
+        {/* Footer simple para cerrar */}
+        <div className="px-5 py-3 border-t-2 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/95 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl text-xs font-black bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition cursor-pointer active:scale-95"
+          >
+            Cerrar Ventana
+          </button>
         </div>
 
       </div>
     </div>
+
+    {/* ========================================================================= */}
+    {/* PORTAL DE IMPRESIÓN DIRECTA MONTADO DIRECTAMENTE EN DOCUMENT.BODY         */}
+    {/* Libre de offsets de modales, flexbox, transforms o scrolls               */}
+    {/* ========================================================================= */}
+    {printMode && typeof document !== 'undefined' && createPortal(
+      <>
+        {printMode === 'THERMAL' && (
+          <div id="market-print-portal" className="thermal-mode">
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{emisorNombre}</div>
+              <div style={{ fontSize: '11px', fontWeight: 'bold' }}>RUT: {emisorRut}</div>
+              <div style={{ fontSize: '10px' }}>{emisorGiro}</div>
+              <div style={{ fontSize: '10px' }}>{emisorDir}, {emisorComuna}</div>
+            </div>
+
+            <div style={{ borderTop: '2px dashed #000', margin: '6px 0' }} />
+
+            <div style={{ textAlign: 'center', margin: '4px 0' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{dteLabel}</div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold' }}>N° {sale.folio || 'S/F'}</div>
+              <div style={{ fontSize: '10px' }}>Fecha: {sale.date} {sale.time || ''}</div>
+              <div style={{ fontSize: '10px' }}>Atendido por: {sale.sellerName || 'Cajero'}</div>
+            </div>
+
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+
+            <div style={{ fontSize: '10px', marginBottom: '6px' }}>
+              <div><strong>Cliente:</strong> {sale.customerName || 'Cliente General'}</div>
+              {sale.customerRut && <div><strong>RUT:</strong> {formatRut(sale.customerRut)}</div>}
+              <div><strong>Medio Pago:</strong> {payLabel}</div>
+            </div>
+
+            {/* TIMBRE ROJO DE ANULADO EN TICKET TÉRMICO */}
+            {sale.status === 'ANULADA' && (
+              <div
+                style={{
+                  margin: '8px auto',
+                  padding: '6px 8px',
+                  border: '3px solid #dc2626',
+                  borderRadius: '6px',
+                  color: '#dc2626',
+                  textAlign: 'center',
+                  fontWeight: '900',
+                  backgroundColor: '#fef2f2'
+                }}
+              >
+                <div style={{ fontSize: '18px', letterSpacing: '3px', textTransform: 'uppercase', lineHeight: '1.1' }}>
+                  ANULADO
+                </div>
+                <div style={{ fontSize: '9px', fontWeight: 'bold', marginTop: '2px', letterSpacing: '0.5px' }}>
+                  DOCUMENTO ANULADO - SIN VALOR
+                </div>
+              </div>
+            )}
+
+            <div style={{ borderTop: '2px solid #000', margin: '6px 0' }} />
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #000' }}>
+                  <th style={{ textAlign: 'left', paddingBottom: '3px' }}>PRODUCTO</th>
+                  <th style={{ textAlign: 'center', paddingBottom: '3px' }}>CANT</th>
+                  <th style={{ textAlign: 'right', paddingBottom: '3px' }}>TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sale.items.map((item, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px dotted #ccc' }}>
+                    <td style={{ padding: '3px 0' }}>{item.productName || (item as any).name || (item as any).description || 'Producto General'}</td>
+                    <td style={{ textAlign: 'center', padding: '3px 0' }}>{item.quantity}</td>
+                    <td style={{ textAlign: 'right', padding: '3px 0' }}>{formatCLP(item.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{ borderTop: '1px solid #000', margin: '6px 0' }} />
+
+            <table style={{ width: '100%', fontSize: '11px' }}>
+              <tbody>
+                <tr>
+                  <td>Monto Neto:</td>
+                  <td style={{ textAlign: 'right' }}>{formatCLP(sale.subtotalNeto || Math.round(sale.total / 1.19))}</td>
+                </tr>
+                <tr>
+                  <td>19% I.V.A.:</td>
+                  <td style={{ textAlign: 'right' }}>{formatCLP(sale.iva || (sale.total - Math.round(sale.total / 1.19)))}</td>
+                </tr>
+                {sale.paymentMethod === 'EFECTIVO' && sale.roundingDifference ? (
+                  <>
+                    <tr>
+                      <td>Total Venta:</td>
+                      <td style={{ textAlign: 'right' }}>{formatCLP(sale.total)}</td>
+                    </tr>
+                    <tr>
+                      <td>Ley Redondeo (Efectivo):</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {sale.roundingDifference > 0 ? `+$${sale.roundingDifference}` : `-$${Math.abs(sale.roundingDifference)}`}
+                      </td>
+                    </tr>
+                    <tr style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                      <td style={{ paddingTop: '5px' }}>TOTAL EFECTIVO:</td>
+                      <td style={{ textAlign: 'right', paddingTop: '5px' }}>{formatCLP(sale.cashRoundedTotal || (sale.total + sale.roundingDifference))}</td>
+                    </tr>
+                  </>
+                ) : (
+                  <tr style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                    <td style={{ paddingTop: '5px' }}>TOTAL PAGADO:</td>
+                    <td style={{ textAlign: 'right', paddingTop: '5px' }}>{formatCLP(sale.total)}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <div style={{ borderTop: '1px dashed #000', margin: '8px 0 6px 0' }} />
+
+            <div style={{ textAlign: 'center', fontSize: '9.5px' }}>
+              <div style={{ fontWeight: 'bold' }}>Timbre Electrónico SII</div>
+              <div>Res. Ex. N° 80 de 2014 - Verifique documento en www.sii.cl</div>
+              {sale.status === 'ANULADA' ? (
+                <div style={{ marginTop: '4px', color: '#dc2626', fontWeight: 'bold' }}>
+                  *** DOCUMENTO ANULADO ***
+                </div>
+              ) : (
+                <div style={{ marginTop: '4px' }}>¡Gracias por su compra!</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {printMode === 'DTE' && (
+          <div id="market-print-portal" className="dte-mode">
+            <div style={{ flex: '1 0 auto' }}>
+              {/* Encabezado Emisor y Caja Roja SII */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px', marginBottom: '12px' }}>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 3px 0', color: '#0f172a' }}>{emisorNombre}</h2>
+                  <p style={{ margin: '1px 0', fontSize: '11.5px', color: '#475569' }}><strong>R.U.T.:</strong> {emisorRut}</p>
+                  <p style={{ margin: '1px 0', fontSize: '11.5px', color: '#475569' }}><strong>Giro:</strong> {emisorGiro}</p>
+                  <p style={{ margin: '1px 0', fontSize: '11.5px', color: '#475569' }}><strong>Dirección:</strong> {emisorDir}, {emisorComuna}</p>
+                  <p style={{ margin: '1px 0', fontSize: '11.5px', color: '#475569' }}><strong>Teléfono:</strong> {selectedCompany?.phone || '+56 9 1234 5678'}</p>
+                </div>
+
+                {/* Recuadro Rojo Reglamentario SII */}
+                <div style={{ border: '3px solid #dc2626', padding: '8px 16px', textAlign: 'center', width: '250px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 'bold', color: '#dc2626' }}>R.U.T.: {emisorRut}</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 'bold', color: '#dc2626', margin: '3px 0' }}>{dteLabel}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc2626' }}>N° {sale.folio || 'S/F'}</div>
+                  <div style={{ fontSize: '10px', color: '#dc2626', marginTop: '3px', fontWeight: 'bold' }}>S.I.I. - SANTIAGO CENTRO</div>
+                </div>
+              </div>
+
+              {/* TIMBRE ROJO DE ANULADO EN DTE CARTA */}
+              {sale.status === 'ANULADA' && (
+                <div
+                  style={{
+                    margin: '0 auto 12px auto',
+                    padding: '8px 28px',
+                    border: '3.5px solid #dc2626',
+                    borderRadius: '8px',
+                    color: '#dc2626',
+                    textAlign: 'center',
+                    fontWeight: '900',
+                    backgroundColor: '#fef2f2',
+                    width: 'fit-content'
+                  }}
+                >
+                  <div style={{ fontSize: '24px', letterSpacing: '6px', textTransform: 'uppercase', lineHeight: '1.1' }}>
+                    ANULADO
+                  </div>
+                  <div style={{ fontSize: '10.5px', fontWeight: 'bold', letterSpacing: '1px', marginTop: '2px', color: '#b91c1c' }}>
+                    OPERACIÓN ANULADA EN SISTEMA — SIN VALOR TRIBUTARIO NI LEGAL
+                  </div>
+                </div>
+              )}
+
+              {/* Datos del Receptor / Cliente */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', backgroundColor: '#f8fafc' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11.5px' }}>
+                  <div><strong>Señor(es):</strong> {sale.customerName || 'Cliente General'}</div>
+                  <div><strong>R.U.T.:</strong> {formatRut(sale.customerRut) || '66.666.666-6'}</div>
+                  <div><strong>Fecha Emisión:</strong> {sale.date} {sale.time || ''}</div>
+                  <div><strong>Forma de Pago:</strong> {payLabel}</div>
+                  <div><strong>Vendedor / Atendido por:</strong> {sale.sellerName || 'Mauricio Chamorro'}</div>
+                  <div><strong>Dirección / Ciudad:</strong> {sale.customerAddress || 'Santiago, Chile'}</div>
+                </div>
+              </div>
+
+              {/* Tabla de Productos */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px', fontSize: '11.5px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#0f172a', color: '#ffffff' }}>
+                    <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #0f172a' }}>Cód. / SKU</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #0f172a' }}>Descripción del Producto</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #0f172a' }}>Cant.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #0f172a' }}>Precio Unit.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #0f172a' }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sale.items.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                      <td style={{ padding: '6px 8px', fontFamily: 'monospace', fontSize: '11px', border: '1px solid #e2e8f0' }}>{item.productId || 'SKU'}</td>
+                      <td style={{ padding: '6px 8px', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>{item.productName || (item as any).name || (item as any).description || 'Producto General'}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>{item.quantity}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e2e8f0' }}>{formatCLP(item.unitPrice)}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>{formatCLP(item.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* TIMBRE CENTRAL ANULADO (CUADRO ROJO Y LETRAS ROJAS) */}
+            {sale.status === 'ANULADA' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '46%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) rotate(-18deg)',
+                  border: '6px solid #dc2626',
+                  borderRadius: '12px',
+                  padding: '14px 44px',
+                  color: '#dc2626',
+                  fontSize: '52px',
+                  fontWeight: '900',
+                  letterSpacing: '10px',
+                  textTransform: 'uppercase',
+                  backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                  zIndex: 20,
+                  pointerEvents: 'none',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.15)'
+                }}
+              >
+                ANULADO
+              </div>
+            )}
+
+            {/* ======================================================= */}
+            {/* PIE DE PÁGINA REGLAMENTARIO FIJADO AL FINAL (BOTTOM)    */}
+            {/* Timbre Electrónico TED (Izquierda) + Totales (Derecha)  */}
+            {/* ======================================================= */}
+            <div style={{ marginTop: 'auto', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', pageBreakInside: 'avoid' }}>
+              {/* Timbre Electrónico TED Oficial */}
+              <div style={{ border: '2.5px solid #dc2626', borderRadius: '8px', padding: '8px 12px', width: '53%', textAlign: 'center', color: '#dc2626' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Timbre Electrónico D.T.E. del Servicio de Impuestos Internos</div>
+                <div style={{ fontSize: '9px', margin: '3px 0' }}>Res. Ex. N° 80 de 2014 - Verifique documento: www.sii.cl</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '8px', wordBreak: 'break-all', backgroundColor: '#fff5f5', padding: '4px 6px', border: '1px dashed #dc2626', borderRadius: '4px', margin: '4px 0' }}>
+                  TED: &lt;TED version="1.0"&gt;&lt;DD&gt;&lt;RE&gt;{emisorRut}&lt;/RE&gt;&lt;TD&gt;39&lt;/TD&gt;&lt;F&gt;{sale.folio}&lt;/F&gt;&lt;FE&gt;{sale.date}&lt;/FE&gt;&lt;RR&gt;{formatRut(sale.customerRut) || '66.666.666-6'}&lt;/RR&gt;&lt;MNT&gt;{sale.total}&lt;/MNT&gt;&lt;/DD&gt;&lt;/TED&gt;
+                </div>
+                <div style={{ fontSize: '9.5px', fontWeight: 'bold' }}>Acuse de recibo conforme Art. 4° y 5° Ley N° 19.983</div>
+              </div>
+
+              {/* Recuadro de Totales Financieros Oficiales */}
+              <table style={{ width: '43%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#334155' }}>Monto Neto:</td>
+                    <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>{formatCLP(sale.subtotalNeto || Math.round(sale.total / 1.19))}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#334155' }}>19% I.V.A.:</td>
+                    <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>{formatCLP(sale.iva || (sale.total - Math.round(sale.total / 1.19)))}</td>
+                  </tr>
+                  {sale.paymentMethod === 'EFECTIVO' && sale.roundingDifference ? (
+                    <>
+                      <tr>
+                        <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#334155' }}>Subtotal Venta:</td>
+                        <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>{formatCLP(sale.total)}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', fontWeight: 'bold', backgroundColor: '#fef3c7', color: '#92400e' }}>Ley de Redondeo (Efectivo):</td>
+                        <td style={{ padding: '5px 8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: '#92400e' }}>
+                          {sale.roundingDifference > 0 ? `+$${sale.roundingDifference}` : `-$${Math.abs(sale.roundingDifference)}`}
+                        </td>
+                      </tr>
+                      <tr style={{ borderTop: '2px solid #0f172a', borderBottom: '2px solid #0f172a', backgroundColor: '#f1f5f9' }}>
+                        <td style={{ padding: '7px 8px', border: '2px solid #0f172a', color: '#0f172a', backgroundColor: '#f1f5f9', fontWeight: '900', fontSize: '13.5px' }}>TOTAL A PAGAR:</td>
+                        <td style={{ padding: '7px 8px', border: '2px solid #0f172a', textAlign: 'right', color: '#0f172a', backgroundColor: '#f1f5f9', fontWeight: '900', fontSize: '16px' }}>{formatCLP(sale.cashRoundedTotal || (sale.total + sale.roundingDifference))}</td>
+                      </tr>
+                    </>
+                  ) : (
+                    <tr style={{ borderTop: '2px solid #0f172a', borderBottom: '2px solid #0f172a', backgroundColor: '#f1f5f9' }}>
+                      <td style={{ padding: '7px 8px', border: '2px solid #0f172a', color: '#0f172a', backgroundColor: '#f1f5f9', fontWeight: '900', fontSize: '13.5px' }}>TOTAL A PAGAR:</td>
+                      <td style={{ padding: '7px 8px', border: '2px solid #0f172a', textAlign: 'right', color: '#0f172a', backgroundColor: '#f1f5f9', fontWeight: '900', fontSize: '16px' }}>{formatCLP(sale.total)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </>,
+      document.body
+    )}
+  </>
   );
 };

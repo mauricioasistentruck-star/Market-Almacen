@@ -10,6 +10,7 @@ import { naturalLocationSort } from '../../utils/sortingUtils';
 import { exportProductsInventoryExcel } from '../../utils/excelExporter';
 import { BarcodePrintModal } from './BarcodePrintModal';
 import { ProductDetailModal } from './ProductDetailModal';
+import { ProductMovementsHistoryModal } from './ProductMovementsHistoryModal';
 import {
   Boxes,
   Plus,
@@ -23,7 +24,8 @@ import {
   ChevronRight,
   MapPin,
   Tag,
-  Barcode
+  Barcode,
+  History
 } from 'lucide-react';
 
 interface ProductListViewProps {
@@ -62,6 +64,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   // Modals state
   const [selectedProductForPhoto, setSelectedProductForPhoto] = useState<Product | null>(null);
   const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
+  const [isMovementsHistoryOpen, setIsMovementsHistoryOpen] = useState(false);
+  const [selectedProductForHistory, setSelectedProductForHistory] = useState<Product | null>(null);
   const [selectedProductForBarcode, setSelectedProductForBarcode] = useState<Product | null>(null);
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
 
@@ -225,7 +229,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         <div className="space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
             <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
-              1. Inventario de Productos y Repuestos
+              1. Inventario de Productos
             </h2>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap shadow-sm">
               {filteredProducts.length.toLocaleString('es-CL')} ítems
@@ -249,6 +253,22 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Nuevo Producto</span>
+            </button>
+          )}
+
+          {/* Movimientos de Stock / Kardex (Exclusivo Administrador) */}
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedProductForHistory(null);
+                setIsMovementsHistoryOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition active:scale-95 whitespace-nowrap cursor-pointer shadow-xs"
+              title="[Exclusivo Administrador] Consultar movimientos históricos de stock y Kardex de todos los productos"
+            >
+              <History className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
+              <span>Movimientos / Kardex</span>
             </button>
           )}
 
@@ -599,7 +619,25 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           setSelectedProductForDetail(null);
           setSelectedProductForPhoto(prod);
         }}
+        onOpenMovementsHistory={(prod) => {
+          setSelectedProductForDetail(null);
+          setSelectedProductForHistory(prod);
+          setIsMovementsHistoryOpen(true);
+        }}
       />
+
+      {/* Modal de Historial de Movimientos / Kardex (Exclusivo Administrador) */}
+      {isMovementsHistoryOpen && (
+        <ProductMovementsHistoryModal
+          isOpen={isMovementsHistoryOpen}
+          onClose={() => {
+            setIsMovementsHistoryOpen(false);
+            setSelectedProductForHistory(null);
+          }}
+          initialProduct={selectedProductForHistory}
+          products={products}
+        />
+      )}
     </div>
   );
 };

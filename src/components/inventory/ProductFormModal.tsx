@@ -1,3 +1,4 @@
+import { getRubroPreset } from '../../utils/rubroPresets';
 import { useBodyScrollLock } from '../../utils/scrollLock';
 import React, { useState, useEffect, useRef } from 'react';
 import type { Product, ItemCondition, ItemCompleteness } from '../../types';
@@ -45,7 +46,6 @@ const CATEGORIES = [
   'Cuidado Personal',
   'Ferretería y Hogar',
   'Insumos y Embalaje',
-  'Filtros y Repuestos',
   'Otros'
 ];
 
@@ -72,8 +72,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 }) => {
   useBodyScrollLock(Boolean(isOpen));
   const { themeClasses } = useTheme();
-  const { companies, selectedCompanyId } = useCompany();
+  const { companies, selectedCompanyId, selectedCompany } = useCompany();
   const { isSuperAdmin, currentUser } = useAuth();
+
+
 
   // Estados del Formulario
   const [code, setCode] = useState('');
@@ -83,6 +85,32 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [companyId, setCompanyId] = useState(() => 
     selectedCompanyId !== 'ALL' ? selectedCompanyId : (currentUser?.companyId || companies[0]?.id || '')
   );
+
+  // Contexto dinámico de Rubro y Empresa activa
+  const activeCompany = React.useMemo(() => {
+    if (companyId && companyId !== 'ALL') {
+      return companies.find(c => c.id === companyId) || selectedCompany;
+    }
+    return selectedCompany;
+  }, [companyId, companies, selectedCompany]);
+
+  const activeRubro = React.useMemo(() => {
+    return getRubroPreset(activeCompany?.rubroKey);
+  }, [activeCompany?.rubroKey]);
+
+  const availableCategories = React.useMemo(() => {
+    if (activeCompany?.customCategories && activeCompany.customCategories.length > 0) {
+      return activeCompany.customCategories;
+    }
+    return activeRubro.categories;
+  }, [activeCompany?.customCategories, activeRubro]);
+
+  const availableUnits = React.useMemo(() => {
+    if (activeCompany?.customUnits && activeCompany.customUnits.length > 0) {
+      return activeCompany.customUnits;
+    }
+    return activeRubro.units;
+  }, [activeCompany?.customUnits, activeRubro]);
   const [location, setLocation] = useState('');
   const [stock, setStock] = useState<number | string>('');
   const [minStock, setMinStock] = useState<number | string>(5);
@@ -119,7 +147,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       // Modo Nuevo Producto
       setCode(initialBarcode || generateProductBarcode());
       setName('');
-      setCategory('Abarrotes');
+      setCategory(availableCategories[0] || 'General');
       setBrand('');
       setCompanyId(selectedCompanyId !== 'ALL' ? selectedCompanyId : (currentUser?.companyId || companies[0]?.id || ''));
       setLocation('');
@@ -402,7 +430,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChange={(e) => setCategory(e.target.value)}
                 className={`w-full px-3 py-2 text-xs font-black rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
               >
-                {CATEGORIES.map((c) => (
+                {availableCategories.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>

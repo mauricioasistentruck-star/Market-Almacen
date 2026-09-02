@@ -43,7 +43,7 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
   const { companies, selectedCompanyId } = useCompany();
   const { isReadOnly } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'reception' | 'delivery'>('all');
+  const [activeTab, setActiveTab] = useState<'reception' | 'delivery'>('reception');
   const [receptionGuides, setReceptionGuides] = useState<ReceptionGuide[]>([]);
   const [deliveryGuides, setDeliveryGuides] = useState<DeliveryGuide[]>([]);
   const [search, setSearch] = useState('');
@@ -282,34 +282,30 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
         {/* Tabs */}
         <div className={`flex items-center gap-1 ${themeClasses.cardSubtle} p-1 rounded-xl border ${themeClasses.border} w-full sm:w-auto`}>
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-              activeTab === 'all'
-                ? `${themeClasses.accentBg} text-white shadow-sm`
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Todas ({receptionGuides.length + deliveryGuides.length})
-          </button>
-          <button
             onClick={() => setActiveTab('reception')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
               activeTab === 'reception'
-                ? 'bg-emerald-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-md font-black'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Recepciones ({receptionGuides.length})
+            <span>📥 Recepciones</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'reception' ? 'bg-emerald-700/80 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+              {receptionGuides.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('delivery')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
               activeTab === 'delivery'
-                ? `${themeClasses.accentBg} text-white shadow-sm`
+                ? `${themeClasses.accentBg} text-white shadow-md font-black`
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Entregas ({deliveryGuides.length})
+            <span>📤 Entregas</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'delivery' ? 'bg-blue-700/80 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+              {deliveryGuides.length}
+            </span>
           </button>
         </div>
       </div>
@@ -320,7 +316,7 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
       ) : (
         <div className="space-y-6">
           {/* RECEPTION GUIDES LIST */}
-          {(activeTab === 'all' || activeTab === 'reception') && (
+          {activeTab === 'reception' && (
             <div className="space-y-2.5">
               <h4 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 px-1">
                 <FileCheck className="w-4 h-4" />
@@ -336,59 +332,74 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
                   {filteredReceptions.map((g) => (
                     <div
                       key={g.id}
-                      className={`p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40 transition flex flex-col justify-between space-y-3`}
+                      className="p-4 rounded-3xl border-2 border-emerald-400/80 dark:border-emerald-600/80 bg-white dark:bg-slate-900 shadow-md hover:shadow-lg transition flex flex-col justify-between space-y-3"
                     >
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-mono font-black text-emerald-400">{g.folio}</span>
+                              <span className="text-sm font-mono font-black text-emerald-700 dark:text-emerald-400">{g.folio}</span>
                               {g.linkedFolio && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-0.5">
+                                <span className="px-2 py-0.5 rounded text-[9.5px] font-black bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700 flex items-center gap-0.5">
                                   <LinkIcon className="w-2.5 h-2.5" />
                                   {g.linkedFolio}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                              <Calendar className="w-3 h-3 text-slate-500" />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
                               {new Date(g.date).toLocaleString('es-CL')}
                             </span>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            Recepción Conforme
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-xs">
+                            ✓ Recepción Conforme
                           </span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1 text-xs">
-                          <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-semibold">
-                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1 text-xs">
+                          <div className="flex items-center gap-2 text-slate-950 dark:text-white font-black text-sm">
+                            <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span className="truncate">{g.supplierOrCarrierName}</span>
                           </div>
                           {g.companyName && (
-                            <div className="text-[11px] text-slate-400 pl-5 flex items-center gap-1 truncate">
-                              <Building2 className="w-3 h-3 text-slate-500" />
+                            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 pl-6 flex items-center gap-1 truncate">
+                              <Building2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                               <span>{g.companyName}</span>
                             </div>
                           )}
-                          {g.carrierRut && <div className="text-[11px] text-slate-400 pl-5 font-mono">RUT: {g.carrierRut}</div>}
-                          
+                          {g.carrierRut && (
+                            <div className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 pl-6">
+                              RUT: {g.carrierRut}
+                            </div>
+                          )}
                           {g.externalDocNumber && (
-                            <div className="text-[11px] text-cyan-400 pl-5 truncate">Doc: {g.externalDocNumber}</div>
+                            <div className="text-xs font-mono font-black text-blue-700 dark:text-cyan-400 pl-6 flex items-center gap-1">
+                              <span className="bg-blue-100 dark:bg-blue-950/80 px-2 py-0.5 rounded border border-blue-300 dark:border-blue-700">
+                                Doc: {g.externalDocNumber}
+                              </span>
+                            </div>
                           )}
                         </div>
 
-                        {/* Items list preview */}
-                        <div className="text-[11px] text-slate-300">
-                          <span className="font-semibold text-slate-400 block mb-0.5">Ítems recibidos ({g.items.length}):</span>
-                          <ul className="space-y-0.5 pl-2 border-l border-slate-800">
+                        {/* Items list preview con alto contraste */}
+                        <div className="p-2.5 rounded-2xl bg-emerald-50/50 dark:bg-slate-800/60 border border-emerald-200 dark:border-slate-700">
+                          <span className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white block mb-1">
+                            Ítems recibidos ({g.items.length}):
+                          </span>
+                          <ul className="space-y-1">
                             {g.items.slice(0, 3).map((it, idx) => (
-                              <li key={idx} className="truncate">
-                                • {it.name} ({it.quantity} {it.unit})
+                              <li key={idx} className="text-xs font-bold text-slate-950 dark:text-white truncate flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0"></span>
+                                <span className="truncate">{it.name}</span>
+                                <span className="text-emerald-800 dark:text-emerald-300 font-mono font-black ml-auto shrink-0 bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.2 rounded">
+                                  {it.quantity} {it.unit}
+                                </span>
                               </li>
                             ))}
                             {g.items.length > 3 && (
-                              <li className="text-[10px] text-slate-500">+ {g.items.length - 3} ítems más...</li>
+                              <li className="text-[11px] font-bold text-slate-600 dark:text-slate-400 pt-0.5">
+                                + {g.items.length - 3} ítems adicionales...
+                              </li>
                             )}
                           </ul>
                         </div>
@@ -407,14 +418,14 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
                           </button>
                           <button
                             onClick={() => handleDownloadRecPDF(g)}
-                            className="p-1 text-slate-400 hover:text-emerald-400 rounded-lg hover:bg-slate-800 transition"
+                            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                             title="Descargar archivo PDF directamente"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handlePrintRecPDF(g)}
-                            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                             title="Imprimir"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -456,8 +467,8 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
                                 <span>Confirmar</span>
                               </button>
                             ) : (
-                              <span className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
-                                <Lock className="w-3 h-3" />
+                              <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-black rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 border-2 border-emerald-500 shadow-xs">
+                                <Lock className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
                                 <span>Confirmada</span>
                               </span>
                             )}
@@ -479,7 +490,7 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
           )}
 
           {/* DELIVERY GUIDES LIST */}
-          {(activeTab === 'all' || activeTab === 'delivery') && (
+          {activeTab === 'delivery' && (
             <div className="space-y-2.5">
               <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 px-1">
                 <Send className="w-4 h-4" />
@@ -495,57 +506,72 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
                   {filteredDeliveries.map((g) => (
                     <div
                       key={g.id}
-                      className={`p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 hover:border-orange-500/40 transition flex flex-col justify-between space-y-3`}
+                      className="p-4 rounded-3xl border-2 border-orange-400/80 dark:border-orange-600/80 bg-white dark:bg-slate-900 shadow-md hover:shadow-lg transition flex flex-col justify-between space-y-3"
                     >
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-mono font-black text-blue-600 dark:text-blue-400">{g.folio}</span>
+                              <span className="text-sm font-mono font-black text-orange-700 dark:text-orange-400">{g.folio}</span>
                               {g.linkedFolio && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-0.5">
+                                <span className="px-2 py-0.5 rounded text-[9.5px] font-black bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700 flex items-center gap-0.5">
                                   <LinkIcon className="w-2.5 h-2.5" />
                                   {g.linkedFolio}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                              <Calendar className="w-3 h-3 text-slate-500" />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
                               {new Date(g.date).toLocaleString('es-CL')}
                             </span>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-orange-300 border border-blue-500/30">
-                            Sin Devolución
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-orange-600 text-white shadow-xs">
+                            ✓ Sin Devolución
                           </span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1 text-xs">
-                          <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-semibold">
-                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1 text-xs">
+                          <div className="flex items-center gap-2 text-slate-950 dark:text-white font-black text-sm">
+                            <User className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
                             <span className="truncate">{g.recipientName}</span>
                           </div>
                           {g.companyName && (
-                            <div className="text-[11px] text-slate-400 pl-5 flex items-center gap-1 truncate">
-                              <Building2 className="w-3 h-3 text-slate-500" />
+                            <div className="text-xs font-bold text-slate-800 dark:text-slate-200 pl-6 flex items-center gap-1 truncate">
+                              <Building2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                               <span>{g.companyName}</span>
                             </div>
                           )}
-                          {g.recipientRut && <div className="text-[11px] text-slate-400 pl-5 font-mono">RUT: {g.recipientRut}</div>}
-                          
-                          <div className="text-[11px] text-slate-400 pl-5 truncate">Destino: {g.worksiteOrReason}</div>
+                          {g.recipientRut && (
+                            <div className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 pl-6">
+                              RUT: {g.recipientRut}
+                            </div>
+                          )}
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 pl-6 flex items-center gap-1 truncate">
+                            <span className="bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-700 truncate">
+                              Destino: {g.worksiteOrReason}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Items list preview */}
-                        <div className="text-[11px] text-slate-300">
-                          <span className="font-semibold text-slate-400 block mb-0.5">Ítems entregados ({g.items.length}):</span>
-                          <ul className="space-y-0.5 pl-2 border-l border-slate-800">
+                        {/* Items list preview con alto contraste */}
+                        <div className="p-2.5 rounded-2xl bg-orange-50/50 dark:bg-slate-800/60 border border-orange-200 dark:border-slate-700">
+                          <span className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white block mb-1">
+                            Ítems entregados ({g.items.length}):
+                          </span>
+                          <ul className="space-y-1">
                             {g.items.slice(0, 3).map((it, idx) => (
-                              <li key={idx} className="truncate">
-                                • {it.name} ({it.quantity} {it.unit})
+                              <li key={idx} className="text-xs font-bold text-slate-950 dark:text-white truncate flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 dark:bg-orange-400 shrink-0"></span>
+                                <span className="truncate">{it.name}</span>
+                                <span className="text-orange-800 dark:text-orange-300 font-mono font-black ml-auto shrink-0 bg-orange-100 dark:bg-orange-950 px-1.5 py-0.2 rounded">
+                                  {it.quantity} {it.unit}
+                                </span>
                               </li>
                             ))}
                             {g.items.length > 3 && (
-                              <li className="text-[10px] text-slate-500">+ {g.items.length - 3} ítems más...</li>
+                              <li className="text-[11px] font-bold text-slate-600 dark:text-slate-400 pt-0.5">
+                                + {g.items.length - 3} ítems adicionales...
+                              </li>
                             )}
                           </ul>
                         </div>
@@ -564,7 +590,7 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
                           </button>
                           <button
                             onClick={() => handleDownloadDelPDF(g)}
-                            className="p-1 text-slate-400 hover:text-blue-600 dark:text-blue-400 rounded-lg hover:bg-slate-800 transition"
+                            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                             title="Descargar archivo PDF directamente"
                           >
                             <Download className="w-3.5 h-3.5" />

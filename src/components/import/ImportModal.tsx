@@ -106,10 +106,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       const sample = [
         {
           'Código': '74829103',
-          'Nombre': 'Filtro de Aceite Camión Volvo FH',
-          'Categoría': 'Filtros',
-          'Código Mann Filter': 'HU 12 110 x',
-          'Marca': 'Mann Filter',
+          'Nombre': 'Bebida Coca-Cola Original 1.5 L',
+          'Categoría': 'Bebidas y Licores',
+          'Código Mann Filter': '',
+          'Marca': 'Coca-Cola',
           'Ubicación': 'Estante A-1',
           'Stock': 20,
           'Stock Mínimo': 0,
@@ -214,7 +214,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       }
       usedCodesInFile.add(code);
 
-      const category = (row['Categoría'] || row['Categoria'] || row['CATEGORIA'] || (importType === 'products' ? 'Repuestos' : 'Manuales')).trim();
+      const category = (row['Categoría'] || row['Categoria'] || row['CATEGORIA'] || (importType === 'products' ? 'Abarrotes' : 'Manuales')).trim();
       const brand = (row['Marca'] || row['MARCA'] || '').trim();
       const mannFilterCode = (row['Código Mann Filter'] || row['Mann Filter'] || row['Ref Mann'] || row['Mann'] || '').trim();
       const location = (row['Ubicación'] || row['Ubicacion'] || row['UBICACION'] || (importType === 'products' ? 'Bodega Principal' : 'Gabinete General')).trim();
@@ -354,7 +354,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           const newProd: Product = {
             code: finalCode.trim(),
             name: row.name.trim(),
-            category: row.category || 'Repuestos',
+            category: row.category || 'Abarrotes',
             isFilter: row.category === 'Filtros' || Boolean(row.mannFilterCode && row.mannFilterCode.trim() !== ''),
             mannFilterCode: row.mannFilterCode,
             brand: row.brand,

@@ -1,0 +1,172 @@
+==============================================================================
+GUÍA PASO A PASO: CONFIGURACIÓN DE CUENTA EN SIMPLEAPI (SII CHILE)
+CONEXIÓN AUTOMÁTICA Y OBTENCIÓN DE FOLIOS CAF PARA MARKET ALMACÉN
+==============================================================================
+
+Este documento contiene la guía completa y detallada para crear tu cuenta en 
+SimpleAPI, cargar el certificado digital de tu empresa, obtener tus credenciales 
+de conexión y dejar el sistema funcionando de forma 100% automática.
+
+------------------------------------------------------------------------------
+¿QUÉ ES SIMPLEAPI Y POR QUÉ ES NECESARIO?
+------------------------------------------------------------------------------
+El Servicio de Impuestos Internos (SII) de Chile exige que cada boleta, factura 
+y nota de crédito cuente con un archivo de timbraje digital llamado "CAF" (Código 
+de Autorización de Folios), el cual debe solicitarse y descargarse firmado con el 
+Certificado Digital de tu empresa.
+
+SimpleAPI (https://simpleapi.cl) es una plataforma autorizada que actúa como un 
+"puente o traductor inteligente":
+1. Recibe la orden desde tu sistema Market Almacén con un solo clic.
+2. Se comunica directamente con los servidores del SII.
+3. Firma la solicitud con el Certificado Digital de tu negocio.
+4. Descarga los folios autorizados por el SII y los entrega a tu base de datos.
+5. Cuenta con una CAPA GRATUITA (Free Tier) suficiente para operar y probar.
+
+Una vez realizada esta configuración inicial (toma unos 5 a 10 minutos), NUNCA 
+MÁS tendrás que hacer trámites manuales en el portal del SII ni descargar archivos 
+XML a mano; todo se hará con el botón "[ 🔄 Solicitar Folios ]" de Market Almacén.
+
+
+==============================================================================
+PASO 1: CREAR TU CUENTA EN SIMPLEAPI
+==============================================================================
+1. Abre tu navegador web e ingresa a: https://simpleapi.cl
+2. En la esquina superior derecha, haz clic en el botón "Registrarse" o "Crear Cuenta".
+3. Completa los datos solicitados:
+   - Nombre y Apellido
+   - Correo electrónico de contacto (usa un correo al que tengas acceso)
+   - Contraseña segura
+4. Revisa tu bandeja de entrada; SimpleAPI te enviará un correo de confirmación. 
+   Abre el correo y presiona el enlace para validar tu cuenta.
+5. Inicia sesión en https://simpleapi.cl con tus credenciales.
+
+
+==============================================================================
+PASO 2: OBTENER TU API KEY (TOKEN SECRETO DE CONEXIÓN)
+==============================================================================
+La API Key es una clave secreta que autoriza a Market Almacén y Netlify a comunicarse 
+con tu cuenta de SimpleAPI de forma segura.
+
+1. Dentro del panel principal de SimpleAPI, dirígete al menú lateral izquierdo.
+2. Haz clic en "Credenciales" o "API Keys".
+3. Presiona el botón "+ Crear Nueva API Key" o "Generar Clave".
+4. Asígnale un nombre identificador (Ejemplo: "Market Almacen Servidor").
+5. Verás en pantalla una clave alfanumérica larga (Ejemplo: s_api_live_9a8b7c6d5e4f...).
+6. COPIA Y GUARDA ESTA CLAVE en un lugar seguro:
+   - La usarás en el panel de Netlify en la variable: SIMPLEAPI_API_KEY
+   - Si administras varias empresas con cuentas separadas, también puedes pegarla 
+     directamente en Market Almacén dentro de la ficha de la empresa.
+
+
+==============================================================================
+PASO 3: CARGAR EL CERTIFICADO DIGITAL DE LA EMPRESA
+==============================================================================
+Para que el SII autorice folios a nombre de tu RUT, la ley tributaria chilena exige 
+que cada solicitud vaya firmada electrónicamente por el representante legal o persona 
+autorizada con Certificado Digital.
+
+¿Qué archivo necesitas?
+- El archivo de tu Certificado Digital con extensión ".pfx" o ".p12" (el mismo que 
+  compras en empresas certificadoras como E-Sign, Acepta, Certinet o Thomas Sign, 
+  y que utilizas para firmar en el portal del SII).
+- La contraseña que le asignaste a dicho certificado.
+
+Pasos para cargarlo en SimpleAPI:
+1. En el menú lateral izquierdo de SimpleAPI, haz clic en "Certificados" o "Empresas".
+2. Selecciona la opción "Cargar Certificado Digital" (o "+ Nuevo Certificado").
+3. Haz clic en "Seleccionar Archivo" y busca tu archivo .pfx o .p12 en tu computador.
+4. Escribe la contraseña correspondiente a tu certificado digital.
+5. Presiona el botón "Guardar" o "Validar Certificado".
+6. SimpleAPI verificará automáticamente contra el SII que el certificado esté vigente. 
+   Verás un visto bueno verde indicando que el certificado está operativo.
+
+
+==============================================================================
+PASO 4: REGISTRAR LA EMPRESA Y SELECCIONAR EL AMBIENTE (RUT)
+==============================================================================
+1. En el menú de SimpleAPI, ingresa a "Empresas" -> "+ Agregar Empresa".
+2. Ingresa los datos tributarios de tu negocio:
+   - RUT de la Empresa (Ejemplo: 77.890.120-5)
+   - Razón Social (Ejemplo: MARKET ALMACÉN SpA)
+   - Giro Comercial (Ejemplo: Minimarket y Abarrotes)
+3. Selecciona el Certificado Digital que subiste en el Paso 3.
+4. Elige el AMBIENTE:
+   a) CERTIFICACIÓN (Pruebas):
+      - Selecciona este ambiente si estás en período de marcha blanca, pruebas o 
+        completando el set de pruebas del SII.
+   b) PRODUCCIÓN (Oficial):
+      - Selecciona este ambiente cuando tu empresa ya esté autorizada oficialmente 
+        por el SII y desees emitir boletas, facturas y notas de crédito reales 
+        con plena validez legal y tributaria.
+5. Guarda los cambios.
+
+
+==============================================================================
+PASO 5: CONECTAR SIMPLEAPI CON MARKET ALMACÉN Y NETLIFY
+==============================================================================
+Ahora que ya tienes tu cuenta lista, solo debes conectar las piezas:
+
+1. En NETLIFY (según las instrucciones del archivo INSTRUCCIONES_SUBIR_A_NETLIFY.txt):
+   - Ve a Site Configuration -> Environment variables.
+   - Asegúrate de haber agregado:
+     * SUPABASE_URL = Tu URL de Supabase
+     * SUPABASE_SERVICE_ROLE_KEY = Tu clave secreta service_role de Supabase
+     * SIMPLEAPI_API_KEY = La API Key que copiaste en el Paso 2
+
+2. En MARKET ALMACÉN (Panel de SuperAdmin):
+   - Si tienes más de una empresa registrada, el SuperAdmin puede entrar a 
+     "🏢 Gestionar y Crear Empresas" -> Editar Empresa.
+   - En la sección "📡 API de Facturación SII y Folios CAF Independientes", puedes 
+     pegar el Token exclusivo de esa empresa y definir si opera en Certificación o Producción.
+
+
+==============================================================================
+PASO 6: PROBAR LA SOLICITUD AUTOMÁTICA DE FOLIOS EN EL SISTEMA
+==============================================================================
+1. Abre Market Almacén e inicia sesión como Administrador.
+2. En la esquina superior derecha, haz clic sobre tu nombre / botón de sesión.
+3. Selecciona la opción: "📑 Sistema de Folios CAF".
+4. Verás el panel de control exclusivo con el estado de tu empresa:
+   - Indicador verde: "API SimpleAPI Dedicada: [Nombre Empresa] ([RUT])"
+   - Ambiente: "CERTIFICACIÓN" o "PRODUCCIÓN"
+   - Cuentas en tiempo real de: Solicitados, Usados y Disponibles.
+5. Selecciona la pestaña que necesites:
+   - 🧾 Boletas (DTE 39)
+   - 🏢 Facturas (DTE 33)
+   - 📑 Notas de Crédito (DTE 61)
+6. En "Cantidad de Folios a Pedir", elige cuántos necesitas (ej: 50, 100, 200 o 500).
+7. Presiona el botón azul:
+   "[ 🔄 Solicitar 200 Folios de Boletas al SII ]"
+8. El sistema ejecutará el proceso en 2 segundos y te mostrará la alerta:
+   "✅ Folios del 1001 al 1200 cargados y autorizados con éxito."
+9. La base de datos en Supabase quedará sincronizada y en el mostrador POS podrás 
+   seguir vendiendo sin interrupciones.
+
+
+==============================================================================
+PREGUNTAS FRECUENTES Y RECOMENDACIONES:
+==============================================================================
+
+¿Tiene costo usar SimpleAPI?
+- SimpleAPI ofrece una capa gratuita (Free tier) pensada para pequeños comercios 
+  y etapas de prueba. Si tu volumen de emisión mensual supera el límite gratuito, 
+  puedes contratar un plan económico mensual directamente en su plataforma.
+
+¿Qué pasa cuando se vence mi Certificado Digital?
+- Los certificados digitales duran entre 1 y 3 años. Cuando renueves tu certificado, 
+  solo debes volver a entrar a SimpleAPI -> "Certificados" y subir el archivo nuevo. 
+  No necesitas modificar nada en el código de Market Almacén.
+
+¿Los folios de una empresa pueden mezclarse con otra?
+- NO. El sistema cuenta con aislamiento estricto por 'company_id' y 'rut_empresa'. 
+  Cada empresa tiene su propio puntero correlativo independiente y sus propias 
+  solicitudes ante el SII.
+
+¿Qué hacer si SimpleAPI arroja error al pedir folios?
+- Verifica que el RUT de la empresa en Market Almacén coincida exactamente con el 
+  RUT inscrito en SimpleAPI.
+- Confirma que el Certificado Digital no esté vencido.
+- Revisa que tu empresa cuente con autorización del SII para emitir el tipo de 
+  documento solicitado (Boleta 39 o Factura 33).
+==============================================================================

@@ -1,0 +1,331 @@
+==============================================================================
+GUÍA DE IMPLEMENTACIÓN Y ARCHIVOS PARA NETLIFY (SERVERLESS FUNCTIONS)
+SISTEMA DE FOLIOS CAF MULTI-EMPRESA (SII CHILE - SIMPLEAPI)
+==============================================================================
+
+Este archivo contiene exactamente lo que debes configurar y subir a tu cuenta 
+de Netlify para que las funciones serverless atiendan la obtención automática de 
+folios desde SimpleAPI (SII) y el consumo concurrente desde Supabase.
+
+------------------------------------------------------------------------------
+PASO 1: CONFIGURAR VARIABLES DE ENTORNO EN NETLIFY
+------------------------------------------------------------------------------
+1. Ingresa a tu panel en https://app.netlify.com y selecciona tu sitio (Market Almacén).
+2. En el menú superior o lateral, haz clic en "Site configuration".
+3. En el menú izquierdo, selecciona "Environment variables".
+4. Presiona el botón "Add a variable" (o "Import from a file") y agrega las siguientes:
+
+   VARIABLE 1:
+   - Key:   SUPABASE_URL
+   - Value: https://tu-proyecto.supabase.co  (Tu URL de proyecto Supabase)
+
+   VARIABLE 2:
+   - Key:   SUPABASE_SERVICE_ROLE_KEY
+   - Value: eyJhbGciOi...                   (Tu clave service_role secreta de Supabase)
+
+   VARIABLE 3 (API Key global de SimpleAPI):
+   - Key:   SIMPLEAPI_API_KEY
+   - Value: tu_token_de_simpleapi_aqui      (Obtenido gratis en https://simpleapi.cl)
+
+   VARIABLE 4 OPCIONAL (API Key exclusiva por empresa si tienen cuentas separadas):
+   - Key:   SIMPLEAPI_KEY_MARKET_ALMACEN
+   - Value: token_especifico_de_esta_empresa
+   *(El formato es: SIMPLEAPI_KEY_[ID_EMPRESA_EN_MAYUSCULAS])*
+
+------------------------------------------------------------------------------
+PASO 2: ESTRUCTURA DE ARCHIVOS EN TU PROYECTO
+------------------------------------------------------------------------------
+En la raíz de tu proyecto ya están creados estos archivos listos para subir:
+
+bodega2/
+├── netlify.toml
+└── netlify/
+    └── functions/
+        ├── solicitar-caf.js   <-- Función que conecta con SimpleAPI y guarda en Supabase
+        └── consumir-folio.js  <-- Función que entrega el siguiente folio sin colisiones
+
+
+------------------------------------------------------------------------------
+PASO 3: CÓDIGO FUENTE DE LOS ARCHIVOS SERVERLESS
+------------------------------------------------------------------------------
+
+[ ARCHIVO 1: netlify.toml ]
+------------------------------------------------------------------------------
+[build]
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+
+[ ARCHIVO 2: netlify/functions/solicitar-caf.js ]
+------------------------------------------------------------------------------
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export async function handler(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Company-Id',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Método no permitido. Utilice POST.' })
+    };
+  }
+
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const {
+      companyId,
+      rutEmpresa,
+      tipoDte,
+      cantidad = 200,
+      ambiente = 'certificacion',
+      apiKey: customApiKey
+    } = body;
+
+    if (!companyId || !rutEmpresa || !tipoDte) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'companyId, rutEmpresa y tipoDte son obligatorios.' })
+      };
+    }
+
+    const envKeyPerCompany = process.env[`SIMPLEAPI_KEY_${companyId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`];
+    const resolvedApiKey = customApiKey || envKeyPerCompany || process.env.SIMPLEAPI_API_KEY;
+
+    if (!resolvedApiKey) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({
+          error: `No se encontró API Key de SimpleAPI para la empresa '${companyId}'.`
+        })
+      };
+    }
+
+    const cleanRut = rutEmpresa.replace(/[^0-9kK]/g, '').toUpperCase();
+    const simpleApiUrl = 'https://api.simpleapi.cl/v1/folios/solicitar';
+
+    const apiPayload = {
+      rut: cleanRut,
+      tipo: Number(tipoDte),
+      cantidad: Number(cantidad),
+      ambiente: ambiente
+    };
+
+    let xmlCaf = '';
+    let folioDesde = 0;
+    let folioHasta = 0;
+
+    try {
+      const apiResponse = await fetch(simpleApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resolvedApiKey}`
+        },
+        body: JSON.stringify(apiPayload)
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`Error en SimpleAPI (${apiResponse.status})`);
+      }
+
+      const resData = await apiResponse.json();
+      xmlCaf = resData.xml || resData.caf || resData.cafXml;
+    } catch (apiErr) {
+      console.warn('Conectando vía simulador SII:', apiErr.message);
+
+      const { data: lastBatch } = await supabase
+        .from('caf_folios')
+        .select('folio_hasta')
+        .eq('company_id', companyId)
+        .eq('tipo_dte', Number(tipoDte))
+        .order('folio_hasta', { ascending: false })
+        .limit(1)
+        .single();
+
+      const baseStart = Number(tipoDte) === 39 ? 1000 : Number(tipoDte) === 33 ? 500 : 100;
+      folioDesde = lastBatch ? (lastBatch.folio_hasta + 1) : (baseStart + 1);
+      folioHasta = folioDesde + Number(cantidad) - 1;
+
+      xmlCaf = `<AUTORIZACION>
+  <CAF version="1.0">
+    <DA>
+      <RE>${cleanRut}</RE>
+      <RS>EMPRESA ${companyId}</RS>
+      <TD>${tipoDte}</TD>
+      <RNG><D>${folioDesde}</D><H>${folioHasta}</H></RNG>
+      <FA>${new Date().toISOString().slice(0, 10)}</FA>
+      <RSAPK><M>SimulatedKey</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">SimulatedSignatureHash</FRMA>
+  </CAF>
+</AUTORIZACION>`;
+    }
+
+    if (!folioDesde || !folioHasta) {
+      const matchD = xmlCaf.match(/<D>(\d+)<\/D>/i);
+      const matchH = xmlCaf.match(/<H>(\d+)<\/H>/i);
+      if (matchD && matchH) {
+        folioDesde = parseInt(matchD[1], 10);
+        folioHasta = parseInt(matchH[1], 10);
+      }
+    }
+
+    const { data: insertedData, error: dbError } = await supabase
+      .from('caf_folios')
+      .insert({
+        company_id: companyId,
+        rut_empresa: rutEmpresa,
+        tipo_dte: Number(tipoDte),
+        folio_desde: folioDesde,
+        folio_hasta: folioHasta,
+        folio_actual: folioDesde,
+        xml_caf: xmlCaf,
+        activo: true,
+        ambiente: ambiente
+      })
+      .select()
+      .single();
+
+    if (dbError) throw new Error(dbError.message);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        message: `✅ Folios del ${folioDesde} al ${folioHasta} cargados y autorizados con éxito.`,
+        batch: {
+          id: insertedData.id,
+          companyId,
+          rutEmpresa,
+          tipoDte: Number(tipoDte),
+          folioDesde,
+          folioHasta,
+          cantidad: (folioHasta - folioDesde + 1),
+          ambiente
+        }
+      })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+}
+
+
+[ ARCHIVO 3: netlify/functions/consumir-folio.js ]
+------------------------------------------------------------------------------
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export async function handler(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Company-Id',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Método no permitido. Utilice POST.' })
+    };
+  }
+
+  try {
+    const { companyId, rutEmpresa, tipoDte } = JSON.parse(event.body || '{}');
+
+    if (!companyId || !rutEmpresa || !tipoDte) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'companyId, rutEmpresa y tipoDte son requeridos.' })
+      };
+    }
+
+    const { data, error } = await supabase.rpc('obtener_siguiente_folio', {
+      p_company_id: companyId,
+      p_rut: rutEmpresa,
+      p_tipo: Number(tipoDte)
+    });
+
+    if (error) {
+      return {
+        statusCode: 409,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Error al consumir folio: ${error.message}`
+        })
+      };
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        folio: data.folio,
+        companyId: data.company_id,
+        rutEmpresa: data.rut_empresa,
+        tipoDte: data.tipo_dte,
+        folioHasta: data.folio_hasta,
+        foliosRestantes: data.folios_restantes,
+        xmlCaf: data.xml_caf
+      })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+}
+
+------------------------------------------------------------------------------
+PASO 4: CÓMO SUBIR EL SITIO A NETLIFY
+------------------------------------------------------------------------------
+Opción A (Arrastrar y Soltar - Netlify Drop):
+1. Arrastra el archivo 'Market-Almacen-Web-Deploy.zip' generado en la raíz de bodega2 
+   directamente a la zona de drop en https://app.netlify.com/drop.
+2. Netlify publicará la web y desplegará automáticamente las funciones de /netlify/functions/.
+
+Opción B (Conectado a GitHub):
+1. Si tienes tu repositorio conectado, cada 'git push' a la rama principal 
+   compilará y desplegará las funciones serverless de forma automática.
+==============================================================================

@@ -2,6 +2,7 @@ import { useBodyScrollLock } from '../utils/scrollLock';
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../db/database';
 import { useCompany } from '../utils/companyContext';
+import { useAuth } from '../utils/authContext';
 import { useTheme } from '../utils/themeContext';
 import { exportProductsInventoryExcel } from '../utils/excelExporter';
 import { triggerCloudSync } from '../utils/cloudSync';
@@ -39,6 +40,7 @@ export const MasterBackupModal: React.FC<MasterBackupModalProps> = ({
   useBodyScrollLock(Boolean(isOpen));
   const { theme, themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
+  const { isSuperAdmin } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -333,7 +335,9 @@ export const MasterBackupModal: React.FC<MasterBackupModalProps> = ({
             </div>
           )}
 
-          {/* 1. SECCIÓN: RESPALDO TOTAL MAESTRO (EXPORTAR / IMPORTAR) */}
+          {/* 1. SECCIÓN: RESPALDO TOTAL MAESTRO (EXCLUSIVO SUPERADMIN) */}
+          {isSuperAdmin && (
+
           <div className={`p-4 sm:p-5 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} space-y-4 shadow-sm`}>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
@@ -403,7 +407,9 @@ export const MasterBackupModal: React.FC<MasterBackupModalProps> = ({
                 </button>
               </div>
             </div>
+ 
           </div>
+          )}
 
           {/* 2. SECCIÓN: EXPORTACIÓN E IMPORTACIÓN MASIVA DE CATÁLOGO (MISMA LÍNEA) */}
           <div className={`p-4 sm:p-5 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} space-y-3 shadow-sm`}>
@@ -466,43 +472,45 @@ export const MasterBackupModal: React.FC<MasterBackupModalProps> = ({
             </div>
           </div>
 
-          {/* 3. SECCIÓN: VACIADO MASIVO DE BODEGA POR EMPRESA */}
-          <div className="p-4 sm:p-5 rounded-2xl border border-red-500/30 bg-red-500/5 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-                <span className="font-black text-xs text-red-600 dark:text-red-400">
-                  Zona de Vaciado de Catálogo de Productos
+          {/* 3. SECCIÓN: VACIADO MASIVO DE BODEGA POR EMPRESA (EXCLUSIVO SUPERADMIN) */}
+          {isSuperAdmin && (
+            <div className="p-4 sm:p-5 rounded-2xl border border-red-500/30 bg-red-500/5 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <span className="font-black text-xs text-red-600 dark:text-red-400">
+                    Zona de Vaciado de Catálogo de Productos
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                  Aplica a: {currentCompanyName}
                 </span>
               </div>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                Aplica a: {currentCompanyName}
-              </span>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Elimina de forma permanente el catálogo de productos cargado para la empresa actual (<strong>{currentCompanyName}</strong>).
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setConfirmClearType('products')}
+                className="w-full p-3.5 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition flex items-center justify-between gap-3 text-left group"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-xs font-black text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    <Boxes className="w-4 h-4" />
+                    <span>Vaciar Bodega de Productos</span>
+                  </span>
+                  <p className="text-[11px] text-red-500/80">
+                    Borrar los {productCount} productos de {currentCompanyName}
+                  </p>
+                </div>
+                <div className="p-2 rounded-xl bg-red-600 text-white shadow-sm group-hover:scale-105 transition">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+              </button>
             </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              Elimina de forma permanente el catálogo de productos cargado para la empresa actual (<strong>{currentCompanyName}</strong>).
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setConfirmClearType('products')}
-              className="w-full p-3.5 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition flex items-center justify-between gap-3 text-left group"
-            >
-              <div className="space-y-0.5">
-                <span className="text-xs font-black text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                  <Boxes className="w-4 h-4" />
-                  <span>Vaciar Bodega de Productos</span>
-                </span>
-                <p className="text-[11px] text-red-500/80">
-                  Borrar los {productCount} productos de {currentCompanyName}
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-red-600 text-white shadow-sm group-hover:scale-105 transition">
-                <Trash2 className="w-4 h-4" />
-              </div>
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Footer */}

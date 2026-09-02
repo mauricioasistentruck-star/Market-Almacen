@@ -1,22 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../utils/themeContext';
 import { useCompany } from '../utils/companyContext';
 import { useAuth } from '../utils/authContext';
 import {
   ShoppingCart,
+  FileSpreadsheet,
+  BarChart3,
   Package,
   FileText,
   ClipboardList,
   AlertTriangle,
   Building2,
+  ClipboardCheck,
+  Truck,
   Users,
   HardDrive,
   LogOut,
   ChevronDown,
-  Palette
+  Palette,
+  Cloud,
+  CloudOff,
+  RefreshCw
 } from 'lucide-react';
+import { CloudConfigModal } from './common/CloudConfigModal';
+import { CafFoliosManagerModal } from './sales/CafFoliosManagerModal';
+import { isCloudConfigured, subscribeCloudSync, type CloudSyncStatus } from '../utils/cloudSync';
 
-export type TabType = 'sales' | 'inventory' | 'guides' | 'purchases' | 'mermas';
+export type TabType = 'sales' | 'inventory' | 'guides' | 'purchases' | 'mermas' | 'reports';
 
 interface NavbarProps {
   activeTab: string;
@@ -26,6 +36,9 @@ interface NavbarProps {
   onOpenUserManager?: () => void;
   onOpenBackup?: () => void;
   onOpenImport?: () => void;
+  onOpenSuppliers?: () => void;
+  onOpenCustomers?: () => void;
+  onOpenInventoryTaking?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,7 +46,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenCompanies,
   onOpenUserManager,
-  onOpenBackup
+  onOpenBackup,
+  onOpenSuppliers,
+  onOpenCustomers,
+  onOpenInventoryTaking
 }) => {
   const { theme, setTheme, themeClasses } = useTheme();
   const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany } = useCompany();
@@ -42,6 +58,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCompanyMenuOpen, setIsCompanyMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const [isCafModalOpen, setIsCafModalOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>({
+    isOnline: true,
+    isSyncing: false,
+    lastSync: null,
+    mode: isCloudConfigured() ? 'cloud' : 'local'
+  });
+
+  useEffect(() => {
+    const unsub = subscribeCloudSync((st) => setSyncStatus(st));
+    return () => unsub();
+  }, []);
 
   const allTabs: Array<{ id: TabType; label: string; icon: React.FC<{ className?: string }> }> = [
     { id: 'sales', label: 'Ventas y POS', icon: ShoppingCart },
@@ -152,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       ))}
                     </div>
 
-                    {onOpenCompanies && (
+                    {isSuperAdmin && onOpenCompanies && (
                       <div className="pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-800">
                         <button
                           type="button"
@@ -163,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 flex items-center gap-2 transition"
                         >
                           <Building2 className="w-4 h-4 text-purple-600" />
-                          <span>🏢 Gestionar y Crear Empresas</span>
+                          <span>🏢 Gestionar y Crear Empresas (SuperAdmin)</span>
                         </button>
                       </div>
                     )}
@@ -182,6 +211,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
             )}
+
+            
 
             {/* Tema Switcher */}
             <div className="relative">
@@ -274,11 +305,68 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {currentUser?.name || currentUser?.username}
                     </p>
                     <p className="text-[10px] font-extrabold text-slate-500">
-                      {isSuperAdmin ? '👑 Super Administrador' : isAdmin ? '🛡️ Administrador' : '💼 Ventas y POS'}
+                      {(isAdmin || isSuperAdmin) ? '🛡️ Administrador' : '💼 Ventas y POS'}
                     </p>
                   </div>
 
                   <div className="space-y-0.5">
+                    {/* Menú de Informes */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setActiveTab('reports');
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 text-emerald-500" />
+                      <span>Menú de Informes</span>
+                    </button>
+
+                    {/* Registrar Proveedores */}
+                    {onOpenSuppliers && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenSuppliers();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Truck className="w-4 h-4 text-amber-500" />
+                        <span>Registrar Proveedores</span>
+                      </button>
+                    )}
+
+                    {/* Clientes con Factura */}
+                    {onOpenCustomers && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenCustomers();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Building2 className="w-4 h-4 text-blue-500" />
+                        <span>Clientes con Factura</span>
+                      </button>
+                    )}
+
+                    {/* Toma de Inventario Física (Para todos los usuarios) */}
+                    {onOpenInventoryTaking && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenInventoryTaking();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-2.5 cursor-pointer transition"
+                      >
+                        <ClipboardCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span>Toma de Inventario</span>
+                      </button>
+                    )}
                     {/* Gestionar Usuarios */}
                     {isAdmin && onOpenUserManager && (
                       <button
@@ -291,6 +379,51 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <Users className="w-4 h-4 text-blue-500" />
                         <span>Gestionar Usuarios</span>
+                      </button>
+                    )}
+
+                    {/* Configuración Nube Supabase */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsCloudModalOpen(true);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-black text-slate-800 dark:text-slate-200 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Cloud className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span>Sincronización en la Nube</span>
+                      </div>
+                      <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full font-black ${
+                        !isCloudConfigured()
+                          ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                          : syncStatus.error
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                      }`}>
+                        {!isCloudConfigured() ? 'Desconectada' : 'Activa'}
+                      </span>
+                    </button>
+
+                    {/* Sistema de Folios CAF / SII (Exclusivo Administrador) */}
+                    {(isAdmin || isSuperAdmin) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsCafModalOpen(true);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center justify-between cursor-pointer transition group"
+                        title="[Exclusivo Administrador] Gestión de folios CAF, solicitar folios al SII y configurar alertas de stock mínimo"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FileSpreadsheet className="w-4 h-4 text-amber-500 group-hover:scale-110 transition" />
+                          <span>Sistema de Folios CAF</span>
+                        </div>
+                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          SII
+                        </span>
                       </button>
                     )}
 
@@ -353,6 +486,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
       </div>
+      <CloudConfigModal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} />
+      <CafFoliosManagerModal isOpen={isCafModalOpen} onClose={() => setIsCafModalOpen(false)} />
     </header>
   );
 };

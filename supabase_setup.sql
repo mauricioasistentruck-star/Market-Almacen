@@ -1,28 +1,28 @@
+﻿-- ==============================================================================
+-- MARKET ALMACEN - CONFIGURACION DE BASE DE DATOS SUPABASE
 -- ==============================================================================
--- MARKET ALMACÉN - CONFIGURACIÓN DE BASE DE DATOS SUPABASE
--- ==============================================================================
--- Este script crea la tabla de sincronización en tiempo real para conectar
--- la aplicación Web (Netlify) y la APK Android de Market Almacén sin mezclar
--- datos con ningún proyecto anterior.
+-- Este script crea la infraestructura necesaria para la sincronizacion en tiempo
+-- real de Market Almacen en una nueva cuenta independiente de Supabase.
 --
--- INSTRUCCIONES:
--- 1. Inicia sesión en https://supabase.com/
--- 2. Crea un nuevo proyecto (Ejemplo: "market-almacen").
--- 3. Dirígete a la pestaña "SQL Editor" en el panel izquierdo.
--- 4. Haz clic en "New query", pega TODO este contenido y presiona "Run".
+-- INSTRUCCIONES DE EJECUCION:
+-- 1. Inicia sesion en tu nueva cuenta en https://supabase.com/
+-- 2. Entra a tu proyecto nuevo (o crea uno nuevo, ej: "market-almacen").
+-- 3. En el menu lateral izquierdo, haz clic en "SQL Editor" (icono >_).
+-- 4. Haz clic en "New query", pega TODO este script y presiona el boton verde "Run".
+-- 5. Debe indicar: "Success. No rows returned".
 -- ==============================================================================
 
--- 1. Crear tabla de sincronización de estado
+-- 1. Crear tabla central de sincronizacion de estado
 CREATE TABLE IF NOT EXISTS public.sync_state (
     id TEXT PRIMARY KEY,
     data JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 2. Habilitar Row Level Security (RLS)
+-- 2. Habilitar Seguridad a Nivel de Fila (Row Level Security - RLS)
 ALTER TABLE public.sync_state ENABLE ROW LEVEL SECURITY;
 
--- 3. Crear políticas para lectura y escritura segura (anónima y autenticada)
+-- 3. Politicas de acceso seguras para operacion de clientes (anon / public)
 DROP POLICY IF EXISTS "Permitir lectura publica sync_state" ON public.sync_state;
 CREATE POLICY "Permitir lectura publica sync_state" 
 ON public.sync_state 
@@ -48,7 +48,7 @@ ON public.sync_state
 FOR DELETE 
 USING (true);
 
--- 4. Activar publicación en tiempo real (Supabase Realtime)
+-- 4. Activar difusion en tiempo real (Supabase Realtime)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -62,10 +62,10 @@ BEGIN
 END
 $$;
 
--- 5. Crear índice para optimización de consultas
+-- 5. Indice optimizado para consultas por fecha de actualizacion
 CREATE INDEX IF NOT EXISTS idx_sync_state_updated_at ON public.sync_state(updated_at DESC);
 
 -- ==============================================================================
--- ¡LISTO! Tu base de datos en Supabase está preparada para Market Almacén.
+-- LISTO: La base de datos esta preparada.
 -- Ahora ve a Project Settings -> API y copia la "Project URL" y la "anon / public key".
 -- ==============================================================================

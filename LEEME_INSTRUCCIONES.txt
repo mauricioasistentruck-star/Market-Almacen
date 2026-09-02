@@ -1,30 +1,34 @@
-======================================================================
-                  MARKET ALMACÉN - GUÍA RÁPIDA
+﻿======================================================================
+                  MARKET ALMACEN - GUIA RAPIDA
 ======================================================================
 
-Bienvenido a Market Almacén, el sistema integral para gestión de
-inventario, ventas, boletas, herramientas, guías y bitácora.
+Bienvenido a Market Almacen, el sistema integral para gestion de
+inventario, ventas, boletas, herramientas, guias y bitacora.
 
 ARCHIVOS Y ENTREGABLES PRINCIPALES:
 ----------------------------------------------------------------------
 1. Market-Almacen.apk
-   - Aplicación instalable para celulares y tablets Android.
-   - Funciona sin internet (offline) y se sincroniza en tiempo real
+   - Aplicacion instalable para celulares y tablets Android.
+   - Funciona sin conexion (offline) y se sincroniza en tiempo real
      cuando se conecta a la red.
 
 2. Market-Almacen-Web-Deploy.zip (o carpeta 'dist')
-   - Versión web compilada y optimizada para subir gratis a Netlify
+   - Version web compilada y optimizada para subir gratis a Netlify
      (arrastrar a https://app.netlify.com/drop).
 
 3. supabase_setup.sql
-   - Script SQL listo para crear la tabla de sincronización en tu
+   - Script SQL listo para crear la tabla de sincronizacion en tu
      nueva cuenta gratuita de Supabase.
 
 4. GUIA_NUEVA_CUENTA_SUPABASE_Y_NETLIFY.md
-   - Manual completo paso a paso para configurar tu nueva cuenta en
+   - Manual tecnico paso a paso para configurar tu nueva cuenta en
      Supabase y Netlify en menos de 5 minutos.
 
-5. EJECUTAR_MARKET_ALMACEN.bat
+5. MANUAL_DE_USUARIO_MARKET_ALMACEN.html y .md
+   - Manual ilustrado oficial de uso operativo del sistema para
+     administradores y cajeros.
+
+6. EJECUTAR_MARKET_ALMACEN.bat
    - Ejecutable para abrir el sistema localmente en tu computadora.
 
 ======================================================================

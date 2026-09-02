@@ -9,25 +9,26 @@ import type {
 // Los valores se pueden definir en variables de entorno (VITE_SUPABASE_URL / VITE_SUPABASE_KEY)
 // o guardar dinámicamente en localStorage.
 function getStoredUrl(): string {
-  if (typeof localStorage !== "undefined") {
-    const custom = localStorage.getItem("marketalmacen_supabase_url");
-    if (custom) return custom.trim();
+  if (typeof localStorage !== 'undefined') {
+    const custom = localStorage.getItem('marketalmacen_supabase_url');
+    if (custom) return custom.trim().replace(/\/+$/, '');
   }
-  return ((import.meta as any).env?.VITE_SUPABASE_URL as string) || "";
+  const envUrl = ((import.meta as any).env?.VITE_SUPABASE_URL as string) || '';
+  return envUrl.trim().replace(/\/+$/, '');
 }
 
 function getStoredKey(): string {
-  if (typeof localStorage !== "undefined") {
-    const custom = localStorage.getItem("marketalmacen_supabase_key");
+  if (typeof localStorage !== 'undefined') {
+    const custom = localStorage.getItem('marketalmacen_supabase_key');
     if (custom) return custom.trim();
   }
-  return ((import.meta as any).env?.VITE_SUPABASE_KEY as string) || "";
+  return (((import.meta as any).env?.VITE_SUPABASE_KEY as string) || '').trim();
 }
 
 let SUPABASE_URL = getStoredUrl();
 let SUPABASE_KEY = getStoredKey();
-const TABLE = "sync_state";
-const ROW_ID = "market_almacen_sync";
+const TABLE = 'sync_state';
+const ROW_ID = 'market_almacen_sync';
 const SYNC_INTERVAL_MS = 4000;
 
 let isSyncRunning = false;
@@ -35,26 +36,48 @@ let isSyncRunning = false;
 function getHeaders(): Record<string, string> {
   const key = getStoredKey();
   return {
-    "apikey": key,
-    "Authorization": "Bearer " + key,
-    "Content-Type": "application/json",
+    'apikey': key,
+    'Authorization': 'Bearer ' + key,
+    'Content-Type': 'application/json',
   };
 }
 
 export function isCloudConfigured(): boolean {
   const url = getStoredUrl();
   const key = getStoredKey();
-  return Boolean(url && key && url.startsWith("http"));
+  return Boolean(url && key && url.startsWith('http'));
 }
 
 export function setCustomCloudCredentials(url: string, key: string) {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("marketalmacen_supabase_url", url.trim());
-    localStorage.setItem("marketalmacen_supabase_key", key.trim());
+  const cleanUrl = url.trim().replace(/\/+$/, '');
+  const cleanKey = key.trim();
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('marketalmacen_supabase_url', cleanUrl);
+    localStorage.setItem('marketalmacen_supabase_key', cleanKey);
   }
-  SUPABASE_URL = url.trim();
-  SUPABASE_KEY = key.trim();
-  notifyLocalMutation();
+  SUPABASE_URL = cleanUrl;
+  SUPABASE_KEY = cleanKey;
+  currentStatus.mode = isCloudConfigured() ? 'cloud' : 'local';
+  currentStatus.error = undefined;
+  notifyListeners();
+  if (isCloudConfigured()) {
+    startPeriodicSync();
+    pullAllFromCloud(true).then(() => {
+      pushAllToCloud(true);
+    });
+  }
+}
+
+export function clearCloudCredentials() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('marketalmacen_supabase_url');
+    localStorage.removeItem('marketalmacen_supabase_key');
+  }
+  SUPABASE_URL = '';
+  SUPABASE_KEY = '';
+  currentStatus.mode = 'local';
+  currentStatus.error = undefined;
+  notifyListeners();
 }
 
 export function getCustomCloudCredentials() {
@@ -62,6 +85,45 @@ export function getCustomCloudCredentials() {
     url: getStoredUrl(),
     key: getStoredKey()
   };
+}
+
+export async function testCloudConnection(testUrl: string, testKey: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const cleanUrl = testUrl.trim().replace(/\/+$/, '');
+    const cleanKey = testKey.trim();
+    if (!cleanUrl.startsWith('http')) {
+      return { success: false, message: 'La URL de Supabase debe comenzar con https://' };
+    }
+    if (!cleanKey) {
+      return { success: false, message: 'Debes ingresar la llave anónima (anon / public key).' };
+    }
+    const params = new URLSearchParams({ 'id': 'eq.' + ROW_ID, 'select': 'id' });
+    const url = cleanUrl + '/rest/v1/' + TABLE + '?' + params.toString();
+    const res = await fetchWithTimeout(url, {
+      headers: {
+        'apikey': cleanKey,
+        'Authorization': 'Bearer ' + cleanKey,
+        'Content-Type': 'application/json'
+      }
+    }, 7000);
+
+    if (res.status === 200) {
+      return { success: true, message: '¡Conexión verificada exitosamente con Supabase y la tabla sync_state!' };
+    } else if (res.status === 404 || res.status === 400) {
+      const txt = await res.text().catch(() => '');
+      if (txt.includes('relation') || txt.includes('does not exist') || txt.includes('sync_state')) {
+        return { success: false, message: 'Conectó al proyecto de Supabase, pero falta ejecutar el script SQL supabase_setup.sql en el SQL Editor para crear la tabla sync_state.' };
+      }
+      return { success: false, message: 'Error ' + res.status + ': ' + txt.slice(0, 120) };
+    } else if (res.status === 401 || res.status === 403) {
+      return { success: false, message: 'Error de autorización (401/403): verifica que la anon key copiada sea la correcta.' };
+    } else {
+      const txt = await res.text().catch(() => '');
+      return { success: false, message: 'Respuesta del servidor (' + res.status + '): ' + txt.slice(0, 120) };
+    }
+  } catch (err: any) {
+    return { success: false, message: 'Fallo de conexión: ' + (err?.message || 'Revisa tu conexión a internet o la URL ingresada.') };
+  }
 }
 
 export interface CloudPayload {
@@ -334,7 +396,7 @@ export async function pullAllFromCloud(isManual = false): Promise<boolean> {
         for (const c of data.companies) {
           const ex = await db.companies.get(c.id);
           if (!ex) await db.companies.add(c);
-          else await db.companies.update(c.id, c);
+          else await db.companies.put(c);
         }
       }
 

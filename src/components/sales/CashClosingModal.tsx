@@ -9,6 +9,7 @@ import { exportCashClosingsExcel } from '../../utils/salesExcelExporter';
 import { useBodyScrollLock } from '../../utils/scrollLock';
 import {
   Calculator,
+  Printer,
   Banknote,
   CreditCard,
   Building,
@@ -35,6 +36,7 @@ export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onCl
   const [initialCash, setInitialCash] = useState<number>(50000);
   const [actualCash, setActualCash] = useState<number>(0);
   const [notes, setNotes] = useState('');
+  const [cashRegisterName, setCashRegisterName] = useState<string>(() => localStorage.getItem('pos_active_cash_register') || 'Caja 1 - Principal');
   const [isSaved, setIsSaved] = useState(false);
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -94,9 +96,82 @@ export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onCl
   const expectedCashInDrawer = initialCash + totalEfectivo;
   const cashDifference = actualCash - expectedCashInDrawer;
 
+  
+  const handlePrintClosingTicket = () => {
+    const printWindow = window.open('', '_blank', 'width=380,height=600');
+    if (!printWindow) return;
+
+    const companyName = selectedCompany?.name || 'MARKET ALMACÉN';
+    const nowTime = new Date().toLocaleTimeString('es-CL');
+    const diffStatus = cashDifference === 0 ? 'CUADRADA (SIN DIFERENCIAS)' : cashDifference > 0 ? `SOBRANTE: +${formatCLP(cashDifference)}` : `FALTANTE: -${formatCLP(Math.abs(cashDifference))}`;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Ticket Cierre Z - ${cashRegisterName}</title>
+        <style>
+          @page { size: 80mm auto; margin: 2mm; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #000;
+            width: 74mm;
+            margin: 0 auto;
+            padding: 4px;
+          }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+          .line { border-bottom: 1px dashed #000; margin: 5px 0; }
+          .double-line { border-bottom: 2px solid #000; margin: 6px 0; }
+          .row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .badge { background: #000; color: #fff; padding: 2px 4px; font-weight: bold; display: inline-block; }
+          .footer { margin-top: 15px; text-align: center; font-size: 10px; }
+          .signature-box { margin-top: 25px; border-top: 1px solid #000; text-align: center; padding-top: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="center bold title">${companyName.toUpperCase()}</div>
+        <div class="center bold">ARQUEO Y CIERRE DE CAJA (TURNO Z)</div>
+        <div class="center line"></div>
+        <div class="center"><span class="badge">🏛️ ${cashRegisterName.toUpperCase()}</span></div>
+        <div class="line"></div>
+        <div class="row"><span>FECHA:</span><span class="bold">${todayStr}</span></div>
+        <div class="row"><span>HORA CIERRE:</span><span>${nowTime}</span></div>
+        <div class="row"><span>RESPONSABLE:</span><span class="bold">${(currentUser?.name || 'Cajero').toUpperCase()}</span></div>
+        <div class="row"><span>FOLIO CIERRE:</span><span class="bold">Z-${(cashRegisterName || 'Caja1').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}</span></div>
+        <div class="line"></div>
+        <div class="row"><span>Fondo Inicial Caja:</span><span>${formatCLP(initialCash)}</span></div>
+        <div class="row"><span>Total Ventas Efectivo:</span><span>${formatCLP(totalEfectivo)}</span></div>
+        <div class="row"><span>Total Débito (Redcompra):</span><span>${formatCLP(totalDebito)}</span></div>
+        <div class="row"><span>Total Crédito:</span><span>${formatCLP(totalCredito)}</span></div>
+        <div class="row"><span>Total Transferencias:</span><span>${formatCLP(totalTransferencia)}</span></div>
+        <div class="double-line"></div>
+        <div class="row bold" style="font-size: 12px;"><span>TOTAL TURNO (${salesCount} vtas):</span><span>${formatCLP(totalSales)}</span></div>
+        <div class="double-line"></div>
+        <div class="row bold"><span>EFECTIVO ESPERADO:</span><span>${formatCLP(expectedCashInDrawer)}</span></div>
+        <div class="row bold"><span>EFECTIVO REAL CONTADO:</span><span>${formatCLP(actualCash)}</span></div>
+        <div class="row bold" style="font-size: 12px; margin-top: 4px;"><span>ESTADO CUADRATURA:</span><span>${diffStatus}</span></div>
+        <div class="line"></div>
+        <div class="footer">Documento de control interno de turno.<br>Conserve este ticket junto a la recaudación.</div>
+        <div class="signature-box">
+          Firma Cajero / Responsable Turno
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+
   const handleSaveClosing = async () => {
     const newClosing: CashClosing = {
-      closingFolio: `Z-${todayStr.replace(/-/g, '')}`,
+      closingFolio: `Z-${(cashRegisterName || 'Caja1').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}-${todayStr.replace(/-/g, '')}-${Date.now().toString().slice(-4)}`,
+      cashRegisterName: cashRegisterName.trim(),
       date: todayStr,
       companyId: selectedCompanyId || 'ALL',
       companyName: selectedCompany?.name || 'General',
@@ -174,9 +249,31 @@ export const CashClosingModal: React.FC<CashClosingModalProps> = ({ isOpen, onCl
               <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-slate-100 flex items-center gap-2">
-                <span>Cierre y Arqueo Diario de Caja (Turno Z)</span>
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-slate-100 flex items-center gap-2">
+                  <span>Cierre y Arqueo Diario de Caja (Turno Z)</span>
+                </h2>
+                <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-950/70 border-2 border-amber-400/80 px-2.5 py-0.5 rounded-xl">
+                  <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase">Caja:</span>
+                  <input
+                    type="text"
+                    list="cashRegisterOptionsList"
+                    value={cashRegisterName}
+                    onChange={(e) => {
+                      setCashRegisterName(e.target.value);
+                      localStorage.setItem('pos_active_cash_register', e.target.value);
+                    }}
+                    placeholder="Caja 1 - Principal"
+                    className="text-xs font-black bg-transparent border-none text-amber-950 dark:text-amber-100 focus:outline-none w-36"
+                  />
+                  <datalist id="cashRegisterOptionsList">
+                    <option value="Caja 1 - Principal" />
+                    <option value="Caja 2 - Mostrador" />
+                    <option value="Caja 3 - Pasillo / Balanza" />
+                    <option value="Caja 4 - Rápida Express" />
+                  </datalist>
+                </div>
+              </div>
               <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3.5 mt-0.5 flex-wrap">
                 <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-blue-600" /> Fecha: <strong className="text-slate-950 dark:text-white font-mono">{todayStr}</strong></span>
                 <span>•</span>

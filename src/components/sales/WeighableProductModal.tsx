@@ -1,5 +1,5 @@
 import { useBodyScrollLock } from '../../utils/scrollLock';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { db } from '../../db/database';
@@ -9,9 +9,7 @@ import {
   X,
   Scale,
   ShoppingCart,
-  Boxes,
-  CheckCircle2,
-  AlertTriangle
+  Boxes
 } from 'lucide-react';
 
 interface WeighableProductModalProps {
@@ -22,16 +20,16 @@ interface WeighableProductModalProps {
 }
 
 const CATEGORY_PRESETS = [
-  { id: 'cecinas', name: 'Cecinas y Fiambrería', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
-  { id: 'quesos', name: 'Quesos y Lácteos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
-  { id: 'pan', name: 'Panadería y Pan', icon: '🥖', defaultPrice: 1990, keywords: ['pan', 'marraqueta', 'hallulla', 'baguette', 'coliza', 'dobladita', 'panaderia', 'panadería'] },
-  { id: 'verduras', name: 'Verduras y Ensaladas', icon: '🥬', defaultPrice: 1500, keywords: ['verdura', 'lechuga', 'espinaca', 'acelga', 'zapallo', 'zanahoria', 'apio', 'pepino', 'cilantro', 'perejil', 'cebolla'] },
-  { id: 'papas', name: 'Papas y Tubérculos', icon: '🥔', defaultPrice: 1200, keywords: ['papa', 'camote', 'betarraga', 'tuberculo', 'tubérculo'] },
-  { id: 'tomates', name: 'Tomates y Hortalizas', icon: '🍅', defaultPrice: 1690, keywords: ['tomate', 'pimenton', 'pimentón', 'morron', 'morrón', 'aji', 'ají', 'hortaliza'] },
-  { id: 'frutas', name: 'Frutas de Estación', icon: '🍎', defaultPrice: 1490, keywords: ['manzana', 'platano', 'plátano', 'naranja', 'pera', 'uva', 'fruta', 'limon', 'limón', 'sandia', 'sandía', 'melon', 'melón', 'frutilla', 'durazno', 'palta'] },
-  { id: 'carnes', name: 'Carnes y Pollo', icon: '🍗', defaultPrice: 6990, keywords: ['carne', 'pollo', 'vacuno', 'cerdo', 'posta', 'molida', 'pechuga', 'trutro', 'costillar', 'lomo', 'sobrecostilla', 'asado', 'carniceria', 'carnicería', 'alitas'] },
-  { id: 'frutos_secos', name: 'Frutos Secos', icon: '🥜', defaultPrice: 9900, keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'castaña', 'avellana', 'pasas', 'pistacho', 'datil', 'dátil', 'chia', 'chía', 'linaza', 'granola', 'semilla'] },
-  { id: 'legumbres', name: 'Legumbres a Granel', icon: '🌾', defaultPrice: 2490, keywords: ['poroto', 'lenteja', 'garbanzo', 'arveja', 'haba', 'legumbre'] }
+  { id: 'cecinas', name: 'Cecinas', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
+  { id: 'quesos', name: 'Quesos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
+  { id: 'panaderia', name: 'Panadería', icon: '🥖', defaultPrice: 1990, keywords: ['pan', 'marraqueta', 'hallulla', 'baguette', 'coliza', 'dobladita', 'panaderia', 'panadería'] },
+  { id: 'verduras', name: 'Verduras', icon: '🥬', defaultPrice: 1500, keywords: ['verdura', 'lechuga', 'espinaca', 'acelga', 'zapallo', 'zanahoria', 'apio', 'pepino', 'cilantro', 'perejil', 'cebolla'] },
+  { id: 'papas', name: 'Papas', icon: '🥔', defaultPrice: 1200, keywords: ['papa', 'camote', 'betarraga', 'tuberculo', 'tubérculo'] },
+  { id: 'tomates', name: 'Tomates', icon: '🍅', defaultPrice: 1690, keywords: ['tomate', 'pimenton', 'pimentón', 'morron', 'morrón', 'aji', 'ají', 'hortaliza'] },
+  { id: 'frutas', name: 'Frutas', icon: '🍎', defaultPrice: 1490, keywords: ['manzana', 'platano', 'plátano', 'naranja', 'pera', 'uva', 'fruta', 'limon', 'limón', 'sandia', 'sandía', 'melon', 'melón', 'frutilla', 'durazno', 'palta'] },
+  { id: 'carnes', name: 'Carnes', icon: '🍗', defaultPrice: 6990, keywords: ['carne', 'pollo', 'vacuno', 'cerdo', 'posta', 'molida', 'pechuga', 'trutro', 'costillar', 'lomo', 'sobrecostilla', 'asado', 'carniceria', 'carnicería', 'alitas'] },
+  { id: 'frutos', name: 'Frutos', icon: '🥜', defaultPrice: 9900, keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'castaña', 'avellana', 'pasas', 'pistacho', 'datil', 'dátil', 'chia', 'chía', 'linaza', 'granola', 'semilla'] },
+  { id: 'legumbres', name: 'Legumbres', icon: '🌾', defaultPrice: 2490, keywords: ['poroto', 'lenteja', 'garbanzo', 'arveja', 'haba', 'legumbre'] }
 ];
 
 export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
@@ -74,7 +72,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     const pCat = (prod.category || '').toLowerCase();
 
     for (const preset of CATEGORY_PRESETS) {
-      if (preset.id === 'frutos_secos') {
+      if (preset.id === 'frutos') {
         const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
         if (isMeatOrPoultry) continue;
       }
@@ -84,7 +82,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     return CATEGORY_PRESETS[0];
   };
 
-  // Inicializar al abrir: siempre detecta la categoría y mantiene el tamaño constante
+  // Inicializar al abrir
   useEffect(() => {
     if (!isOpen) return;
 
@@ -112,8 +110,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
       const pName = (p.name || '').toLowerCase();
       const pCat = (p.category || '').toLowerCase();
 
-      // Reglas estrictas de aislamiento entre categorías
-      if (categoryPreset.id === 'frutos_secos') {
+      if (categoryPreset.id === 'frutos') {
         const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
         if (isMeatOrPoultry) return false;
       }
@@ -139,19 +136,17 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
       setUnit(first.unit || 'Kg');
     } else {
       setSelectedStockProduct(null);
-      setProductName(preset.name);
+      setProductName('');
       setPricePerKg(preset.defaultPrice);
       setUnit('Kg');
     }
   };
 
-  // Al hacer clic en una categoría rápida
   const handleSelectCategory = (preset: typeof CATEGORY_PRESETS[0]) => {
     setActiveCategory(preset.id);
     applyCategoryFilter(preset, allProducts);
   };
 
-  // Al seleccionar un producto específico del inventario
   const handleSelectStockItem = (prod: Product) => {
     setSelectedStockProduct(prod);
     setProductName(prod.name);
@@ -219,34 +214,27 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     onClose();
   };
 
-  const handlePresetWeight = (kg: number) => {
-    handleWeightKgChange(kg.toString());
-  };
-
-  const handlePresetGrams = (grams: number) => {
-    handleWeightGramsChange(grams.toString());
-  };
-
   const currentPreset = CATEGORY_PRESETS.find(c => c.id === activeCategory) || CATEGORY_PRESETS[0];
   const matchingStockList = getMatchingStockProducts(currentPreset, allProducts);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      {/* Modal Principal: Ancho fijo max-w-2xl, SIN SCROLL EXTERNO y con altura estable */}
       <div className={`w-full max-w-2xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn`}>
         
-        {/* Header Compacto */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
-              <Scale className="w-4 h-4" />
+        {/* Header con icono naranja */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
+              <Scale className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 leading-tight">
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100 leading-tight">
                 Venta por Peso y Balanza (Descuento de Stock)
               </h3>
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Seleccione el producto inventariado, ingrese los gramos/kilos y cobre al instante
               </p>
             </div>
@@ -256,57 +244,58 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
             onClick={onClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Form Body: Altura fija y sin cambios de tamaño */}
-        <form onSubmit={handleAdd} className="p-3 sm:p-4 space-y-2.5">
+        {/* Formulario con altura fija y sin saltos entre opciones */}
+        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3">
           
-          {/* 1. Categorías Rápidas (10 botones compactos) */}
-          {/* 1. Categoría de Producto a Pesar siempre visible */}
-            <div>
-              <label className="block text-[10.5px] font-black uppercase text-slate-600 dark:text-slate-400 mb-1 tracking-wider">
-                1. Categoría de Producto a Pesar
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {CATEGORY_PRESETS.map((preset) => (
+          {/* 1. Categoría de Producto a Pesar (10 botones en 5 columnas x 2 filas) */}
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-1.5 tracking-wider">
+              1. CATEGORÍA DE PRODUCTO A PESAR
+            </label>
+            <div className="grid grid-cols-5 gap-2">
+              {CATEGORY_PRESETS.map((preset) => {
+                const isSelected = activeCategory === preset.id;
+                return (
                   <button
                     key={preset.id}
                     type="button"
                     onClick={() => handleSelectCategory(preset)}
-                    className={`py-1.5 px-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-                      activeCategory === preset.id
-                        ? 'bg-orange-500/15 border-orange-500 text-orange-700 dark:text-orange-300 font-black ring-1 ring-orange-500 shadow-xs'
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                    className={`py-2 px-1.5 rounded-2xl border text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#ffedd5] dark:bg-orange-950/40 border-2 border-orange-400 text-orange-950 dark:text-orange-200 font-extrabold shadow-xs'
+                        : 'bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold'
                     }`}
                   >
-                    <span className="text-base leading-none">{preset.icon}</span>
-                    <span className="text-[10px] font-bold truncate w-full leading-tight">
-                      {preset.name.split(' ')[0]}
-                    </span>
+                    <span className="text-xl mb-0.5">{preset.icon}</span>
+                    <span className="text-xs leading-tight">{preset.name}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </div>
 
-          {/* 2. Selector de Variedad / Tipo en Stock Inventariado (Exacto para 4 ítems sin scroll, scroll si > 4) */}
-          <div className="p-2.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 space-y-1.5">
+          {/* 2. Variedad en Stock Inventariado: ALTURA COMPLETAMENTE FIJA (114px) */}
+          <div className="p-3 rounded-2xl border border-blue-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-black text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                <Boxes className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-black text-xs">
+                <Boxes className="w-4 h-4 shrink-0" />
                 <span>2. Variedad en Stock Inventariado ({matchingStockList.length} disponibles)</span>
-              </label>
+              </div>
               {selectedStockProduct && (
-                <span className="text-[10.5px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-800">
+                <span className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-700">
                   Stock actual: {selectedStockProduct.stock} {selectedStockProduct.unit || 'Kg'}
                 </span>
               )}
             </div>
 
-            <div className="max-h-[114px] min-h-[106px] overflow-y-auto pr-1 scrollbar-thin">
+            {/* CONTENEDOR CON ALTURA FIJA QUE NUNCA CAMBIA DE TAMAÑO (114px) */}
+            <div className="h-[114px] min-h-[114px] max-h-[114px] overflow-y-auto pr-1 scrollbar-thin">
               {matchingStockList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {matchingStockList.map((prod) => {
                     const isSelected = selectedStockProduct?.id === prod.id;
                     return (
@@ -314,15 +303,15 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                         key={prod.id}
                         type="button"
                         onClick={() => handleSelectStockItem(prod)}
-                        className={`p-1.5 px-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer ${
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer h-[50px] ${
                           isSelected
                             ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-black'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-blue-50 text-slate-800 dark:text-slate-200'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-900 dark:text-slate-100'
                         }`}
                       >
-                        <div className="truncate">
-                          <p className="text-xs font-black truncate">{prod.name}</p>
-                          <p className={`text-[10px] font-mono ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                        <div className="truncate flex-1">
+                          <p className="text-xs font-black truncate leading-tight">{prod.name}</p>
+                          <p className={`text-[10.5px] font-bold mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
                             Stock: {prod.stock} {prod.unit || 'Kg'}
                           </p>
                         </div>
@@ -335,16 +324,16 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center text-center text-xs font-bold text-slate-500 p-2">
-                  <span>No hay ítems registrados en esta categoría. Puedes ingresar el nombre y precio manualmente abajo.</span>
+                  <span>No hay productos inventariados en esta categoría. Puedes ingresar el nombre y precio manualmente abajo.</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* 3. Nombre y Precio por Kilo */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 mb-0.5">
+              <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
                 Producto a Descontar *
               </label>
               <input
@@ -352,13 +341,13 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                 required
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                placeholder="Ej: Jamón Pierna Colonial..."
-                className={`w-full px-3 py-1.5 text-xs font-black rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
+                placeholder="Ej: Trutro Pollo Granel..."
+                className={`w-full px-3.5 py-2 text-xs font-black rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 mb-0.5">
+              <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
                 Precio por Kg ($) *
               </label>
               <input
@@ -367,16 +356,16 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                 min="1"
                 value={pricePerKg}
                 onChange={(e) => setPricePerKg(e.target.value)}
-                className={`w-full px-3 py-1.5 text-xs font-black font-mono rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
+                className={`w-full px-3.5 py-2 text-xs font-black font-mono rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               />
             </div>
           </div>
 
-          {/* 4. Ingreso de Peso en Balanza */}
-          <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* 4. Ingreso de Peso en Balanza: ALTURA FIJA SIN ATAJOS QUE DESFIGUREN EL MODAL */}
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-black text-amber-900 dark:text-amber-300 mb-0.5">
+                <label className="block text-xs font-black text-amber-950 dark:text-amber-300 mb-1">
                   Peso en Kilos (Kg)
                 </label>
                 <div className="relative">
@@ -387,16 +376,16 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                     placeholder="Ej: 0.350"
                     value={weightKg}
                     onChange={(e) => handleWeightKgChange(e.target.value)}
-                    className="w-full px-3 py-1.5 pr-8 text-sm font-black font-mono rounded-xl border border-amber-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-3.5 py-2 pr-10 text-sm font-black font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                     Kg
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-amber-900 dark:text-amber-300 mb-0.5">
+                <label className="block text-xs font-black text-amber-950 dark:text-amber-300 mb-1">
                   O Peso en Gramos (g)
                 </label>
                 <div className="relative">
@@ -407,37 +396,35 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                     placeholder="Ej: 350"
                     value={weightGrams}
                     onChange={(e) => handleWeightGramsChange(e.target.value)}
-                    className="w-full px-3 py-1.5 pr-8 text-sm font-black font-mono rounded-xl border border-amber-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-3.5 py-2 pr-10 text-sm font-black font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                     g
                   </span>
                 </div>
               </div>
             </div>
-
-
           </div>
 
           {/* 5. Resumen del Monto a Cobrar */}
-          <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-inner">
+          <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-inner">
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                Total a Cobrar
+                TOTAL A COBRAR
               </p>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-300 mt-0.5">
                 {finalQuantityKg > 0
                   ? `${finalQuantityKg} Kg × ${formatCLP(currentPricePerKg)}/Kg`
                   : 'Ingrese el peso en balanza'}
               </p>
             </div>
-            <p className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
+            <p className="text-2xl font-black font-mono text-emerald-400">
               {formatCLP(finalSubtotal)}
             </p>
           </div>
 
           {/* Botones de Acción */}
-          <div className="flex items-center justify-end gap-2.5 pt-1">
+          <div className="flex items-center justify-end gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
@@ -448,7 +435,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
             <button
               type="submit"
               disabled={finalQuantityKg <= 0 || currentPricePerKg <= 0}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/20 transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <ShoppingCart className="w-4 h-4" />
               <span>Agregar al Carrito ({formatCLP(finalSubtotal)})</span>

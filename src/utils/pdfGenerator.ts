@@ -572,17 +572,74 @@ export function downloadPDF(doc: jsPDF, filename: string): void {
   doc.save(filename);
 }
 
-export function printPDF(doc: jsPDF): void {
-  doc.autoPrint();
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = url;
-  document.body.appendChild(iframe);
-  iframe.onload = () => {
-    iframe.contentWindow?.print();
-  };
+export function printPDF(doc: jsPDF, filename: string = 'documento.pdf'): void {
+  try {
+    doc.autoPrint();
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+
+    const isNativeCapacitor =
+      typeof window !== 'undefined' &&
+      typeof (window as any).Capacitor?.isNativePlatform === 'function' &&
+      (window as any).Capacitor.isNativePlatform();
+
+    if (isNativeCapacitor) {
+      downloadPDF(doc, filename);
+      return;
+    }
+
+    // 1. Intentar abrir ventana de impresión directa (100% compatible con todos los navegadores)
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.focus();
+      printWindow.onload = () => {
+        try {
+          printWindow.print();
+        } catch (e) {
+          console.warn('Auto print triggered on load:', e);
+        }
+      };
+      return;
+    }
+
+    // 2. Si las ventanas emergentes estuvieran bloqueadas, usar iframe invisible (NUNCA display:none)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0.01';
+    iframe.style.pointerEvents = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.warn('Iframe print failed, downloading PDF:', err);
+        downloadPDF(doc, filename);
+      }
+    };
+
+    iframe.onload = () => {
+      setTimeout(triggerPrint, 300);
+    };
+    setTimeout(triggerPrint, 1000);
+
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      URL.revokeObjectURL(url);
+    }, 60000);
+  } catch (error) {
+    console.error('Error in printPDF:', error);
+    downloadPDF(doc, filename);
+  }
 }
 
 export async function sharePDFDocument(

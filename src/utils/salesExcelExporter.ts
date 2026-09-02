@@ -63,6 +63,7 @@ export function exportCashClosingsExcel(closings: CashClosing[], companyName?: s
   const dataRows = closings.map((c, idx) => ({
     'N°': idx + 1,
     'Folio Cierre': c.closingFolio,
+    'Caja de Atención': c.cashRegisterName || 'Caja 1 - Principal',
     'Fecha': c.date,
     'Hora Apertura': c.openedAt,
     'Hora Cierre': c.closedAt,

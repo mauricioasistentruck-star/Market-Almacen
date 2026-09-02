@@ -175,3 +175,109 @@ body.modal-open {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Soporte de alto contraste para paneles oscuros y textos blancos */
+.theme-white .text-white,
+.theme-white .text-white *,
+.theme-white [class*="from-slate-900"] h1,
+.theme-white [class*="from-slate-900"] h2,
+.theme-white [class*="from-slate-900"] h3,
+.theme-white [class*="from-slate-900"] p,
+.theme-white [class*="from-slate-900"] span,
+.theme-white .checkout-dark-panel,
+.theme-white .checkout-dark-panel h2,
+.theme-white .checkout-dark-panel h3 {
+  color: #ffffff !important;
+}
+
+.theme-white .text-amber-400 {
+  color: #fbbf24 !important;
+}
+
+.theme-white .text-emerald-400 {
+  color: #34d399 !important;
+}
+
+
+/* ==========================================================================
+   REGLAS GLOBALES DE IMPRESIÓN DIRECTA (POS 80mm Y DTE OFICIAL CARTA)
+   Garantiza que window.print() imprima únicamente el documento seleccionado
+   sin ser bloqueado jamás por ventanas emergentes ni restricciones de Chrome.
+   ========================================================================== */
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 8mm 10mm 8mm 10mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar TODO el contenido normal de la aplicación */
+  body > *:not(#market-print-portal) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Mostrar exclusivamente el portal de impresión en la raíz de la página */
+  #market-print-portal {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #market-print-portal * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Formato para rollo térmico de 80mm */
+  #market-print-portal.thermal-mode {
+    width: 74mm !important;
+    max-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 3mm !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", monospace !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Formato para hoja Carta DTE oficial */
+  #market-print-portal.dte-mode {
+    width: 100% !important;
+    max-width: 195mm !important;
+    height: 250mm !important;
+    min-height: 250mm !important;
+    max-height: 252mm !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

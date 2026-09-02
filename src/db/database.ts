@@ -15,7 +15,12 @@ import type {
   Worker,
   Sale,
   SiiConfig,
-  CashClosing
+  CashClosing,
+  Supplier,
+  Customer,
+  InventoryTakingSection,
+  InventoryTakingCountItem,
+  InventoryTakingSession
 } from '../types';
 
 export class MarketAlmacenDatabase extends Dexie {
@@ -35,6 +40,11 @@ export class MarketAlmacenDatabase extends Dexie {
   sales!: Table<Sale, number>;
   siiConfigs!: Table<SiiConfig, number>;
   cashClosings!: Table<CashClosing, number>;
+  suppliers!: Table<Supplier, number>;
+  customers!: Table<Customer, number>;
+  inventorySections!: Table<InventoryTakingSection, string>;
+  inventoryCounts!: Table<InventoryTakingCountItem, number>;
+  inventorySessions!: Table<InventoryTakingSession, number>;
 
   constructor() {
     super('MarketAlmacenDB');
@@ -55,6 +65,14 @@ export class MarketAlmacenDatabase extends Dexie {
       sales: '++id, folio, date, companyId, customerRut, customerName, paymentMethod, dteType, siiStatus, status, createdAt',
       siiConfigs: '++id, companyId, rutEmisor',
       cashClosings: '++id, closingFolio, date, companyId, responsibleName, status, createdAt'
+    });
+
+    this.version(2).stores({
+      suppliers: '++id, rut, name, tradeName, contactName, phone, email, city, companyId, createdAt',
+      customers: '++id, rut, businessName, industry, address, city, email, phone, companyId, createdAt',
+      inventorySections: 'id, name, zone, companyId',
+      inventoryCounts: '++id, sessionId, sectionName, productCode, workerName, countedAt, companyId',
+      inventorySessions: '++id, sessionCode, date, companyId, status, createdAt'
     });
   }
 }

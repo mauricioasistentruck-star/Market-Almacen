@@ -1,3 +1,4 @@
+import type { WeighablePreset, CompanyServiceOption } from '../utils/rubroPresets';
 export type ThemeMode = 'white' | 'dark-red' | 'blue-green';
 
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'VENTAS';
@@ -18,9 +19,19 @@ export interface Company {
   name: string;
   tradeName?: string;
   industry?: string;
+  rubroKey?: string;
+  customCategories?: string[];
+  customUnits?: string[];
+  customWeighablePresets?: WeighablePreset[];
+  customServices?: CompanyServiceOption[];
   phone?: string;
   address?: string;
   isNaturalPerson?: boolean;
+  // Configuración de API SII y SimpleAPI exclusiva e independiente por empresa
+  simpleApiKey?: string;
+  siiAmbiente?: 'certificacion' | 'produccion';
+  resolucionNumero?: string;
+  resolucionFecha?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -374,6 +385,9 @@ export interface SaleItem {
   unit?: string;
   isOffer?: boolean;
   originalPrice?: number;
+  category?: string;
+  isWeight?: boolean;
+  weightUnit?: string;
 }
 
 export interface Sale {
@@ -390,6 +404,8 @@ export interface Sale {
   customerCity?: string;
   customerEmail?: string;
   customerPhone?: string;
+  emailSentAt?: string;
+  emailSentTo?: string;
   items: SaleItem[];
   subtotalNeto: number;
   iva: number;
@@ -399,6 +415,8 @@ export interface Sale {
   paymentReference?: string;
   amountPaid?: number;
   cashChange?: number;
+  roundingDifference?: number;
+  cashRoundedTotal?: number;
   dteType: DTEType;
   dteFolio?: string;
   siiStatus: 'EMITIDO' | 'ENVIADO_SII' | 'ACEPTADO_SII' | 'PENDIENTE' | 'SIMULADO' | 'RECHAZADO';
@@ -440,6 +458,8 @@ export interface SiiConfig {
 export interface CashClosing {
   id?: number;
   closingFolio: string;
+  cashRegisterName?: string;
+  cashRegisterNumber?: string;
   date: string;
   openedAt: string;
   closedAt: string;
@@ -462,5 +482,80 @@ export interface CashClosing {
   cashDifference: number;
   notes?: string;
   status: 'CERRADA' | 'ABIERTA';
+  createdAt: string;
+}
+
+
+export interface Supplier {
+  id?: number;
+  rut: string;
+  name: string; // Razón Social o Nombre
+  tradeName?: string; // Nombre Fantasía
+  contactName?: string; // Contacto / Vendedor
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  industry?: string; // Giro
+  paymentTerms?: string; // Ej: Contado, 30 días, 60 días
+  notes?: string;
+  companyId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Customer {
+  id?: number;
+  rut: string;
+  businessName: string; // Razón Social
+  tradeName?: string; // Nombre Fantasía
+  industry?: string; // Giro Comercial para Factura
+  address?: string; // Dirección
+  city?: string; // Comuna / Ciudad
+  email?: string; // Email DTE
+  phone?: string; // Teléfono
+  contactName?: string; // Contacto
+  companyId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+
+export interface InventoryTakingSection {
+  id: string;
+  name: string; // ej: "Pasillo 1 - Abarrotes", "Estante 3 - Bebidas"
+  zone?: string; // ej: "Sala de Ventas", "Bodega Trasera"
+  teamName?: string; // ej: "Equipo A - Sala de Ventas"
+  assignedWorkers: string[]; // Nombres de los trabajadores asignados
+  status?: 'PENDIENTE' | 'EN_CONTEO' | 'COMPLETADO';
+  companyId?: string;
+  createdAt?: string;
+}
+
+export interface InventoryTakingCountItem {
+  id?: number;
+  sessionId?: string;
+  sectionName: string;
+  subLocation?: string; // ej: "Pasillo 1 - Estante 1", "Pasillo 1 - Estante 3"
+  productCode: string;
+  productName: string;
+  category?: string;
+  unit?: string;
+  countedQuantity: number;
+  systemStock?: number;
+  workerName: string;
+  countedAt: string;
+  companyId?: string;
+  notes?: string;
+}
+
+export interface InventoryTakingSession {
+  id?: number;
+  sessionCode: string;
+  title: string;
+  date: string;
+  companyId?: string;
+  status: 'ABIERTA' | 'CONSOLIDADA' | 'FINALIZADA';
+  sections: InventoryTakingSection[];
   createdAt: string;
 }

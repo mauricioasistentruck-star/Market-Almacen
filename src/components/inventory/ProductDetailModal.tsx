@@ -19,7 +19,8 @@ import {
   DollarSign,
   AlertTriangle,
   Layers,
-  Sparkles
+  Sparkles,
+  History
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -31,6 +32,7 @@ interface ProductDetailModalProps {
   onOpenMovement: (product: Product, type: 'ENTRADA' | 'SALIDA' | 'AJUSTE') => void;
   onOpenBarcode: (product: Product) => void;
   onOpenPhotoViewer?: (product: Product) => void;
+  onOpenMovementsHistory?: (product: Product) => void;
   onProductUpdated?: () => void;
 }
 
@@ -43,6 +45,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onOpenMovement,
   onOpenBarcode,
   onOpenPhotoViewer,
+  onOpenMovementsHistory,
   onProductUpdated
 }) => {
   useBodyScrollLock(Boolean(isOpen));
@@ -247,126 +250,153 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           </div>
 
-          {/* ACCIONES DE INVENTARIO: Con botón de Liquidación dentro de la tarjeta */}
-          <div className="pt-2">
-            <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block mb-2">
-              Acciones de Inventario
-            </span>
+          {/* ACCIONES DE INVENTARIO Y GESTIÓN ORGANIZADAS EN BLOQUES EQUILIBRADOS */}
+          <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+            
+            {/* BLOQUE 1: MOVIMIENTOS DE STOCK & AUDITORÍA (4 BOTONES) */}
+            <div>
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5 flex items-center gap-1.5">
+                <Boxes className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span>Movimientos de Stock & Auditoría</span>
+              </span>
 
-            <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
-              
-              {/* Imprimir Código de Barras */}
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenBarcode(product);
-                }}
-                className="py-2.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-2 border-purple-300 dark:border-purple-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                title="Generar e Imprimir Etiquetas con Código de Barras"
-              >
-                <Barcode className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                <span>Código</span>
-              </button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* 1. Entrada de Stock */}
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenMovement(product, 'ENTRADA');
+                    }}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="Registrar entrada de mercadería (Stock +)"
+                  >
+                    <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+                    <span>Entrada</span>
+                  </button>
+                )}
 
-              {/* Entrada de Stock */}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenMovement(product, 'ENTRADA');
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                  title="Entrada de Stock"
-                >
-                  <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Entrada</span>
-                </button>
-              )}
+                {/* 2. Salida de Stock */}
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenMovement(product, 'SALIDA');
+                    }}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="Registrar salida o traspaso (Stock -)"
+                  >
+                    <ArrowUpRight className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 stroke-[2.5]" />
+                    <span>Salida</span>
+                  </button>
+                )}
 
-              {/* Salida de Stock */}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenMovement(product, 'SALIDA');
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-2 border-amber-300 dark:border-amber-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                  title="Salida de Stock"
-                >
-                  <ArrowUpRight className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>Salida</span>
-                </button>
-              )}
+                {/* 3. Ajuste de Stock */}
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenMovement(product, 'AJUSTE');
+                    }}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="Ajuste o cuadratura de inventario"
+                  >
+                    <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>Ajuste</span>
+                  </button>
+                )}
 
-              {/* Ajuste de Stock */}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenMovement(product, 'AJUSTE');
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                  title="Ajuste de Stock"
-                >
-                  <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>Ajuste</span>
-                </button>
-              )}
-
-              {/* BOTÓN LIQUIDAR / OFERTA POR LOTE DENTRO DE LA TARJETA */}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={handleOpenOfferModal}
-                  className={`py-2.5 px-2 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center ${
-                    hasOffer
-                      ? 'bg-amber-500 text-white border-2 border-amber-600 hover:bg-amber-600 shadow-md'
-                      : 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-2 border-amber-300 dark:border-amber-700'
-                  }`}
-                  title="Poner unidades en liquidación / oferta con baja de precio"
-                >
-                  <Tag className="w-4 h-4 shrink-0" />
-                  <span>{hasOffer ? 'En Oferta' : 'Liquidar'}</span>
-                </button>
-              )}
-
-              {/* Editar Producto */}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onEdit(product);
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-2 border-slate-300 dark:border-slate-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                  title="Editar Producto"
-                >
-                  <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>Editar</span>
-                </button>
-              )}
-
-              {/* Eliminar Producto */}
-              {canDeleteProducts && !isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onDelete(product.id);
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-2 border-red-300 dark:border-red-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 text-center"
-                  title="Eliminar Producto"
-                >
-                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-                  <span>Eliminar</span>
-                </button>
-              )}
-
+                {/* 4. Kardex / Historial de Movimientos */}
+                {!isReadOnly && onOpenMovementsHistory && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenMovementsHistory(currentProduct || product)}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="[Exclusivo Administrador] Consultar trazabilidad completa y Kardex"
+                  >
+                    <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 stroke-[2.2]" />
+                    <span>Kardex</span>
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* BLOQUE 2: GESTIÓN COMERCIAL & FICHA TÉCNICA (4 BOTONES) */}
+            <div>
+              <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>Gestión Comercial & Ficha Técnica</span>
+              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* 5. Liquidar / Modo Oferta */}
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={handleOpenOfferModal}
+                    className={`h-10 sm:h-11 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
+                      hasOffer
+                        ? 'bg-amber-500 text-white border border-amber-600 hover:bg-amber-600 shadow-sm'
+                        : 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-800'
+                    }`}
+                    title="Configurar precio rebajado por lote acotado"
+                  >
+                    <Tag className="w-4 h-4 shrink-0" />
+                    <span>{hasOffer ? 'En Oferta' : 'Liquidar'}</span>
+                  </button>
+                )}
+
+                {/* 6. Imprimir Código de Barras */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenBarcode(product);
+                  }}
+                  className="h-10 sm:h-11 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                  title="Generar e imprimir etiquetas con código de barras"
+                >
+                  <Barcode className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span>Código</span>
+                </button>
+
+                {/* 7. Editar Ficha del Producto */}
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onEdit(product);
+                    }}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="Editar datos, precios y stock mínimo"
+                  >
+                    <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0" />
+                    <span>Editar</span>
+                  </button>
+                )}
+
+                {/* 8. Eliminar Producto */}
+                {canDeleteProducts && !isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onDelete(product.id);
+                    }}
+                    className="h-10 sm:h-11 px-3 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                    title="Dar de baja producto del catálogo"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                    <span>Eliminar</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -434,9 +464,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   placeholder="Ej: 20 (de las 100 disponibles)"
                   className="w-full px-3.5 py-2.5 rounded-xl border-2 border-amber-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-black text-sm focus:outline-none"
                 />
-                <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 mt-1">
-                  Solo estas unidades se venderán con descuento. El resto mantendrá su precio normal de ${(product.price || 0).toLocaleString('es-CL')}.
-                </p>
+                <div className="mt-1.5 p-2 rounded-xl bg-amber-100/60 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-[11px] text-amber-900 dark:text-amber-200 font-bold space-y-1">
+                  <p>• Solo estas unidades se venderán con precio rebajado. Al agotarse, el producto <strong>volverá automáticamente al precio normal</strong> de ${(product.price || 0).toLocaleString('es-CL')}.</p>
+                  <p>• Al cobrar en caja (POS), el vendedor podrá <strong>elegir cuál de los dos precios</strong> es el que el cliente lleva.</p>
+                </div>
               </div>
 
               <div>

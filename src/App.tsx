@@ -3,12 +3,17 @@ import { useTheme } from './utils/themeContext';
 import { useCompany } from './utils/companyContext';
 import { useAuth } from './utils/authContext';
 import { db } from './db/database';
-import type { Product, Tool } from './types';
+import type { Product, Tool, Sale } from './types';
+import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { LoginView } from './components/auth/LoginView';
+import { initCloudSync } from './utils/cloudSync';
 
 // Tab Views
 import { SalesView } from './components/sales/SalesView';
+import { SalesReportsSubView } from './components/sales/SalesReportsSubView';
+import { PDFViewerModal } from './components/PDFViewerModal';
+import jsPDF from 'jspdf';
 import { ProductListView } from './components/inventory/ProductListView';
 import { GuidesListView } from './components/guides/GuidesListView';
 import { PurchasesView } from './components/purchases/PurchasesView';
@@ -24,10 +29,13 @@ import { CompanyManagerModal } from './components/companies/CompanyManagerModal'
 import { UserManagerModal } from './components/auth/UserManagerModal';
 import { ImportModal } from './components/import/ImportModal';
 import { MasterBackupModal } from './components/MasterBackupModal';
+import { SupplierManagerModal } from './components/suppliers/SupplierManagerModal';
+import { CustomerManagerModal } from './components/customers/CustomerManagerModal';
+import { InventoryTakingModal } from './components/inventory/InventoryTakingModal';
 
 export const App: React.FC = () => {
   const { themeClasses } = useTheme();
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId, selectedCompany, companies } = useCompany();
   const { isAuthenticated, isReadOnly } = useAuth();
 
   // Pestaña inicial por defecto: Ventas y POS
@@ -38,6 +46,29 @@ export const App: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [scannerContext, setScannerContext] = useState<string>('general');
+
+  // Sales state for standalone reports view
+  const [salesList, setSalesList] = useState<Sale[]>([]);
+  const [reportPdfDoc, setReportPdfDoc] = useState<jsPDF | null>(null);
+  const [reportPdfFilename, setReportPdfFilename] = useState('');
+  const [reportPdfTitle, setReportPdfTitle] = useState('Informe Ejecutivo de Ventas');
+  const [isReportPdfModalOpen, setIsReportPdfModalOpen] = useState(false);
+
+  useEffect(() => {
+    const loadSales = async () => {
+      try {
+        const all = await db.sales.toArray();
+        if (selectedCompanyId && selectedCompanyId !== 'ALL') {
+          setSalesList(all.filter(s => s.companyId === selectedCompanyId));
+        } else {
+          setSalesList(all);
+        }
+      } catch {
+        setSalesList([]);
+      }
+    };
+    loadSales();
+  }, [selectedCompanyId, refreshTrigger, activeTab]);
 
   // Modals state
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
@@ -54,10 +85,20 @@ export const App: React.FC = () => {
   const [isUserManagerOpen, setIsUserManagerOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isInventoryTakingOpen, setIsInventoryTakingOpen] = useState(false);
 
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  useEffect(() => {
+    initCloudSync();
+    const handleDataUpdate = () => triggerRefresh();
+    window.addEventListener('marketalmacen-data-updated', handleDataUpdate);
+    return () => window.removeEventListener('marketalmacen-data-updated', handleDataUpdate);
+  }, []);
 
   const handleGlobalScan = (barcode: string) => {
     setScannedBarcode(barcode);
@@ -96,10 +137,50 @@ export const App: React.FC = () => {
         onOpenImport={() => setIsImportOpen(true)}
         onOpenUserManager={() => setIsUserManagerOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
+          onOpenSuppliers={() => setIsSupplierModalOpen(true)}
+          onOpenCustomers={() => setIsCustomerModalOpen(true)}
+          onOpenInventoryTaking={() => setIsInventoryTakingOpen(true)}
       />
 
       {/* Main Content Area */}
       <main className={`flex-1 max-w-[1750px] w-full mx-auto ${activeTab === 'sales' ? 'p-1.5 sm:p-2 overflow-hidden' : 'p-2.5 sm:p-4 lg:p-5'}`}>
+        
+        {/* Menú Exclusivo de Informes (Activado desde Sesión de Usuario) */}
+        {activeTab === 'reports' && (
+          <div className="space-y-4 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sales')}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-black flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Volver a Ventas y POS</span>
+                </button>
+                <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-emerald-500" />
+                  <h1 className="text-sm font-black text-slate-800 dark:text-slate-100">
+                    Centro de Informes y Estadísticas Comerciales
+                  </h1>
+                </div>
+              </div>
+            </div>
+
+            <SalesReportsSubView
+              sales={salesList}
+              company={companies.find(c => c.id === selectedCompanyId) || null}
+              onOpenPdf={(doc, filename, title) => {
+                setReportPdfDoc(doc);
+                setReportPdfFilename(filename);
+                setReportPdfTitle(title);
+                setIsReportPdfModalOpen(true);
+              }}
+            />
+          </div>
+        )}
+
         {/* 1. Menú Principal: Ventas y POS */}
         {activeTab === 'sales' && (
           <SalesView
@@ -207,6 +288,21 @@ export const App: React.FC = () => {
           setIsBackupOpen(false);
           setIsImportOpen(true);
         }}
+      />
+
+      <SupplierManagerModal
+        isOpen={isSupplierModalOpen}
+        onClose={() => setIsSupplierModalOpen(false)}
+      />
+
+      <CustomerManagerModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+      />
+
+      <InventoryTakingModal
+        isOpen={isInventoryTakingOpen}
+        onClose={() => setIsInventoryTakingOpen(false)}
       />
 
       <ProductFormModal

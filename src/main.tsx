@@ -1,6 +1,16 @@
+// Limpiar cualquier Service Worker obsoleto o residual en desarrollo local
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './utils/themeContext';
 import { CompanyProvider } from './utils/companyContext';
 import { AuthProvider } from './utils/authContext';
@@ -15,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <AuthProvider>
         <CompanyProvider>
-          <App />
+          <ErrorBoundary><App /></ErrorBoundary>
         </CompanyProvider>
       </AuthProvider>
     </ThemeProvider>

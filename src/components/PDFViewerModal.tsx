@@ -46,7 +46,7 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
   };
 
   const handlePrint = () => {
-    printPDF(doc);
+    printPDF(doc, filename);
   };
 
   const handleShare = async () => {
@@ -130,7 +130,7 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
 
         {/* PDF Reader / Frame */}
         <div className="flex-1 bg-slate-900 w-full h-full p-2 sm:p-4 overflow-hidden flex items-center justify-center">
-          {typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform ? (
+          {typeof window !== 'undefined' && typeof (window as any).Capacitor?.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform() ? (
             <div className="w-full h-full rounded-2xl border border-slate-800 bg-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-5">
               <div className="p-4 rounded-3xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
                 <FileText className="w-12 h-12" />

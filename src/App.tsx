@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import React, { useState, useEffect } from 'react';
 import { useTheme } from './utils/themeContext';
 import { useCompany } from './utils/companyContext';

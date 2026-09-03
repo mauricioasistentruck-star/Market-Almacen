@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../utils/themeContext';
 import { useCompany } from '../utils/companyContext';
@@ -111,8 +112,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden xl:flex items-center gap-1.5 lg:gap-2">
+          {/* Desktop Navigation Tabs (Ocultos permanentemente en Android nativo y en pantallas menores a xl) */}
+          {!(typeof window !== 'undefined' && Capacitor.isNativePlatform()) && (
+            <nav className="hidden xl:flex items-center gap-1.5 lg:gap-2">
             {tabs.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -131,7 +133,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
-          </nav>
+            </nav>
+          )}
 
           {/* Right Action Tools: Company, Theme & User */}
           <div className="flex items-center gap-2 shrink-0">

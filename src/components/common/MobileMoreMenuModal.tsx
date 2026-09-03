@@ -37,6 +37,7 @@ interface MobileMoreMenuModalProps {
   onOpenCloudModal?: () => void;
   onOpenCafModal?: () => void;
   onOpenBackup?: () => void;
+  onOpenCompanies?: () => void;
 }
 
 export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
@@ -52,11 +53,12 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   onOpenUserManager,
   onOpenCloudModal,
   onOpenCafModal,
-  onOpenBackup
+  onOpenBackup,
+  onOpenCompanies
 }) => {
   const { currentUser, isSuperAdmin, isAdmin, permissions, logout } = useAuth();
   const { theme, setTheme, themeClasses } = useTheme();
-  const { selectedCompany } = useCompany();
+  const { selectedCompany, companies, selectedCompanyId, setSelectedCompanyId } = useCompany();
 
   if (!isOpen) return null;
 
@@ -315,18 +317,55 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
             </div>
           </div>
 
-          {/* Cerrar Sesión */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          {/* Selector de Empresa Activa si hay más de 1 registrada */}
+          {companies.length > 1 && (
+            <div className="px-1 py-1 flex items-center justify-between gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+              <span className="text-[11px] font-black flex items-center gap-1 text-purple-700 dark:text-purple-300">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Empresa Activa:</span>
+              </span>
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                className="py-1 px-2 text-xs font-black rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-800 text-purple-950 dark:text-purple-200 max-w-[170px] truncate"
+              >
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.tradeName || c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Fila Inferior: Cerrar Sesión (Izquierda) y Crear Empresas (Derecha) */}
+          <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => {
                 onClose();
                 logout();
               }}
-              className="w-full p-2.5 rounded-xl text-left text-xs font-black text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-3 transition cursor-pointer"
+              className="p-2.5 rounded-xl text-xs font-black text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 shadow-xs"
             >
               <LogOut className="w-4 h-4 text-red-500 shrink-0" />
               <span>Cerrar Sesión</span>
+            </button>
+
+            {/* Esquina inferior derecha: Empresa y Crear Empresas en modo Superadmin */}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (onOpenCompanies) {
+                  onOpenCompanies();
+                }
+              }}
+              className="p-2.5 rounded-xl text-xs font-black text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-xs truncate"
+              title={isSuperAdmin ? "Crear y Gestionar Empresas" : "Empresa Activa"}
+            >
+              <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+              <span className="truncate">
+                {isSuperAdmin ? '🏢 Crear Empresas' : (selectedCompany?.tradeName || selectedCompany?.name || 'Mi Empresa')}
+              </span>
             </button>
           </div>
 

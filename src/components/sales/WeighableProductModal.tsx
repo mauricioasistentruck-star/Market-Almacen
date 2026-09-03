@@ -19,6 +19,18 @@ interface WeighableProductModalProps {
   selectedProduct?: Product | null;
 }
 
+
+const CATEGORY_PRESETS_MOBILE = [
+  { id: 'cecinas', name: 'Cecinas', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
+  { id: 'quesos', name: 'Quesos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
+  { id: 'panaderia', name: 'Panadería', icon: '🥖', defaultPrice: 1990, keywords: ['pan', 'marraqueta', 'hallulla', 'baguette', 'coliza', 'dobladita', 'panaderia', 'panadería'] },
+  { id: 'verduras', name: 'Verduras', icon: '🥬', defaultPrice: 1500, keywords: ['verdura', 'lechuga', 'espinaca', 'acelga', 'zapallo', 'zanahoria', 'apio', 'pepino', 'cilantro', 'perejil', 'cebolla', 'papa', 'camote', 'betarraga', 'tomate', 'pimenton', 'pimentón'] },
+  { id: 'frutas', name: 'Frutas', icon: '🍎', defaultPrice: 1490, keywords: ['manzana', 'platano', 'plátano', 'naranja', 'pera', 'uva', 'fruta', 'limon', 'limón', 'sandia', 'sandía', 'melon', 'melón', 'frutilla', 'durazno', 'palta'] },
+  { id: 'carnes', name: 'Carnes', icon: '🍗', defaultPrice: 6990, keywords: ['carne', 'pollo', 'vacuno', 'cerdo', 'posta', 'molida', 'pechuga', 'trutro', 'costillar', 'lomo', 'sobrecostilla', 'asado', 'carniceria', 'carnicería', 'alitas'] },
+  { id: 'frutos', name: 'Frutos', icon: '🥜', defaultPrice: 9900, keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'castaña', 'avellana', 'pasas', 'pistacho', 'datil', 'dátil', 'chia', 'chía', 'linaza', 'granola', 'semilla'] },
+  { id: 'legumbres', name: 'Legumbres', icon: '🌾', defaultPrice: 2490, keywords: ['poroto', 'lenteja', 'garbanzo', 'arveja', 'haba', 'legumbre'] }
+];
+
 const CATEGORY_PRESETS = [
   { id: 'cecinas', name: 'Cecinas', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
   { id: 'quesos', name: 'Quesos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
@@ -256,7 +268,30 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
             <label className="block text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-1.5 tracking-wider">
               1. CATEGORÍA DE PRODUCTO A PESAR
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            {/* Versión Celular / APK: 8 categorías en 4 columnas x 2 filas (Verduras agrupa papas/tomates para dar máximo espacio a Legumbres) */}
+            <div className="grid grid-cols-4 gap-2 sm:hidden">
+              {CATEGORY_PRESETS_MOBILE.map((preset) => {
+                const isSelected = activeCategory === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectCategory(preset)}
+                    className={`py-2 px-1 rounded-2xl border text-center transition flex flex-col items-center justify-center cursor-pointer min-h-[58px] ${
+                      isSelected
+                        ? 'bg-[#ffedd5] dark:bg-orange-950/40 border-2 border-orange-400 text-orange-950 dark:text-orange-200 font-extrabold shadow-xs'
+                        : 'bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold'
+                    }`}
+                  >
+                    <span className="text-lg mb-0.5">{preset.icon}</span>
+                    <span className="text-[11px] leading-tight font-black truncate max-w-full px-0.5">{preset.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Versión Web / Escritorio: 10 categorías en 5 columnas x 2 filas intacta */}
+            <div className="hidden sm:grid grid-cols-5 gap-2">
               {CATEGORY_PRESETS.map((preset) => {
                 const isSelected = activeCategory === preset.id;
                 return (

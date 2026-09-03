@@ -140,28 +140,73 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ refreshTrigger }) 
   const getPriorityBadge = (p: PriorityLevel) => {
     switch (p) {
       case 'URGENTE':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40">🔴 URGENTE</span>;
+        return (
+          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40 leading-none">
+            <span>🔴</span>
+            <span>URGENTE</span>
+          </span>
+        );
       case 'ALTA':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/40">🟡 ALTA</span>;
+        return (
+          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 leading-none">
+            <span>🟡</span>
+            <span>ALTA</span>
+          </span>
+        );
       case 'MEDIA':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">🔵 MEDIA</span>;
+        return (
+          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/40 leading-none">
+            <span>🔵</span>
+            <span>MEDIA</span>
+          </span>
+        );
       case 'BAJA':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/20 text-slate-400 border border-slate-500/40">⚪ BAJA</span>;
+        return (
+          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-medium bg-slate-500/20 text-slate-600 dark:text-slate-400 border border-slate-500/40 leading-none">
+            <span>⚪</span>
+            <span>BAJA</span>
+          </span>
+        );
     }
   };
 
   const getStatusBadge = (s: PurchaseStatus) => {
     switch (s) {
       case 'PENDIENTE':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/40">⏳ PENDIENTE</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 leading-none">
+            <span>⏳</span>
+            <span>PENDIENTE</span>
+          </span>
+        );
       case 'COTIZADO':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/40">📑 COTIZADO</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/40 leading-none">
+            <span>📋</span>
+            <span>COTIZADO</span>
+          </span>
+        );
       case 'APROBADO':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">✅ APROBADO</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 leading-none">
+            <span>✅</span>
+            <span>APROBADO</span>
+          </span>
+        );
       case 'COMPRADO':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-500/20 text-purple-400 border border-purple-500/40">📦 COMPRADO</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-black bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 leading-none">
+            <span>📦</span>
+            <span>COMPRADO</span>
+          </span>
+        );
       case 'RECHAZADO':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40">❌ RECHAZADO</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-black bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40 leading-none">
+            <span>❌</span>
+            <span>RECHAZADO</span>
+          </span>
+        );
     }
   };
 
@@ -267,7 +312,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ refreshTrigger }) 
                     <td className="py-3 px-3 font-bold text-slate-900 dark:text-slate-100">
                       {r.requesterName}
                     </td>
-                    <td className="py-3 px-3">{getPriorityBadge(r.priority)}</td>
+                    <td className="py-3 px-3 whitespace-nowrap">{getPriorityBadge(r.priority)}</td>
                     <td className="py-3 px-3">
                       <div className="space-y-0.5">
                         {r.items.map((it, idx) => (
@@ -280,7 +325,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ refreshTrigger }) 
                     <td className="py-3 px-3 text-right font-mono font-black text-slate-900 dark:text-slate-100">
                       ${(r.totalEstimatedCost || r.estimatedCost || 0).toLocaleString('es-CL')}
                     </td>
-                    <td className="py-3 px-3 text-center">{getStatusBadge(r.status)}</td>
+                    <td className="py-3 px-3 text-center whitespace-nowrap">{getStatusBadge(r.status)}</td>
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {!isReadOnly && (

@@ -395,6 +395,7 @@ export const App: React.FC = () => {
         onOpenInventoryTaking={() => setIsInventoryTakingOpen(true)}
         onOpenUserManager={() => setIsUserManagerOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
+        onOpenCompanies={() => setIsCompanyManagerOpen(true)}
       />
 
       {/* Consultor Rápido de Precios y Stock */}

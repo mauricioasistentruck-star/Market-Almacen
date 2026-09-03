@@ -981,10 +981,10 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </div>
             </div>
 
-            {/* 2. BARRA DE BÚSQUEDA Y VENTA POR PESO */}
-            <div className={`flex items-center gap-2 p-1.5 rounded-2xl border ${themeClasses.card} shadow-xs`}>
+            {/* 2. BARRA DE BÚSQUEDA Y VENTA POR PESO (Con botón cámara/código de barras y botón peso compacto) */}
+            <div className={`flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl border ${themeClasses.card} shadow-xs`}>
               <div className="relative flex-1">
-                <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 opacity-60 text-blue-600" />
+                <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-60 text-blue-600" />
                 <input
                   type="text"
                   id="pos-search-input"
@@ -999,23 +999,35 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       }
                     }
                   }}
-                  placeholder="Buscar producto por nombre, código de barras o SKU..."
-                  className="w-full pl-9 pr-3 py-1.5 sm:py-2 rounded-xl bg-transparent border-none text-xs sm:text-sm font-black focus:outline-none placeholder:font-normal"
+                  placeholder="Buscar producto..."
+                  className="w-full pl-8 sm:pl-9 pr-9 sm:pr-10 py-1.5 sm:py-2 rounded-xl bg-transparent border-none text-xs sm:text-sm font-black focus:outline-none placeholder:font-normal"
                 />
+                {/* Botón Escanear Código con la Cámara */}
+                {onOpenScanner && (
+                  <button
+                    type="button"
+                    onClick={onOpenScanner}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center active:scale-90"
+                    title="Pistolear / Escanear código de barras con la cámara"
+                  >
+                    <Barcode className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                )}
               </div>
 
-              {/* Botón Venta por Peso / Granel */}
+              {/* Botón Venta por Peso / Granel: Compacto en móvil para no robar espacio */}
               <button
                 type="button"
                 onClick={() => {
                   setSelectedWeighableProduct(null);
                   setIsWeighableModalOpen(true);
                 }}
-                className="px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-2 border-amber-500/40 text-xs sm:text-sm font-black transition flex items-center gap-2 shrink-0 shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
+                className="px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-2 border-amber-500/40 text-xs sm:text-sm font-black transition flex items-center gap-1 sm:gap-2 shrink-0 shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
                 title="Venta de Pan, Papas, Frutas, Verduras y Productos por Peso o Monto"
               >
-                <Scale className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
-                <span>Venta por Peso / Granel</span>
+                <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-600 dark:text-amber-400" />
+                <span className="sm:hidden">Peso</span>
+                <span className="hidden sm:inline">Venta por Peso / Granel</span>
               </button>
             </div>
 

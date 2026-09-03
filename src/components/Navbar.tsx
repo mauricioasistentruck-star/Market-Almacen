@@ -139,7 +139,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action Tools: Company, Theme & User */}
           <div className="flex items-center gap-2 shrink-0">
             
-            {/* Empresa: Selector interactivo para Superadmin, Indicador Fijo para Administradores y Personal */}
+            {/* Empresa: Visible en Escritorio (en móvil se traslada al botón Más) */}
+            <div className="hidden md:block">
             {isSuperAdmin ? (
               <div className="relative">
                 <button
@@ -218,20 +219,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             
 
-            {/* Consultor Rápido en Móvil */}
+            </div>
+
+            {/* Consultor Rápido en Móvil: Alargado con texto "Consultar Precio" */}
             {permissions.priceConsultant && onOpenConsultant && (
               <button
                 type="button"
                 onClick={onOpenConsultant}
-                className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition shadow-xs cursor-pointer"
-                title="Consultor de Precios y Stock"
+                className="md:hidden h-9 px-3 flex items-center gap-1.5 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition shadow-xs cursor-pointer text-xs font-black"
+                title="Consultar Precios y Stock de Productos"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="whitespace-nowrap">Consultar Precio</span>
               </button>
             )}
 
-            {/* Tema Switcher */}
-            <div className="relative">
+            {/* Tema Switcher: Solo visible en pantallas de escritorio */}
+            <div className="hidden md:block relative">
               <button
                 type="button"
                 onClick={() => {
@@ -292,8 +296,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* User Profile Menu */}
-            <div className="relative">
+            {/* User Profile Menu: Solo visible en pantallas de escritorio */}
+            <div className="hidden md:block relative">
               <button
                 type="button"
                 onClick={() => {

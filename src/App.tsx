@@ -147,7 +147,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className={`${activeTab === 'sales' ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200 pb-16 xl:pb-0`}>
+    <div className={`${activeTab === 'sales' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen pb-16 xl:pb-0'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200`}>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -272,13 +272,15 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Footer (Oculto en modo ventas para que la pantalla encaje perfecta sin scroll) */}
+      {activeTab !== 'sales' && (
       <footer className={`py-4 border-t ${themeClasses.border} text-center text-xs text-slate-500`}>
         <div className="max-w-[1700px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>© 2026 MARKET ALMACÉN - Sistema de Control de Inventario y Ventas</span>
           <span className="font-mono text-[11px] text-slate-400">PWA Multiplataforma • Android & Web • 10.000+ Items</span>
         </div>
       </footer>
+      )}
 
       {/* Global Modals */}
       <BarcodeScannerModal

@@ -157,6 +157,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
   const [isQuickConfigOpen, setIsQuickConfigOpen] = useState(false);
+  const [isQuickPickerOpen, setIsQuickPickerOpen] = useState(false);
   const [selectedProductForOffer, setSelectedProductForOffer] = useState<Product | null>(null);
   const [priceChoiceProduct, setPriceChoiceProduct] = useState<Product | null>(null);
   const [priceChoiceQty, setPriceChoiceQty] = useState<number>(1);
@@ -919,7 +920,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch flex-1 h-full min-h-0 overflow-hidden">
           
           {/* Columna Izquierda: Encabezado -> Buscador -> Categorías + 9 Favoritos en 1 sola línea -> Tarjetas */}
-          <div className={`lg:col-span-7 xl:col-span-8 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-16 lg:pb-0`}>
+          <div className={`lg:col-span-7 xl:col-span-8 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-14 lg:pb-0`}>
             
             {/* 1. ENCABEZADO POS */}
             <div className={`p-2.5 sm:p-3 rounded-2xl border ${themeClasses.card} shadow-xs flex flex-wrap items-center justify-between gap-2`}>
@@ -1067,15 +1068,23 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
             {/* CARRITO DE VENTAS EN CELULAR (Visible directamente en pantalla para cobrar) */}
             <div className="lg:hidden flex-1 flex flex-col justify-between min-h-0 rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-3.5 shadow-md overflow-hidden">
-              {/* Header del Carrito Móvil */}
+              {/* Header del Carrito Móvil con botón de 9 Rápidos al lado */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
                 <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-black text-sm text-slate-900 dark:text-slate-100">
+                  <ShoppingCart className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100">
                     Carrito de Venta
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
-                    {cart.reduce((a, b) => a + b.quantity, 0)} {cart.reduce((a, b) => a + b.quantity, 0) === 1 ? 'ítem' : 'ítems'}
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickPickerOpen(true)}
+                    className="px-2 py-0.5 text-[11px] font-black rounded-lg border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 hover:bg-amber-100 flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 transition"
+                    title="Abrir 9 productos más vendidos"
+                  >
+                    <span>⭐ 9 Rápidos</span>
+                  </button>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+                    {cart.reduce((a, b) => a + b.quantity, 0)}
                   </span>
                 </div>
                 {cart.length > 0 && (
@@ -1101,7 +1110,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="flex-1 space-y-2 overflow-y-auto pr-1 my-2 max-h-[300px] scrollbar-thin">
+                <div className="flex-1 min-h-0 space-y-1.5 overflow-y-auto pr-1 my-1.5 scrollbar-thin">
                   {cart.map((item, idx) => {
                     return (
                       <div
@@ -1177,7 +1186,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             </div>
 
             {/* 3. BARRA DE CATÁLOGO / FAVORITOS (Sin imposición forzada de 9 productos) */}
-            <div className="flex items-center justify-between px-1.5 py-1 flex-wrap gap-2">
+            <div className="hidden lg:flex items-center justify-between px-1.5 py-1 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100">
                   {searchQuery.trim()
@@ -1217,7 +1226,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             </div>
 
             {/* 4. MATRIZ DE PRODUCTOS (Tarjetas Limpias y Espaciosas sin botón de liquidar) */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-1 scrollbar-thin ${
+            <div className={`hidden lg:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-1 scrollbar-thin ${
               isSearching ? 'max-h-[540px] overflow-y-auto pr-1' : ''
             }`}>
               {displayedProducts.map((prod) => {

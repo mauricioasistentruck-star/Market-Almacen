@@ -290,3 +290,24 @@ body.modal-open {
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
+/* ========================================================================= */
+/* REGLAS ESTRICTAS RESPONSIVE CELULARES / ANDROID / TOUCH                   */
+/* ========================================================================= */
+@media (pointer: coarse), (hover: none), (max-width: 1279px) {
+  .desktop-navbar-nav {
+    display: none !important;
+  }
+  .mobile-bottom-nav {
+    display: block !important;
+  }
+}
+
+@media (min-width: 1280px) and (pointer: fine) {
+  .desktop-navbar-nav {
+    display: flex !important;
+  }
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}

@@ -112,9 +112,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs (Ocultos permanentemente en Android nativo y en pantallas menores a xl) */}
-          {!(typeof window !== 'undefined' && Capacitor.isNativePlatform()) && (
-            <nav className="hidden xl:flex items-center gap-1.5 lg:gap-2">
+          {/* Desktop Navigation Tabs: Ocultos estrictamente en Android, táctil y cualquier pantalla no de escritorio */}
+          {!(typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 1280)) && (
+            <nav className="desktop-navbar-nav hidden xl:flex items-center gap-1.5 lg:gap-2">
             {tabs.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;

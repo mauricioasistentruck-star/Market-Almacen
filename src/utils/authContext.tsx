@@ -54,10 +54,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return parsed;
       } catch {
-        return null;
+        // fallback
       }
     }
-    return null;
+    // MODO PRUEBA DE ESTUDIO: Entrada libre automática para cualquier persona que reciba la APK
+    const studyUser: AppUser = {
+      ...DEFAULT_SUPERADMIN,
+      name: 'Mauricio Chamorro (Modo Estudio)'
+    };
+    try {
+      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(studyUser));
+    } catch {}
+    return studyUser;
   });
 
   const [usersList, setUsersList] = useState<AppUser[]>([]);
@@ -94,21 +102,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Autenticación de usuarios creados en la base de datos
+    // Autenticación de usuarios creados en la base de datos (con pase libre para Modo Estudio)
     try {
       const found = await db.users.where('username').equalsIgnoreCase(uClean).first();
-      if (!found) {
-        return { success: false, message: 'Usuario no encontrado en el sistema' };
-      }
-      if (found.password && found.password !== pClean) {
-        return { success: false, message: 'Contraseña incorrecta' };
+      if (found) {
+        setCurrentUser(found);
+        localStorage.setItem('marketalmacen_logged_user', JSON.stringify(found));
+        return { success: true };
       }
 
-      setCurrentUser(found);
-      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(found));
+      // MODO PRUEBA DE ESTUDIO: Si el usuario ingresa cualquier nombre o contraseña, permitir el acceso total
+      const studyUser: AppUser = {
+        ...DEFAULT_SUPERADMIN,
+        name: username ? `${username} (Evaluador)` : 'Mauricio Chamorro (Modo Estudio)'
+      };
+      setCurrentUser(studyUser);
+      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(studyUser));
       return { success: true };
     } catch (err: any) {
-      return { success: false, message: 'Error al iniciar sesión: ' + err.message };
+      const fallbackUser: AppUser = {
+        ...DEFAULT_SUPERADMIN,
+        name: 'Evaluador (Prueba de Estudio)'
+      };
+      setCurrentUser(fallbackUser);
+      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(fallbackUser));
+      return { success: true };
     }
   };
 

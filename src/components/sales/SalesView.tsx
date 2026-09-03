@@ -1031,6 +1031,151 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </button>
             </div>
 
+            {/* Resultados de Búsqueda Rápida en Celular (desplegable inteligente que agrega al tocar) */}
+            {searchQuery.trim().length > 0 && (
+              <div className="lg:hidden p-2 rounded-2xl border-2 border-blue-400 dark:border-blue-700 bg-white dark:bg-slate-900 shadow-2xl space-y-1.5 max-h-64 overflow-y-auto shrink-0 animate-fadeIn">
+                <div className="flex items-center justify-between px-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
+                  <span>Resultados de Búsqueda ({displayedProducts.length})</span>
+                  <span className="text-slate-400 text-[10px]">Toca para agregar al carrito</span>
+                </div>
+                {displayedProducts.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-3 text-center font-bold">No hay productos que coincidan con la búsqueda</p>
+                ) : (
+                  displayedProducts.slice(0, 10).map((prod) => (
+                    <button
+                      key={prod.id}
+                      type="button"
+                      onClick={() => {
+                        handleAddToCart(prod);
+                        setSearchQuery('');
+                      }}
+                      className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center justify-between text-left transition cursor-pointer active:scale-98"
+                    >
+                      <div className="min-w-0 flex-1 pr-2">
+                        <p className="text-xs font-black text-slate-900 dark:text-white truncate">{prod.name}</p>
+                        <p className="text-[10px] font-mono text-slate-500">{prod.code} • Stock: {prod.stock || 0} {prod.unit || 'UN'}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">${(prod.offerPrice || prod.price || 0).toLocaleString('es-CL')}</p>
+                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">+ Agregar</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* CARRITO DE VENTAS EN CELULAR (Visible directamente en pantalla para cobrar) */}
+            <div className="lg:hidden flex-1 flex flex-col justify-between min-h-0 rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-3.5 shadow-md overflow-hidden">
+              {/* Header del Carrito Móvil */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-black text-sm text-slate-900 dark:text-slate-100">
+                    Carrito de Venta
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+                    {cart.reduce((a, b) => a + b.quantity, 0)} {cart.reduce((a, b) => a + b.quantity, 0) === 1 ? 'ítem' : 'ítems'}
+                  </span>
+                </div>
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearCart}
+                    className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 cursor-pointer active:scale-95 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Vaciar
+                  </button>
+                )}
+              </div>
+
+              {/* Lista de Ítems en el Carrito Móvil */}
+              {cart.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2 opacity-60 min-h-[160px]">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <ShoppingCart className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">Carrito de Venta Vacío</p>
+                  <p className="text-xs font-bold text-slate-500 max-w-[260px]">
+                    Pistolea un código con la cámara, usa el botón de Peso o busca un producto arriba para agregarlo al cobro.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 space-y-2 overflow-y-auto pr-1 my-2 max-h-[300px] scrollbar-thin">
+                  {cart.map((item, idx) => {
+                    return (
+                      <div
+                        key={`${item.productId || idx}_${item.isOffer ? 'offer' : 'normal'}`}
+                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-2 shadow-2xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-xs text-slate-900 dark:text-slate-100 truncate">
+                            {item.productName}
+                          </p>
+                          <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                            ${(item.unitPrice || 0).toLocaleString('es-CL')}/{item.unit || 'UN'} • Total: <strong className="text-slate-900 dark:text-slate-100 font-black">${((item.unitPrice || 0) * item.quantity).toLocaleString('es-CL')}</strong>
+                          </p>
+                        </div>
+
+                        {/* Botones de Cantidad (+ / -) */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
+                            className="w-7 h-7 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 active:scale-90"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-xs font-black font-mono min-w-[20px] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
+                            className="w-7 h-7 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 active:scale-90"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFromCart(item.productId, item.isOffer)}
+                            className="w-7 h-7 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center justify-center transition ml-1"
+                            title="Eliminar producto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Totales y Botón de Cobro Móvil */}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold text-slate-500">Subtotal:</span>
+                  <span className="text-xs font-mono font-bold">${cartSubtotal.toLocaleString('es-CL')}</span>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">TOTAL A COBRAR:</span>
+                  <span className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    ${cartSubtotal.toLocaleString('es-CL')}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={cart.length === 0 || isReadOnly}
+                  onClick={() => setIsCheckoutOpen(true)}
+                  className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black text-white ${themeClasses.accentBg} flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer active:scale-98`}
+                >
+                  <DollarSign className="w-4 h-4" />
+                  <span>COBRAR / FINALIZAR VENTA (${cartSubtotal.toLocaleString('es-CL')})</span>
+                </button>
+              </div>
+            </div>
+
             {/* 3. BARRA DE CATÁLOGO / FAVORITOS (Sin imposición forzada de 9 productos) */}
             <div className="flex items-center justify-between px-1.5 py-1 flex-wrap gap-2">
               <div className="flex items-center gap-2">

@@ -19,6 +19,8 @@ import {
   Receipt,
   FileText,
   Printer,
+  MessageCircle,
+  Mail,
   X,
   User,
   CreditCard,
@@ -119,6 +121,50 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
       }
       setTimeout(() => setPrintMode(null), 1500);
     }, 100);
+  };
+
+  
+  const handleSendWhatsApp = () => {
+    let phone = (sale.customerPhone || '').trim();
+    if (!phone) {
+      const input = prompt('Ingrese el número de celular o WhatsApp del cliente (Ej: +56912345678):');
+      if (!input) return;
+      phone = input.trim();
+    }
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const docLabel = getDteLabel(sale.dteType);
+    const text = encodeURIComponent(
+      `¡Hola ${sale.customerName || 'Cliente'}! Muchas gracias por su compra en ${selectedCompany?.name || 'Market Almacén'}.\n\n` +
+      `🧾 Documento: ${docLabel}\n` +
+      `🔢 Folio: #${sale.folio}\n` +
+      `📅 Fecha: ${sale.date} ${sale.time || ''}\n` +
+      `💰 Total Pagado: ${(sale.total || 0).toLocaleString('es-CL')}\n` +
+      `💳 Medio de Pago: ${getPaymentMethodLabel(sale.paymentMethod)}\n\n` +
+      `¡Esperamos atenderle nuevamente!`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+  };
+
+  const handleSendEmail = () => {
+    let email = (sale.customerEmail || '').trim();
+    if (!email) {
+      const input = prompt('Ingrese el correo electrónico del cliente:');
+      if (!input) return;
+      email = input.trim();
+    }
+    const docLabel = getDteLabel(sale.dteType);
+    const subject = encodeURIComponent(`Comprobante de Compra - ${docLabel} #${sale.folio} - ${selectedCompany?.name || 'Local'}`);
+    const body = encodeURIComponent(
+      `Estimado/a ${sale.customerName || 'Cliente'},\n\n` +
+      `Le enviamos el detalle de su compra realizada en ${selectedCompany?.name || 'nuestro local'}:\n\n` +
+      `Documento: ${docLabel} N° ${sale.folio}\n` +
+      `Fecha: ${sale.date} ${sale.time || ''}\n` +
+      `Monto Total: ${(sale.total || 0).toLocaleString('es-CL')}\n` +
+      `Medio de Pago: ${getPaymentMethodLabel(sale.paymentMethod)}\n\n` +
+      `Atentamente,\n` +
+      `${selectedCompany?.name || 'Market Almacén'}`
+    );
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handlePrintInvoice = () => {
@@ -739,10 +785,62 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
                     <span className="text-[10px] font-black font-mono text-amber-600 dark:text-amber-400">PDF A4</span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
-                    Generar boleta o factura reglamentaria con timbre electrónico TED para el cliente.
+                    Descargar boleta o factura reglamentaria en formato PDF con timbre electrónico TED.
                   </p>
                   <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-amber-600 dark:text-amber-400">
-                    <span>Descargar PDF Tributario</span>
+                    <span>Descargar PDF</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                  </div>
+                </div>
+              </button>
+
+              {/* Tarjeta de Opción 3: Enviar por WhatsApp */}
+              <button
+                type="button"
+                onClick={handleSendWhatsApp}
+                className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                      Enviar a WhatsApp
+                    </p>
+                    <span className="text-[10px] font-black font-mono text-emerald-600 dark:text-emerald-400">Digital</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                    {sale.customerPhone ? `Enviar comprobante al ${sale.customerPhone}` : 'Enviar detalle de compra directamente al chat del cliente'}
+                  </p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+                    <span>Enviar WhatsApp</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                  </div>
+                </div>
+              </button>
+
+              {/* Tarjeta de Opción 4: Enviar por Correo */}
+              <button
+                type="button"
+                onClick={handleSendEmail}
+                className="group relative p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-400 text-left transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98] flex items-start gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/80 border border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition">
+                      Enviar por Correo
+                    </p>
+                    <span className="text-[10px] font-black font-mono text-cyan-600 dark:text-cyan-400">Email</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 line-clamp-2">
+                    {sale.customerEmail ? `Enviar copia digital a ${sale.customerEmail}` : 'Enviar comprobante oficial por correo electrónico'}
+                  </p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-cyan-600 dark:text-cyan-400">
+                    <span>Enviar Correo</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                   </div>
                 </div>

@@ -826,30 +826,52 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-4">
+                    <div className="col-span-12 sm:col-span-6">
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Nombre del Cliente"
+                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6">
+                      <input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Celular / WhatsApp (Ej: +56912345678)"
+                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-400 dark:border-emerald-600 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none placeholder:text-slate-400 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-12 sm:col-span-6">
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder="Correo electrónico (opcional)"
+                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6">
                       <input
                         type="text"
                         value={customerRut}
                         onChange={(e) => setCustomerRut(e.target.value)}
                         placeholder="RUT (Opcional)"
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none"
-                      />
-                    </div>
-                    <div className="col-span-8">
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Nombre del Cliente (Opcional)"
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none"
                       />
                     </div>
                   </div>
-                  <div className="h-[32px] px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                    <span className="text-slate-700 dark:text-slate-300 font-bold truncate">ℹ️ Consumidor final: Boleta válida sin necesidad de RUT.</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-[10px] shrink-0 ml-2">Cliente General</span>
+
+                  <div className="h-[28px] px-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
+                    <span className="text-emerald-800 dark:text-emerald-300 text-[11px] font-black truncate">💬 Datos para enviar boleta digital a su WhatsApp o Correo</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-200 font-black text-[9px] shrink-0 ml-1">Envío Digital</span>
                   </div>
                 </div>
               )}

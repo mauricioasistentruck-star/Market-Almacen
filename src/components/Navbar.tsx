@@ -479,27 +479,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Navigation Tabs */}
-        <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-200 dark:border-slate-800 gap-1 overflow-x-auto">
-          {tabs.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black transition flex flex-col items-center gap-0.5 shrink-0 whitespace-nowrap ${
-                  isActive
-                    ? `${themeClasses.accentBg} text-white shadow-sm`
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+
 
       </div>
       <CloudConfigModal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} />

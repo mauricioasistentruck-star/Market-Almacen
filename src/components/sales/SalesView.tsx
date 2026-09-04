@@ -1,3 +1,4 @@
+import { QuickProductsPickerModal } from './QuickProductsPickerModal';
 import { getRubroPreset, type CompanyServiceOption } from '../../utils/rubroPresets';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../../utils/themeContext';
@@ -1599,23 +1600,23 @@ export const SalesView: React.FC<SalesViewProps> = ({
           {/* Barra de Filtros, Buscador por Texto y Buscador Tipo Calendario */}
           <div className={`p-3.5 rounded-2xl border ${themeClasses.card} shadow-xs space-y-3`}>
             
-            {/* Fila 1: Filtro por Tipo de Documento */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-black text-slate-500 mr-1">Documentos:</span>
+            {/* Fila 1: Filtro por Tipo de Documento (Línea compacta horizontal sin desorden ni scroll vertical) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                <span className="text-[11px] font-black text-slate-500 mr-0.5 shrink-0">Documentos:</span>
                 {[
-                  { id: 'ALL', label: 'Todos los Documentos', count: salesHistory.length },
-                  { id: 'BOLETA', label: '🧾 Boletas Electrónicas', count: totalBoletasCount },
-                  { id: 'FACTURA', label: '🏢 Facturas Electrónicas', count: totalFacturasCount },
-                  { id: 'INTERNA', label: '🎫 Venta Interna / Tickets', count: totalInternasCount }
+                  { id: 'ALL', label: 'Todos', count: salesHistory.length },
+                  { id: 'BOLETA', label: '🧾 Boletas', count: totalBoletasCount },
+                  { id: 'FACTURA', label: '🏢 Facturas', count: totalFacturasCount },
+                  { id: 'INTERNA', label: '🎫 Tickets', count: totalInternasCount }
                 ].map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setHistoryDteTypeFilter(t.id as any)}
-                    className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                       historyDteTypeFilter === t.id
-                        ? 'bg-blue-600 text-white shadow-sm'
+                        ? 'bg-blue-600 text-white shadow-xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
@@ -1629,7 +1630,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                 ))}
               </div>
 
-              <div className="text-[11px] font-bold text-slate-500">
+              <div className="text-[11px] font-bold text-slate-500 shrink-0">
                 Mostrando <strong className="text-slate-900 dark:text-white">{filteredSalesHistory.length}</strong> documentos
               </div>
             </div>
@@ -2145,6 +2146,18 @@ export const SalesView: React.FC<SalesViewProps> = ({
           selectedProduct={selectedWeighableProduct}
         />
       )}
+
+      {/* Modal de 9 Rápidos (Productos Más Vendidos o Elegidos por el Usuario) */}
+      <QuickProductsPickerModal
+        isOpen={isQuickPickerOpen}
+        onClose={() => setIsQuickPickerOpen(false)}
+        products={quick9Products}
+        onAddToCart={handleAddToCart}
+        onOpenConfig={() => {
+          setIsQuickPickerOpen(false);
+          setIsQuickConfigOpen(true);
+        }}
+      />
 
       {/* Modal de Configuración de 9 Favoritos */}
       {isQuickConfigOpen && (

@@ -495,21 +495,21 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 <span>1. Tipo de Documento Tributario (SII)</span>
               </label>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 {/* Boleta Electrónica */}
                 <button
                   type="button"
                   onClick={() => setDteType('BOLETA_ELECTRONICA')}
-                  className={`h-[46px] px-2.5 rounded-xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
+                  className={`py-2 px-1.5 sm:px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                     dteType === 'BOLETA_ELECTRONICA'
                       ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-950 dark:text-orange-100 shadow-sm ring-2 ring-orange-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Receipt className={`w-5 h-5 shrink-0 ${dteType === 'BOLETA_ELECTRONICA' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
-                  <div className="truncate">
-                    <span className="text-xs font-black block truncate">Boleta Electrónica</span>
-                    <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 block truncate">Consumidor final</span>
+                  <Receipt className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'BOLETA_ELECTRONICA' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black block leading-tight truncate">Boleta</span>
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-orange-700 dark:text-orange-300 block leading-tight truncate">Consumidor</span>
                   </div>
                 </button>
 
@@ -534,16 +534,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 }
               } catch (e) {}
             }}
-                  className={`h-[46px] px-2.5 rounded-xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
+                  className={`py-2 px-1.5 sm:px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                     dteType === 'FACTURA_ELECTRONICA'
                       ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm ring-2 ring-blue-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Building className={`w-5 h-5 shrink-0 ${dteType === 'FACTURA_ELECTRONICA' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
-                  <div className="truncate">
-                    <span className="text-xs font-black block truncate">Factura Electrónica</span>
-                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 block truncate">Crédito Fiscal IVA</span>
+                  <Building className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'FACTURA_ELECTRONICA' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black block leading-tight truncate">Factura</span>
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-blue-700 dark:text-blue-300 block leading-tight truncate">IVA Crédito</span>
                   </div>
                 </button>
 
@@ -551,16 +551,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setDteType('TICKET_INTERNO')}
-                  className={`h-[46px] px-2.5 rounded-xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
+                  className={`py-2 px-1.5 sm:px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                     dteType === 'TICKET_INTERNO'
                       ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-sm ring-2 ring-purple-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <QrCode className={`w-5 h-5 shrink-0 ${dteType === 'TICKET_INTERNO' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`} />
-                  <div className="truncate">
-                    <span className="text-xs font-black block truncate">Ticket Interno</span>
-                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 block truncate">Comprobante</span>
+                  <QrCode className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'TICKET_INTERNO' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`} />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black block leading-tight truncate">Ticket</span>
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-purple-700 dark:text-purple-300 block leading-tight truncate">Interno</span>
                   </div>
                 </button>
               </div>
@@ -573,67 +573,67 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 <span>2. Medio de Pago</span>
               </label>
 
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                 {/* Efectivo */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('EFECTIVO')}
-                  className={`h-[38px] px-2 rounded-xl border-2 text-center transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl border-2 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'EFECTIVO'
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-100 shadow-sm ring-2 ring-emerald-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="text-xs font-black truncate">Efectivo</span>
+                  <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-black leading-none truncate">Efectivo</span>
                 </button>
 
                 {/* Débito */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('DEBITO')}
-                  className={`h-[38px] px-2 rounded-xl border-2 text-center transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl border-2 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'DEBITO'
                       ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm ring-2 ring-blue-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="text-xs font-black truncate">Débito (POS)</span>
+                  <CreditCard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-black leading-none truncate">Débito</span>
                 </button>
 
                 {/* Crédito */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CREDITO')}
-                  className={`h-[38px] px-2 rounded-xl border-2 text-center transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl border-2 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'CREDITO'
                       ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-100 shadow-sm ring-2 ring-indigo-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <span className="text-xs font-black truncate">Crédito</span>
+                  <CreditCard className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-black leading-none truncate">Crédito</span>
                 </button>
 
                 {/* Transferencia */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('TRANSFERENCIA')}
-                  className={`h-[38px] px-2 rounded-xl border-2 text-center transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl border-2 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'TRANSFERENCIA'
                       ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-sm ring-2 ring-purple-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Building className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                  <span className="text-xs font-black truncate">Transf.</span>
+                  <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-black leading-none truncate">Transf.</span>
                 </button>
               </div>
             </div>
 
             {/* Panel Dinámico de Pago: Altura fija EXACTA de 172px para todos los medios */}
-            <div className="h-[172px] shrink-0">
+            <div className="shrink-0 space-y-2">
               {paymentMethod === 'EFECTIVO' ? (
                 <div className="h-full p-2.5 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col justify-between">
                   <div className="flex items-center justify-between text-xs">
@@ -662,11 +662,11 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                   </div>
 
                   {/* Atajos de pago dinámicos con billetes chilenos */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">
+                  <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     <button
                       type="button"
                       onClick={() => setAmountPaid(cashRoundedTotal)}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black hover:bg-emerald-700 transition shrink-0 cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 active:bg-emerald-700 text-white text-[11px] font-black shrink-0 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       Exacto ({formatCLP(cashRoundedTotal)})
                     </button>
@@ -675,14 +675,14 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                         key={quickM}
                         type="button"
                         onClick={() => setAmountPaid(quickM)}
-                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-200 text-[11px] font-black hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition shrink-0 cursor-pointer shadow-xs"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-200 text-[11px] font-black active:bg-emerald-50 dark:active:bg-emerald-950/50 transition shrink-0 cursor-pointer shadow-xs whitespace-nowrap"
                       >
                         ${quickM.toLocaleString('es-CL')}
                       </button>
                     ))}
                   </div>
 
-                  <div className="p-1.5 px-3 rounded-xl bg-emerald-600 text-white flex items-center justify-between shadow-xs">
+                  <div className="p-2 px-3 rounded-xl bg-emerald-600 text-white flex items-center justify-between shadow-xs mt-1">
                     <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
                       <span>💵</span> VUELTO A ENTREGAR:
                     </span>
@@ -726,7 +726,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             </div>
 
             {/* 3. Datos del Cliente: Altura fija EXACTA de 122px tanto en Boleta como en Factura */}
-            <div className="h-[122px] shrink-0 flex flex-col justify-between">
+            <div className="shrink-0 space-y-2">
               <label className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-blue-600" />
@@ -747,82 +747,80 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </label>
 
               {dteType === 'FACTURA_ELECTRONICA' ? (
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-4">
-                      <div className="relative flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={customerRut}
-                          onChange={(e) => handleCustomerRutChange(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSearchRut();
-                            }
-                          }}
-                          placeholder="RUT (Ej: 76.890.123-4)*"
-                          className="flex-1 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSearchRut}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-xs cursor-pointer shrink-0 transition active:scale-95"
-                          title="Aceptar RUT para autocompletar datos del cliente"
-                        >
-                          Aceptar
-                        </button>
-                        {suggestedCustomers.length > 0 && (
-                          <div className="absolute left-0 top-full mt-1 w-72 bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-xl shadow-2xl z-50 p-1.5 space-y-1">
-                            <span className="text-[10px] font-black text-slate-400 block px-1">Coincidencias en Clientes Guardados:</span>
-                            {suggestedCustomers.map(sc => (
-                              <button
-                                key={sc.id}
-                                type="button"
-                                onClick={() => applyCustomer(sc)}
-                                className="w-full text-left p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 text-xs transition cursor-pointer"
-                              >
-                                <p className="font-black text-blue-600 dark:text-blue-400 leading-tight">{sc.rut}</p>
-                                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate">{sc.businessName}</p>
-                                {sc.industry && <p className="text-[10px] text-slate-400 truncate">{sc.industry}</p>}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                <div className="space-y-2">
+                  {/* Fila 1: RUT con botón Aceptar al lado */}
+                  <div className="relative">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={customerRut}
+                        onChange={(e) => handleCustomerRutChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSearchRut();
+                          }
+                        }}
+                        placeholder="RUT Empresa (Ej: 76.890.123-4) *"
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none focus:border-blue-600"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSearchRut}
+                        className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs shadow-xs cursor-pointer shrink-0 transition"
+                        title="Aceptar RUT para autocompletar datos del cliente"
+                      >
+                        Aceptar
+                      </button>
+                    </div>
+
+                    {suggestedCustomers.length > 0 && (
+                      <div className="absolute left-0 top-full mt-1 w-full max-w-sm bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-xl shadow-2xl z-50 p-1.5 space-y-1">
+                        <span className="text-[10px] font-black text-slate-400 block px-1">Coincidencias en Clientes Guardados:</span>
+                        {suggestedCustomers.map(sc => (
+                          <button
+                            key={sc.id}
+                            type="button"
+                            onClick={() => applyCustomer(sc)}
+                            className="w-full text-left p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 text-xs transition cursor-pointer"
+                          >
+                            <p className="font-black text-blue-600 dark:text-blue-400 leading-tight">{sc.rut}</p>
+                            <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate">{sc.businessName}</p>
+                            {sc.industry && <p className="text-[10px] text-slate-400 truncate">{sc.industry}</p>}
+                          </button>
+                        ))}
                       </div>
-                    </div>
-                    <div className="col-span-8">
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Razón Social de la Empresa *"
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
-                        required
-                      />
-                    </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-6">
-                      <input
-                        type="text"
-                        value={customerBusiness}
-                        onChange={(e) => setCustomerBusiness(e.target.value)}
-                        placeholder="Giro Comercial *"
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-6">
-                      <input
-                        type="text"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        placeholder="Dirección y Comuna"
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
-                      />
-                    </div>
+
+                  {/* Fila 2: Razón Social */}
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Razón Social de la Empresa *"
+                    className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-600"
+                    required
+                  />
+
+                  {/* Fila 3: Giro y Dirección */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={customerBusiness}
+                      onChange={(e) => setCustomerBusiness(e.target.value)}
+                      placeholder="Giro Comercial *"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-600"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                      placeholder="Dirección y Comuna"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                    />
                   </div>
                 </div>
               ) : (

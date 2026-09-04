@@ -241,95 +241,94 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
-          
-          {/* Nuevo Producto */}
-          {!isReadOnly && (
-            <button
-              type="button"
-              onClick={onOpenNewProduct}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-black rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/25 transition active:scale-95 whitespace-nowrap cursor-pointer"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Nuevo Producto</span>
-            </button>
-          )}
+                {/* Action Buttons Toolbar - Compact & Organized */}
+        <div className="w-full lg:w-auto flex flex-col gap-2">
+          {/* Fila 1: Acciones Principales */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={onOpenNewProduct}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/25 transition active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ Nuevo Producto</span>
+              </button>
+            )}
 
-          {/* Movimientos de Stock / Kardex (Exclusivo Administrador) */}
-          {!isReadOnly && (
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedProductForHistory(null);
+                  setIsMovementsHistoryOpen(true);
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition active:scale-95 cursor-pointer shadow-xs"
+                title="[Exclusivo Administrador] Consultar movimientos históricos de stock y Kardex"
+              >
+                <History className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Kardex / Historial</span>
+              </button>
+            )}
+          </div>
+
+          {/* Fila 2: Operaciones Rápidas (Grid simétrico de 5 botones que no se desborda) */}
+          <div className="grid grid-cols-5 gap-1 sm:flex sm:items-center sm:gap-1.5 text-center">
             <button
               type="button"
               onClick={() => {
-                setSelectedProductForHistory(null);
-                setIsMovementsHistoryOpen(true);
+                setSelectedProductForBarcode(null);
+                setIsBarcodePrintOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition active:scale-95 whitespace-nowrap cursor-pointer shadow-xs"
-              title="[Exclusivo Administrador] Consultar movimientos históricos de stock y Kardex de todos los productos"
+              className="flex flex-col sm:flex-row items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition active:scale-95 cursor-pointer"
+              title="Códigos de Barra"
             >
-              <History className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
-              <span>Movimientos / Kardex</span>
+              <Barcode className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <span className="text-[10px] sm:text-xs font-bold">Barras</span>
             </button>
-          )}
 
-          {/* Códigos de Barra */}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedProductForBarcode(null);
-              setIsBarcodePrintOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
-            title="Crear e Imprimir Códigos de Barra para Impresoras SATO, Térmicas y Hoja Carta"
-          >
-            <Barcode className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span>Códigos de Barra</span>
-          </button>
-
-          {/* Entrada Stock */}
-          <button
-            type="button"
-            onClick={() => onOpenMovement(undefined, 'ENTRADA')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
-          >
-            <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Entrada</span>
-          </button>
-
-          {/* Salida Stock */}
-          <button
-            type="button"
-            onClick={() => onOpenMovement(undefined, 'SALIDA')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
-          >
-            <ArrowUpRight className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span>Salida</span>
-          </button>
-
-          {/* Ajuste Stock */}
-          <button
-            type="button"
-            onClick={() => onOpenMovement(undefined, 'AJUSTE')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
-            title="Ajuste y cuadratura de stock físico"
-          >
-            <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>Ajuste</span>
-          </button>
-
-          {/* Exportar Excel */}
-          {canExportImport && (
             <button
               type="button"
-              onClick={handleExportExcel}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
-              title="Exportar listado a Excel"
+              onClick={() => onOpenMovement(undefined, 'ENTRADA')}
+              className="flex flex-col sm:flex-row items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition active:scale-95 cursor-pointer"
+              title="Registrar Entrada"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Excel</span>
+              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[10px] sm:text-xs font-bold">Entrada</span>
             </button>
-          )}
 
+            <button
+              type="button"
+              onClick={() => onOpenMovement(undefined, 'SALIDA')}
+              className="flex flex-col sm:flex-row items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 transition active:scale-95 cursor-pointer"
+              title="Registrar Salida"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="text-[10px] sm:text-xs font-bold">Salida</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenMovement(undefined, 'AJUSTE')}
+              className="flex flex-col sm:flex-row items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition active:scale-95 cursor-pointer"
+              title="Ajuste de Stock"
+            >
+              <Sliders className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="text-[10px] sm:text-xs font-bold">Ajuste</span>
+            </button>
+
+            {canExportImport && (
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                className="flex flex-col sm:flex-row items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition active:scale-95 cursor-pointer"
+                title="Exportar a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[10px] sm:text-xs font-bold">Excel</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

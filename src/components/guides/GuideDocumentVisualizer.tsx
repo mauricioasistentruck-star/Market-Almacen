@@ -51,43 +51,6 @@ export const GuideDocumentVisualizer: React.FC<GuideDocumentVisualizerProps> = (
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4 pb-4">
-      {/* Botones de acción superiores rápidos para móvil */}
-      <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-xs">
-        <span className="font-bold text-slate-300 text-xs pl-2 flex items-center gap-1.5">
-          <FileText className="w-4 h-4 text-orange-400" />
-          <span>Vista de Documento Oficial</span>
-        </span>
-        <div className="flex items-center gap-1.5">
-          {onDownloadPDF && (
-            <button
-              onClick={onDownloadPDF}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black shadow-sm active:scale-95 transition"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>PDF</span>
-            </button>
-          )}
-          {onShareWhatsApp && (
-            <button
-              onClick={onShareWhatsApp}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm active:scale-95 transition"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
-            </button>
-          )}
-          {onPrint && (
-            <button
-              onClick={onPrint}
-              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold active:scale-95 transition"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Hoja de la Guía Oficial (Estilo Papel Limpio de Alta Fidelidad) */}
       <div className="bg-white text-slate-900 rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-5">
         

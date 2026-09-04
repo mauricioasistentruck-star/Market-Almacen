@@ -327,7 +327,7 @@ export const UserManagerModal: React.FC<UserManagerModalProps> = ({
                 >
                   <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-xs block truncate font-black">Cajera / Ventas</span>
+                    <span className="text-xs block truncate font-black">Caja / Ventas</span>
                     <span className="text-[10px] text-slate-500 block truncate">POS, Cobro y Stock</span>
                   </div>
                 </button>

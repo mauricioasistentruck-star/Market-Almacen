@@ -19,6 +19,7 @@ interface PDFViewerModalProps {
   title?: string;
   subtitle?: string;
   recipientPhone?: string;
+  previewNode?: React.ReactNode;
 }
 
 export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
@@ -28,7 +29,8 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
   filename,
   title = 'Documento PDF Oficial',
   subtitle,
-  recipientPhone
+  recipientPhone,
+  previewNode
 }) => {
   const { themeClasses } = useTheme();
 
@@ -128,45 +130,51 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
           </div>
         </div>
 
-        {/* PDF Reader / Frame */}
-        <div className="flex-1 bg-slate-900 w-full h-full p-2 sm:p-4 overflow-hidden flex items-center justify-center">
-          {typeof window !== 'undefined' && typeof (window as any).Capacitor?.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform() ? (
-            <div className="w-full h-full rounded-2xl border border-slate-800 bg-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-5">
-              <div className="p-4 rounded-3xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
-                <FileText className="w-12 h-12" />
-              </div>
-              <div className="space-y-1 max-w-sm">
-                <h4 className="font-extrabold text-base text-slate-100">{title}</h4>
-                <p className="text-xs text-slate-400">{filename}</p>
-                <p className="text-xs text-orange-400 font-semibold pt-1">
-                  Documento oficial emitido por Market Almacén
-                </p>
-              </div>
-
-              <div className="w-full max-w-xs space-y-2.5">
-                <button
-                  onClick={handleDownload}
-                  className={`w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-black rounded-2xl ${themeClasses.accentBg} ${themeClasses.accentHover} shadow-lg shadow-orange-500/25 transition active:scale-95`}
-                >
-                  <Download className="w-4 h-4" />
-                  <span>📱 Abrir / Guardar Documento PDF</span>
-                </button>
-
-                <button
-                  onClick={handleShare}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition active:scale-95"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Compartir por WhatsApp / Enviar</span>
-                </button>
-              </div>
+                {/* Document Reader / Content */}
+        <div className="flex-1 bg-slate-900/90 w-full h-full p-2 sm:p-4 overflow-y-auto flex flex-col items-center">
+          {previewNode ? (
+            <div className="w-full max-w-4xl py-1">
+              {previewNode}
             </div>
           ) : (
-            <iframe
-              src={`${blobUrl}#toolbar=1&navpanes=0`}
-              title={title}
-              className="w-full h-full rounded-2xl border border-slate-800 shadow-inner bg-white"
-            />
+            typeof window !== 'undefined' && typeof (window as any).Capacitor?.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform() ? (
+              <div className="w-full max-w-lg my-auto rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-5">
+                <div className="p-4 rounded-3xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                  <FileText className="w-12 h-12" />
+                </div>
+                <div className="space-y-1 max-w-sm">
+                  <h4 className="font-extrabold text-base text-slate-100">{title}</h4>
+                  <p className="text-xs text-slate-400 font-mono truncate">{filename}</p>
+                  <p className="text-xs text-orange-400 font-semibold pt-1">
+                    Documento oficial emitido por Market Almacén
+                  </p>
+                </div>
+
+                <div className="w-full max-w-xs space-y-2.5">
+                  <button
+                    onClick={handleDownload}
+                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-black rounded-2xl ${themeClasses.accentBg} ${themeClasses.accentHover} shadow-lg shadow-orange-500/25 transition active:scale-95`}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>📱 Abrir / Guardar Documento PDF</span>
+                  </button>
+
+                  <button
+                    onClick={handleShare}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition active:scale-95"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Compartir por WhatsApp / Enviar</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <iframe
+                src={`${blobUrl}#toolbar=1&navpanes=0`}
+                title={title}
+                className="w-full h-full min-h-[70vh] rounded-2xl border border-slate-800 shadow-inner bg-white"
+              />
+            )
           )}
         </div>
       </div>

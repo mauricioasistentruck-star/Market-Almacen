@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { ReceptionGuide, DeliveryGuide } from '../../types';
+import type { ReceptionGuide, DeliveryGuide, Company } from '../../types';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
@@ -8,6 +8,7 @@ import { generateReceptionGuidePDF, generateDeliveryGuidePDF, downloadPDF, print
 import { triggerCloudSync } from '../../utils/cloudSync';
 import { ImageViewerModal } from '../ImageViewerModal';
 import { PDFViewerModal } from '../PDFViewerModal';
+import { GuideDocumentVisualizer } from './GuideDocumentVisualizer';
 import {
   FileCheck,
   Send,
@@ -60,6 +61,11 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
   const [viewerPdfTitle, setViewerPdfTitle] = useState('');
   const [viewerPdfSubtitle, setViewerPdfSubtitle] = useState('');
   const [viewerRecipientPhone, setViewerRecipientPhone] = useState<string | undefined>(undefined);
+  const [viewingGuide, setViewingGuide] = useState<{
+    guide: ReceptionGuide | DeliveryGuide;
+    type: 'RECEPTION' | 'DELIVERY';
+    company?: Company;
+  } | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   useEffect(() => {
@@ -119,19 +125,11 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
     const comp = companies.find((c) => c.id === g.companyId);
     const doc = await generateReceptionGuidePDF(g, comp);
     setViewerPdfDoc(doc);
-    setViewerPdfFilename(`Guia_Recepcion_${g.folio}
-                          {g.dispatchType === 'TRASPASO_SUCURSAL' ? (
-                            <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                              🏢 TRASPASO
-                            </span>
-                          ) : (
-                            <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-500/20 text-blue-500 border border-blue-500/30">
-                              📄 FACTURABLE
-                            </span>
-                          )}.pdf`);
+    setViewerPdfFilename(`Guia_Recepcion_${g.folio}.pdf`);
     setViewerPdfTitle(`Guía de Recepción ${g.folio}`);
-    setViewerPdfSubtitle(`Proveedor / Transportista: ${g.supplierOrCarrierName} • Empresa: ${g.companyName}`);
+    setViewerPdfSubtitle(`Proveedor / Transportista: ${g.supplierOrCarrierName} • Empresa: ${g.companyName || comp?.name || 'Market Almacén'}`);
     setViewerRecipientPhone(g.carrierPhone);
+    setViewingGuide({ guide: g, type: 'RECEPTION', company: comp });
     setIsPdfModalOpen(true);
   };
 
@@ -165,8 +163,9 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
     setViewerPdfDoc(doc);
     setViewerPdfFilename(`Guia_Entrega_${g.folio}.pdf`);
     setViewerPdfTitle(`Guía de Entrega ${g.folio}`);
-    setViewerPdfSubtitle(`Receptor: ${g.recipientName} • Empresa: ${g.companyName}`);
+    setViewerPdfSubtitle(`Receptor: ${g.recipientName} • Empresa: ${g.companyName || comp?.name || 'Market Almacén'}`);
     setViewerRecipientPhone(g.recipientPhone);
+    setViewingGuide({ guide: g, type: 'DELIVERY', company: comp });
     setIsPdfModalOpen(true);
   };
 
@@ -666,12 +665,43 @@ export const GuidesListView: React.FC<GuidesListViewProps> = ({
           onClose={() => {
             setIsPdfModalOpen(false);
             setViewerPdfDoc(null);
+            setViewingGuide(null);
           }}
           doc={viewerPdfDoc}
           filename={viewerPdfFilename}
           title={viewerPdfTitle}
           subtitle={viewerPdfSubtitle}
           recipientPhone={viewerRecipientPhone}
+          previewNode={
+            viewingGuide ? (
+              <GuideDocumentVisualizer
+                guide={viewingGuide.guide}
+                type={viewingGuide.type}
+                company={viewingGuide.company}
+                onDownloadPDF={() => {
+                  if (viewingGuide.type === 'RECEPTION') {
+                    handleDownloadRecPDF(viewingGuide.guide as ReceptionGuide);
+                  } else {
+                    handleDownloadDelPDF(viewingGuide.guide as DeliveryGuide);
+                  }
+                }}
+                onShareWhatsApp={() => {
+                  if (viewingGuide.type === 'RECEPTION') {
+                    handleShareRecWhatsApp(viewingGuide.guide as ReceptionGuide);
+                  } else {
+                    handleShareDelWhatsApp(viewingGuide.guide as DeliveryGuide);
+                  }
+                }}
+                onPrint={() => {
+                  if (viewingGuide.type === 'RECEPTION') {
+                    handlePrintRecPDF(viewingGuide.guide as ReceptionGuide);
+                  } else {
+                    handlePrintDelPDF(viewingGuide.guide as DeliveryGuide);
+                  }
+                }}
+              />
+            ) : undefined
+          }
         />
       )}
     </div>

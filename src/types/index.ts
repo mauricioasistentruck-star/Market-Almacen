@@ -176,6 +176,8 @@ export interface Product {
   unit: string;
   price?: number;
   costPrice?: number;
+  lastPurchaseCost?: number;
+  averageCost?: number;
   expiryDate?: string; // Fecha de vencimiento (YYYY-MM-DD)
   offerPrice?: number; // Precio promocional / liquidación
   offerStockLimit?: number; // Cantidad de unidades destinadas a oferta (ej: 20)

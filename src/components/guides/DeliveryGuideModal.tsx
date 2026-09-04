@@ -73,6 +73,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
   const [itemQuantity, setItemQuantity] = useState<number | string>(1);
   const [itemUnit, setItemUnit] = useState('Unidades');
   const [itemBrand, setItemBrand] = useState('');
+  const [itemPrice, setItemPrice] = useState<number | string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Autocomplete catalog state
@@ -160,6 +161,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
       setItemName(prod.name);
       setItemBrand(prod.brand || '');
       setItemUnit(prod.unit || 'Unidades');
+      setItemPrice(prod.price || prod.costPrice || '');
       setSelectedProduct(prod);
       setShowSuggestions(false);
       return;
@@ -201,6 +203,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
     setItemName(selected.name);
     setItemBrand(selected.brand || '');
     setItemUnit(selected.unit || 'Unidades');
+    setItemPrice(selected.rawProduct?.price || selected.rawProduct?.costPrice || '');
     setSelectedProduct(selected.rawProduct || null);
     setShowSuggestions(false);
   };
@@ -211,6 +214,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
     setItemQuantity(1);
     setItemUnit('Unidades');
     setItemBrand('');
+    setItemPrice('');
     setSelectedProduct(null);
     setShowSuggestions(false);
   };
@@ -719,14 +723,26 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
                   )}
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cantidad *</label>
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cant. *</label>
                   <input
                     type="number"
                     min="1"
                     value={itemQuantity}
                     onChange={(e) => setItemQuantity(parseInt(e.target.value) || 1)}
-                    className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg}`}
+                    className={`w-full px-2 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg}`}
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Valor Unit. ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(e.target.value)}
+                    placeholder="Ej: 2990"
+                    className={`w-full px-2 py-2 text-xs font-mono font-bold rounded-xl border border-blue-400 ${themeClasses.inputBg}`}
                   />
                 </div>
 
@@ -735,6 +751,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
                     type="button"
                     onClick={handleAddItem}
                     className={`w-full py-2 rounded-xl text-xs font-black text-white shadow ${themeClasses.accentBg} flex items-center justify-center`}
+                    title="Añadir a la guía"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -753,7 +770,9 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
                     <tr>
                       <th className="py-2.5 px-3">CÓDIGO</th>
                       <th className="py-2.5 px-3">DESCRIPCIÓN</th>
-                      <th className="py-2.5 px-3">CANTIDAD</th>
+                      <th className="py-2.5 px-3 text-center">CANTIDAD</th>
+                      <th className="py-2.5 px-3 text-right">P. UNIT ($)</th>
+                      <th className="py-2.5 px-3 text-right">TOTAL ($)</th>
                       <th className="py-2.5 px-3">MARCA</th>
                       <th className="py-2.5 px-3 text-right">QUITAR</th>
                     </tr>

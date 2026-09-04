@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
+import { ProductSalesDetailModal, ProductSaleRecord } from './ProductSalesDetailModal';
 import { useTheme } from '../../utils/themeContext';
 import type { Sale, Company } from '../../types';
 import { formatCLP, generateSalesReportPDF } from '../../utils/salesPdfGenerator';
 import { exportSalesLedgerExcel } from '../../utils/salesExcelExporter';
 import {
   BarChart3,
+  PackageCheck,
   Calendar,
   Download,
   FileSpreadsheet,
@@ -49,6 +51,7 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
     return d.toISOString().split('T')[0];
   });
   const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isProductSalesModalOpen, setIsProductSalesModalOpen] = useState(false);
 
   // Etiqueta legible del período
   const periodLabel = useMemo(() => {
@@ -128,24 +131,23 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
     };
   }, [filteredSales]);
 
-  // Desglose por método de pago
+    // Desglose por método de pago (sin otros medios)
   const paymentBreakdown = useMemo(() => {
     const stats: { [key: string]: { name: string; icon: any; count: number; total: number; color: string } } = {
       'EFECTIVO': { name: 'Efectivo', icon: Banknote, count: 0, total: 0, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' },
       'DEBITO': { name: 'Tarjeta Débito (Redcompra)', icon: CreditCard, count: 0, total: 0, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 border-blue-200' },
       'CREDITO': { name: 'Tarjeta Crédito', icon: CreditCard, count: 0, total: 0, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200' },
-      'TRANSFERENCIA': { name: 'Transferencia Bancaria', icon: ArrowUpRight, count: 0, total: 0, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 border-purple-200' },
-      'OTRO': { name: 'Otros Medios', icon: DollarSign, count: 0, total: 0, color: 'text-slate-600 bg-slate-50 dark:bg-slate-900 border-slate-200' }
+      'TRANSFERENCIA': { name: 'Transferencia Bancaria', icon: ArrowUpRight, count: 0, total: 0, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 border-purple-200' }
     };
 
     activeSales.forEach(s => {
-      const m = s.paymentMethod || 'OTRO';
-      if (stats[m]) {
+      const m = s.paymentMethod;
+      if (m && stats[m]) {
         stats[m].count += 1;
         stats[m].total += (s.total || 0);
       } else {
-        stats['OTRO'].count += 1;
-        stats['OTRO'].total += (s.total || 0);
+        stats['EFECTIVO'].count += 1;
+        stats['EFECTIVO'].total += (s.total || 0);
       }
     });
 
@@ -181,7 +183,38 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
     return { list, maxTotal };
   }, [activeSales]);
 
-  // Top Productos Más Vendidos
+    // Listado Completo de Productos Vendidos
+  const allProductsSoldList: ProductSaleRecord[] = useMemo(() => {
+    const map: { [key: string]: ProductSaleRecord } = {};
+
+    activeSales.forEach(s => {
+      if (s.items && Array.isArray(s.items)) {
+        s.items.forEach(item => {
+          const key = item.productCode || item.productName || 'UNKNOWN';
+          if (!map[key]) {
+            map[key] = {
+              code: item.productCode || 'S/C',
+              name: item.productName || 'Sin Nombre',
+              category: (item as any).category || 'General',
+              quantity: 0,
+              total: 0,
+              avgPrice: 0,
+              salesCount: 0
+            };
+          }
+          map[key].quantity += (item.quantity || 0);
+          map[key].total += (item.subtotal || 0);
+          map[key].salesCount += 1;
+        });
+      }
+    });
+
+    return Object.values(map).map(p => ({
+      ...p,
+      avgPrice: p.quantity > 0 ? Math.round(p.total / p.quantity) : 0
+    })).sort((a, b) => b.quantity - a.quantity);
+  }, [activeSales]);
+
   const topProducts = useMemo(() => {
     const map: { [key: string]: { code: string; name: string; category: string; quantity: number; total: number } } = {};
 
@@ -304,6 +337,16 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
               <span>Excel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsProductSalesModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md flex items-center gap-1.5 cursor-pointer transition"
+              title="Revisar listado detallado de ventas por producto"
+            >
+              <PackageCheck className="w-3.5 h-3.5" />
+              <span>Ventas por Producto</span>
             </button>
 
             <button
@@ -569,7 +612,7 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
 
                     {isPeak && (
                       <span className="shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
-                        ★ Día Pico
+                        ★ Día Récord
                       </span>
                     )}
                   </div>
@@ -590,9 +633,18 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
               Top 10 Productos Más Vendidos (Ranking de Demanda)
             </h3>
           </div>
-          <span className="text-[11px] font-bold text-slate-400">
-            Ordenado por volumen de unidades y kilos
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
+              Ordenado por volumen de unidades y kilos
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsProductSalesModalOpen(true)}
+              className="px-2.5 py-1 text-[11px] font-black rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition"
+            >
+              Ver Todos ({allProductsSoldList.length})
+            </button>
+          </div>
         </div>
 
         {topProducts.list.length === 0 ? (

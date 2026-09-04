@@ -81,6 +81,7 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
   const [itemCategory, setItemCategory] = useState('Abarrotes');
   const [itemBrand, setItemBrand] = useState('');
   const [itemLocation, setItemLocation] = useState('Góndola Principal');
+  const [itemPrice, setItemPrice] = useState<number | string>('');
 
   // Signature & Notes
   const [signatureData, setSignatureData] = useState<string | null>(null);
@@ -106,6 +107,7 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
           setItemCategory(prod.category || 'Abarrotes');
           setItemBrand(prod.brand || '');
           setItemUnit(prod.unit || 'UN');
+          setItemPrice(prod.costPrice || prod.lastPurchaseCost || prod.price || '');
         }
       });
     }
@@ -139,6 +141,7 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
     setItemCategory('Abarrotes');
     setItemBrand('');
     setItemLocation('Góndola Principal');
+    setItemPrice('');
   };
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -158,6 +161,8 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
       name: itemName.trim(),
       quantity: Number(itemQuantity),
       unit: itemUnit,
+      price: itemPrice !== '' ? Number(itemPrice) : undefined,
+      unitPrice: itemPrice !== '' ? Number(itemPrice) : undefined,
       category: itemCategory,
       brand: itemBrand.trim() || undefined,
       location: itemLocation.trim() || undefined
@@ -231,13 +236,27 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
       const existing = await db.products.where('code').equals(item.code).first();
       if (existing) {
         const newStock = existing.stock + item.quantity;
-        await db.products.update(existing.id!, {
+        const incomingPrice = item.unitPrice || item.price || 0;
+        const currentAvg = existing.averageCost || existing.costPrice || 0;
+        const newAvg = incomingPrice > 0
+          ? Math.round(((existing.stock * currentAvg) + (item.quantity * incomingPrice)) / (newStock > 0 ? newStock : 1))
+          : currentAvg;
+
+        const updateData: any = {
           stock: newStock,
           category: item.category || existing.category,
           brand: item.brand || existing.brand,
           location: item.location || existing.location,
           updatedAt: nowIso
-        });
+        };
+
+        if (incomingPrice > 0) {
+          updateData.costPrice = incomingPrice;
+          updateData.lastPurchaseCost = incomingPrice;
+          updateData.averageCost = newAvg;
+        }
+
+        await db.products.update(existing.id!, updateData);
 
         await db.productMovements.add({
           productId: existing.id!,
@@ -254,6 +273,7 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
           user: 'Mauricio Chamorro'
         });
       } else {
+                const incomingPrice = item.unitPrice || item.price || 0;
         const newProd: Product = {
           code: item.code,
           name: item.name,
@@ -265,6 +285,9 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
           minStock: 5,
           unit: item.unit,
           price: 0,
+          costPrice: incomingPrice || 0,
+          lastPurchaseCost: incomingPrice || 0,
+          averageCost: incomingPrice || 0,
           condition: 'DISPONIBLE',
           completeness: 'COMPLETO',
           createdAt: nowIso,
@@ -539,7 +562,23 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
                       <input
                         type="text"
                         value={itemCode}
-                        onChange={(e) => setItemCode(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setItemCode(val);
+                          if (val.length >= 3) {
+                            db.products.where('code').equals(val.trim().toUpperCase()).first().then(p => {
+                              if (p) {
+                                setItemName(p.name);
+                                setItemCategory(p.category || 'Abarrotes');
+                                setItemBrand(p.brand || '');
+                                setItemUnit(p.unit || 'UN');
+                                if (p.costPrice || p.lastPurchaseCost) {
+                                  setItemPrice(p.costPrice || p.lastPurchaseCost || '');
+                                }
+                              }
+                            });
+                          }
+                        }}
                         placeholder="Ej: PROD-001..."
                         className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
                       />
@@ -585,6 +624,20 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
                         <option value="L">Litros</option>
                         <option value="PACK">Pack</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Valor / Costo Unitario ($ CLP)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={itemPrice}
+                        onChange={(e) => setItemPrice(e.target.value)}
+                        placeholder="Ej: 1500"
+                        className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-emerald-500/40 ${themeClasses.inputBg} text-emerald-600 dark:text-emerald-400`}
+                      />
                     </div>
 
                     <div>
@@ -644,31 +697,61 @@ export const ReceptionGuideModal: React.FC<ReceptionGuideModalProps> = ({
                             <th className="p-2.5">Descripción</th>
                             <th className="p-2.5">Categoría</th>
                             <th className="p-2.5 text-center">Cantidad</th>
+                            <th className="p-2.5 text-right">Valor Unit.</th>
+                            <th className="p-2.5 text-right">Subtotal</th>
                             <th className="p-2.5 text-right">Acción</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                          {items.map((it, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                              <td className="p-2.5 font-bold text-slate-500">{idx + 1}</td>
-                              <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-slate-100">{it.code}</td>
-                              <td className="p-2.5 font-bold text-slate-900 dark:text-slate-100">{it.name}</td>
-                              <td className="p-2.5 text-slate-600 dark:text-slate-400">{it.category}</td>
-                              <td className="p-2.5 text-center font-black text-blue-600 dark:text-blue-400">
-                                {it.quantity} {it.unit}
-                              </td>
-                              <td className="p-2.5 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveItem(idx)}
-                                  className="p-1 rounded text-red-500 hover:bg-red-500/10"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                          {items.map((it, idx) => {
+                            const uPrice = it.unitPrice || it.price || 0;
+                            const sub = uPrice * it.quantity;
+                            return (
+                              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <td className="p-2.5 font-bold text-slate-500">{idx + 1}</td>
+                                <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-slate-100">{it.code}</td>
+                                <td className="p-2.5 font-bold text-slate-900 dark:text-slate-100">{it.name}</td>
+                                <td className="p-2.5 text-slate-600 dark:text-slate-400">{it.category}</td>
+                                <td className="p-2.5 text-center font-black text-blue-600 dark:text-blue-400">
+                                  {it.quantity} {it.unit}
+                                </td>
+                                <td className="p-2.5 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
+                                  {uPrice > 0 ? `${uPrice.toLocaleString('es-CL')}` : '-'}
+                                </td>
+                                <td className="p-2.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                                  {sub > 0 ? `${sub.toLocaleString('es-CL')}` : '-'}
+                                </td>
+                                <td className="p-2.5 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveItem(idx)}
+                                    className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                                    title="Quitar"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
+                        {items.length > 0 && (
+                          <tfoot className="bg-slate-50 dark:bg-slate-900/60 font-black border-t border-slate-200 dark:border-slate-800">
+                            <tr>
+                              <td colSpan={4} className="p-2.5 text-slate-500 text-right uppercase text-[10px]">
+                                Totales Guía:
+                              </td>
+                              <td className="p-2.5 text-center font-mono text-blue-600 dark:text-blue-400">
+                                {items.reduce((s, it) => s + it.quantity, 0)} {items[0]?.unit || 'UN'}
+                              </td>
+                              <td className="p-2.5"></td>
+                              <td className="p-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm">
+                                ${items.reduce((s, it) => s + ((it.unitPrice || it.price || 0) * it.quantity), 0).toLocaleString('es-CL')}
+                              </td>
+                              <td className="p-2.5"></td>
+                            </tr>
+                          </tfoot>
+                        )}
                       </table>
                     </div>
                   )}

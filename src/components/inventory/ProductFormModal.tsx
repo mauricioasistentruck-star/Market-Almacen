@@ -116,6 +116,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [minStock, setMinStock] = useState<number | string>(5);
   const [unit, setUnit] = useState('Unidades');
   const [costPrice, setCostPrice] = useState<number | string>('');
+  const [lastPurchaseCost, setLastPurchaseCost] = useState<number | string>('');
+  const [averageCost, setAverageCost] = useState<number | string>('');
   const [price, setPrice] = useState<number | string>('');
   const [expiryDate, setExpiryDate] = useState('');
   const [condition, setCondition] = useState<ItemCondition>('DISPONIBLE');
@@ -137,6 +139,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setMinStock(productToEdit.minStock ?? 5);
       setUnit(productToEdit.unit || 'Unidades');
       setCostPrice(productToEdit.costPrice ?? '');
+      setLastPurchaseCost(productToEdit.lastPurchaseCost ?? '');
+      setAverageCost(productToEdit.averageCost ?? '');
       setPrice(productToEdit.price ?? '');
       setExpiryDate(productToEdit.expiryDate || '');
       setCondition(productToEdit.condition || 'DISPONIBLE');
@@ -155,6 +159,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setMinStock(5);
       setUnit('Unidades');
       setCostPrice('');
+      setLastPurchaseCost('');
+      setAverageCost('');
       setPrice('');
       setExpiryDate('');
       setCondition('DISPONIBLE');
@@ -198,6 +204,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     const finalStock = Number(stock) || 0;
     const finalMinStock = Number(minStock) || 0;
     const finalCostPrice = Number(costPrice) || 0;
+    const finalLastPurchaseCost = lastPurchaseCost !== '' ? Number(lastPurchaseCost) : (finalCostPrice || undefined);
+    const finalAverageCost = averageCost !== '' ? Number(averageCost) : (finalCostPrice || undefined);
     const finalPrice = Number(price) || 0;
     const targetComp = companyId || selectedCompanyId || companies[0]?.id || 'market-almacen';
 
@@ -216,6 +224,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           minStock: finalMinStock,
           unit,
           costPrice: finalCostPrice,
+          lastPurchaseCost: finalLastPurchaseCost,
+          averageCost: finalAverageCost,
           price: finalPrice,
           expiryDate: expiryDate || undefined,
           condition,
@@ -239,6 +249,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           minStock: finalMinStock,
           unit,
           costPrice: finalCostPrice,
+          lastPurchaseCost: finalLastPurchaseCost,
+          averageCost: finalAverageCost,
           price: finalPrice,
           expiryDate: expiryDate || undefined,
           condition,
@@ -513,7 +525,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 </select>
               </div>
 
-              {/* Precio Costo Neto */}
+                            {/* Precio Costo Neto */}
               <div>
                 <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
                   Precio Costo ($ CLP)
@@ -524,6 +536,36 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={costPrice}
                   onChange={(e) => setCostPrice(e.target.value)}
                   placeholder="Ej: 2500"
+                  className={`w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
+                />
+              </div>
+
+              {/* Costo de Última Compra */}
+              <div>
+                <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
+                  Costo Última Compra ($ CLP)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={lastPurchaseCost}
+                  onChange={(e) => setLastPurchaseCost(e.target.value)}
+                  placeholder="Ej: 2450"
+                  className={`w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
+                />
+              </div>
+
+              {/* Costo Promedio PMP */}
+              <div>
+                <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
+                  Costo Promedio ($ CLP)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={averageCost}
+                  onChange={(e) => setAverageCost(e.target.value)}
+                  placeholder="Ej: 2480"
                   className={`w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
                 />
               </div>

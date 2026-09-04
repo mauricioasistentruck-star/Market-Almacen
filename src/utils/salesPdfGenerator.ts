@@ -793,11 +793,7 @@ export function generateSalesReportPDF(data: SalesReportData): jsPDF {
     ['Transferencia Bancaria', paymentStats['TRANSFERENCIA'].count, formatCLP(paymentStats['TRANSFERENCIA'].total), totalRevenue > 0 ? `${Math.round((paymentStats['TRANSFERENCIA'].total / totalRevenue) * 100)}%` : '0%'],
   ];
 
-  if (paymentStats['OTRO'].count > 0) {
-    paymentRows.push(['Otros Medios', paymentStats['OTRO'].count, formatCLP(paymentStats['OTRO'].total), totalRevenue > 0 ? `${Math.round((paymentStats['OTRO'].total / totalRevenue) * 100)}%` : '0%']);
-  }
-
-  // Fila Total
+    // Fila Total
   paymentRows.push([
     'TOTAL GENERAL',
     totalSalesCount,
@@ -856,7 +852,7 @@ export function generateSalesReportPDF(data: SalesReportData): jsPDF {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(16, 185, 129);
-    doc.text(`★ Día Pico: ${(peakDay as any).dayName} (${formatCLP((peakDay as any).total)})`, pageWidth - marginX, curY, { align: 'right' });
+    doc.text(`★ Día Récord: ${(peakDay as any).dayName} (${formatCLP((peakDay as any).total)})`, pageWidth - marginX, curY, { align: 'right' });
   }
 
   curY += 2;

@@ -237,6 +237,28 @@ app.get('*', (req, res) => {
 });
 
 // Iniciar servidor inmediatamente en 0.0.0.0 y puerto dinámico
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Market Almacén Server] corriendo exitosamente en 0.0.0.0:${PORT}`);
+// Iniciar servidor en Railway PORT y puertos comunes (10000, 8080, 3000, 5000)
+const portsToListen = new Set();
+if (process.env.PORT) {
+  const p = parseInt(process.env.PORT, 10);
+  if (!isNaN(p)) portsToListen.add(p);
+}
+portsToListen.add(10000);
+portsToListen.add(8080);
+portsToListen.add(3000);
+portsToListen.add(5000);
+
+portsToListen.forEach((p) => {
+  try {
+    const srv = app.listen(p, '0.0.0.0', () => {
+      console.log(`[Market Almacén Server] escuchando activamente en 0.0.0.0:${p}`);
+    });
+    srv.on('error', (err) => {
+      if (err.code !== 'EADDRINUSE') {
+        console.warn(`[Market Almacén] Puerto ${p}: ${err.message}`);
+      }
+    });
+  } catch (err) {
+    console.warn(`[Market Almacén] Fallo en puerto ${p}: ${err.message}`);
+  }
 });

@@ -325,32 +325,30 @@ export const SalesView: React.FC<SalesViewProps> = ({
     return top9SoldProducts;
   }, [customQuickProductIds, products, top9SoldProducts]);
 
-  // 3. Productos a mostrar: Por defecto TODO el catálogo inventariado.
-  // Solo se reduce a 9 si la cajera activa voluntariamente "⭐ 9 Rápidos"
+  // 3. Productos a mostrar en el punto de venta web:
+  // Muestra ÚNICAMENTE los 9 productos rápidos (favoritos / más vendidos).
+  // Para ver o buscar otros productos fuera de los 9 rápidos, se usa el buscador superior.
   const isSearching = searchQuery.trim().length > 0;
   const displayedProducts = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    let list = products.filter(p => {
-      const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
-      const matchesQuery = !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.code.toLowerCase().includes(q) ||
-        (p.brand && p.brand.toLowerCase().includes(q)) ||
-        (p.mannFilterCode && p.mannFilterCode.toLowerCase().includes(q));
-      return matchesCategory && matchesQuery;
-    });
-
-    if (showOnlyQuick9 && !q) {
-      if (quick9Products.length > 0) {
-        const quickIds = new Set(quick9Products.map(p => p.id));
-        list = list.filter(p => p.id && quickIds.has(p.id));
-      } else {
-        list = list.slice(0, 9);
-      }
+    if (q) {
+      return products.filter(p => {
+        const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
+        const matchesQuery =
+          p.name.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.mannFilterCode && p.mannFilterCode.toLowerCase().includes(q));
+        return matchesCategory && matchesQuery;
+      });
     }
 
-    return list;
-  }, [searchQuery, selectedCategory, products, showOnlyQuick9, quick9Products]);
+    // Sin búsqueda: mostrar estrictamente los 9 productos rápidos (top vendidos o personalizados)
+    if (quick9Products.length > 0) {
+      return quick9Products.slice(0, 9);
+    }
+    return products.slice(0, 9);
+  }, [searchQuery, selectedCategory, products, quick9Products]);
 
   const saveCustomQuickProducts = (ids: number[]) => {
     setCustomQuickProductIds(ids);
@@ -1186,43 +1184,39 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </div>
             </div>
 
-            {/* 3. BARRA DE CATÁLOGO / FAVORITOS (Sin imposición forzada de 9 productos) */}
-            <div className="hidden lg:flex items-center justify-between px-1.5 py-1 flex-wrap gap-2">
+            {/* 3. BARRA DE 9 PRODUCTOS RÁPIDOS EN VENTAS */}
+            <div className="hidden lg:flex items-center justify-between px-1.5 py-1.5 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100">
-                  {searchQuery.trim()
-                    ? `Resultados de Búsqueda (${displayedProducts.length})`
-                    : showOnlyQuick9
-                    ? `⭐ 9 Favoritos Rápidos (${displayedProducts.length})`
-                    : `Catálogo de Productos (${displayedProducts.length} disponibles)`}
+                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  {searchQuery.trim() ? (
+                    <>
+                      <Search className="w-4 h-4 text-blue-500" />
+                      <span>Resultados de Búsqueda ({displayedProducts.length})</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>9 Productos Rápidos ({displayedProducts.length})</span>
+                    </>
+                  )}
                 </span>
+                {!searchQuery.trim() && (
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden xl:inline">
+                    • Acceso rápido en caja (Usa el buscador para otros ítems del catálogo)
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setShowOnlyQuick9(!showOnlyQuick9)}
-                  className={`px-2.5 py-1 text-xs font-black rounded-xl border transition shadow-xs cursor-pointer active:scale-95 ${
-                    showOnlyQuick9
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100'
-                  }`}
-                  title="Activar o desactivar filtro de 9 productos favoritos a elección de la cajera"
+                  onClick={() => setIsQuickConfigOpen(true)}
+                  className="px-3 py-1.5 text-xs font-black rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/80 flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
+                  title="Personalizar los 9 productos rápidos para caja"
                 >
-                  ⭐ {showOnlyQuick9 ? 'Ver Catálogo Completo' : '9 Rápidos'}
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Configurar 9 Rápidos</span>
                 </button>
-
-                {showOnlyQuick9 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsQuickConfigOpen(true)}
-                    className="px-2 py-1 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1 transition shadow-xs cursor-pointer"
-                    title="Configurar los 9 productos favoritos"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="hidden sm:inline">Configurar</span>
-                  </button>
-                )}
               </div>
             </div>
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FileSpreadsheet,
   Receipt,
@@ -14,7 +14,15 @@ import {
   Clock,
   X,
   Info,
-  Building2
+  Building2,
+  Key,
+  Lock,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Zap,
+  Check,
+  ShieldAlert
 } from 'lucide-react';
 import { useTheme } from '../../utils/themeContext';
 import { useAuth } from '../../utils/authContext';
@@ -134,6 +142,10 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   const [activeDteTab, setActiveDteTab] = useState<DteTabType>('BOLETA');
   const [activeCompanyId, setActiveCompanyId] = useState<string>(selectedCompanyId || 'market-almacen');
 
+  const currentCompany = companies.find(c => c.id === activeCompanyId) || selectedCompany;
+  const activeCompanyName = currentCompany?.name || 'Market Almacén';
+  const activeCompanyRut = currentCompany?.rut || '76.123.456-7';
+
   const [storageData, setStorageData] = useState<AllCompaniesCafStorage>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -146,6 +158,31 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
       [defKey]: createDefaultCompanyData()
     };
   });
+
+  // Credenciales y configuración SimpleAPI
+  const [simpleApiKey, setSimpleApiKey] = useState<string>(() => {
+    return localStorage.getItem('marketalmacen_simpleapi_key') || '';
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isKeySaved, setIsKeySaved] = useState(false);
+
+  // Ambiente SII: CERTIFICACION vs PRODUCCION
+  const [siiEnvironment, setSiiEnvironment] = useState<'CERTIFICACION' | 'PRODUCCION'>(() => {
+    return (localStorage.getItem('marketalmacen_sii_env') as any) || 'CERTIFICACION';
+  });
+
+  // Confirmación de Certificado Digital vinculado en SimpleAPI
+  const [certConfirmed, setCertConfirmed] = useState<boolean>(() => {
+    return localStorage.getItem(`marketalmacen_cert_confirmed_${activeCompanyId}`) === 'true';
+  });
+
+  // Pedido automático de folios
+  const [autoRequestFolios, setAutoRequestFolios] = useState<boolean>(() => {
+    return localStorage.getItem(`marketalmacen_auto_folios_${activeCompanyId}`) === 'true';
+  });
+
+  // RUT editable para la solicitud
+  const [editingRut, setEditingRut] = useState<string>('');
 
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestProgressText, setRequestProgressText] = useState('');
@@ -176,6 +213,42 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   }, [selectedCompanyId, currentUser, isSuperAdmin]);
 
   // Obtener o inicializar los datos de la empresa actual
+  // Sincronizar RUT y estados al cambiar de empresa
+  useEffect(() => {
+    const comp = companies.find(c => c.id === activeCompanyId) || selectedCompany;
+    if (comp?.rut) setEditingRut(comp.rut);
+    setCertConfirmed(localStorage.getItem(`marketalmacen_cert_confirmed_${activeCompanyId}`) === 'true');
+    setAutoRequestFolios(localStorage.getItem(`marketalmacen_auto_folios_${activeCompanyId}`) === 'true');
+  }, [activeCompanyId, companies, selectedCompany]);
+
+  const handleSaveApiKey = (key: string) => {
+    setSimpleApiKey(key);
+    localStorage.setItem('marketalmacen_simpleapi_key', key.trim());
+    setIsKeySaved(true);
+    setTimeout(() => setIsKeySaved(false), 2000);
+  };
+
+  const handleSaveEnv = (env: 'CERTIFICACION' | 'PRODUCCION') => {
+    setSiiEnvironment(env);
+    localStorage.setItem('marketalmacen_sii_env', env);
+  };
+
+  const handleToggleCert = (val: boolean) => {
+    setCertConfirmed(val);
+    localStorage.setItem(`marketalmacen_cert_confirmed_${activeCompanyId}`, String(val));
+  };
+
+  const handleToggleAutoRequest = (val: boolean) => {
+    setAutoRequestFolios(val);
+    localStorage.setItem(`marketalmacen_auto_folios_${activeCompanyId}`, String(val));
+  };
+
+  const effectiveRut = editingRut.trim() || activeCompanyRut.trim();
+  const isRutValid = effectiveRut.length >= 8;
+  const hasApiKey = simpleApiKey.trim().length >= 6;
+  const isCertReady = certConfirmed;
+  const canSubmitRequest = hasApiKey && isRutValid && isCertReady;
+
   const currentCompanyCafData: CompanyCafData =
     storageData[activeCompanyId] || createDefaultCompanyData();
 
@@ -320,82 +393,104 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
 
   // Solicitar nueva remesa de folios ante el SII vía SimpleAPI
   const handleSolicitarFolios = async () => {
-    if (isRequesting) return;
+    if (isRequesting || !canSubmitRequest) return;
 
     setIsRequesting(true);
     setSuccessAlert(null);
     const dteInfo = dteLabelMap[activeDteTab];
 
-    setRequestProgressText(`Conectando con API SimpleAPI para ${activeCompanyName} (RUT: ${activeCompanyRut})...`);
-    await new Promise(r => setTimeout(r, 650));
+    try {
+      setRequestProgressText(`Conectando con SimpleAPI y SII para ${activeCompanyName} (${effectiveRut})...`);
 
-    setRequestProgressText(`Autenticando Certificado Digital y ambiente de ${activeCompanyName}...`);
-    await new Promise(r => setTimeout(r, 750));
+      const res = await fetch('/api/folios/solicitar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey: simpleApiKey.trim(),
+          rutEmpresa: effectiveRut,
+          tipoDte: dteInfo.code,
+          cantidad: currentDteConfig.cantidadAPedir,
+          ambiente: siiEnvironment,
+          companyId: activeCompanyId
+        })
+      });
 
-    setRequestProgressText(`Registrando concurrentemente ${currentDteConfig.cantidadAPedir} folios DTE ${dteInfo.code}...`);
-    await new Promise(r => setTimeout(r, 850));
+      const data = await res.json();
 
-    // Determinar siguiente rango correlativo
-    const defaultStart = activeDteTab === 'BOLETA' ? 1000 : activeDteTab === 'FACTURA' ? 500 : 100;
-    const ultimoHasta = batches.length > 0
-      ? Math.max(...batches.map(b => b.folioHasta))
-      : defaultStart;
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || 'Respuesta de error devuelta por SimpleAPI o el SII.');
+      }
 
-    const nuevoDesde = ultimoHasta + 1;
-    const nuevoHasta = nuevoDesde + currentDteConfig.cantidadAPedir - 1;
-    const batchNum = batches.length + 1;
+      const nuevoDesde = Number(data.folioDesde);
+      const nuevoHasta = Number(data.folioHasta);
+      const cantidadAsignada = Number(data.cantidad || currentDteConfig.cantidadAPedir);
+      const batchNum = batches.length + 1;
 
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const fecha = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const hora = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const fecha = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const hora = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    const newBatch: CafBatch = {
-      id: `batch-${activeDteTab.toLowerCase()}-${Date.now()}`,
-      batchNumber: batchNum,
-      date: fecha,
-      time: hora,
-      dteType: activeDteTab,
-      tipoDteCode: dteInfo.code,
-      folioDesde: nuevoDesde,
-      folioHasta: nuevoHasta,
-      cantidad: currentDteConfig.cantidadAPedir,
-      foliosUsados: 0,
-      status: 'ACTIVO'
-    };
-
-    setStorageData(prev => {
-      const compData = prev[activeCompanyId] ? { ...prev[activeCompanyId] } : createDefaultCompanyData();
-      const targetKey = activeDteTab === 'BOLETA' ? 'boleta' : activeDteTab === 'FACTURA' ? 'factura' : 'notaCredito';
-      compData[targetKey] = {
-        ...compData[targetKey],
-        batches: [newBatch, ...compData[targetKey].batches]
+      const newBatch: CafBatch = {
+        id: `batch-${activeDteTab.toLowerCase()}-${Date.now()}`,
+        batchNumber: batchNum,
+        date: fecha,
+        time: hora,
+        dteType: activeDteTab,
+        tipoDteCode: dteInfo.code,
+        folioDesde: nuevoDesde,
+        folioHasta: nuevoHasta,
+        cantidad: cantidadAsignada,
+        foliosUsados: 0,
+        status: 'ACTIVO'
       };
-      const updated = {
-        ...prev,
-        [activeCompanyId]: compData
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
 
-    setIsRequesting(false);
-    setRequestProgressText('');
+      setStorageData(prev => {
+        const compData = prev[activeCompanyId] ? { ...prev[activeCompanyId] } : createDefaultCompanyData();
+        const targetKey = activeDteTab === 'BOLETA' ? 'boleta' : activeDteTab === 'FACTURA' ? 'factura' : 'notaCredito';
+        compData[targetKey] = {
+          ...compData[targetKey],
+          batches: [newBatch, ...compData[targetKey].batches]
+        };
+        const updated = {
+          ...prev,
+          [activeCompanyId]: compData
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
 
-    // Mensaje solicitado por el usuario con actualización dinámica
-    setSuccessAlert({
-      show: true,
-      message: `✅ Folios del ${nuevoDesde} al ${nuevoHasta} cargados y autorizados con éxito.`,
-      desde: nuevoDesde,
-      hasta: nuevoHasta,
-      cantidad: currentDteConfig.cantidadAPedir,
-      dteLabel: dteInfo.name
-    });
+      setSuccessAlert({
+        show: true,
+        message: data.message || `¡Folios CAF autorizados exitosamente por el SII!`,
+        desde: nuevoDesde,
+        hasta: nuevoHasta,
+        cantidad: cantidadAsignada,
+        dteLabel: dteInfo.name
+      });
+
+    } catch (err: any) {
+      console.error('Error al solicitar folios:', err);
+      alert(`No se pudo completar la solicitud de folios:\n${err.message || err}`);
+    } finally {
+      setIsRequesting(false);
+      setRequestProgressText('');
+    }
   };
 
-  const currentCompany = companies.find(c => c.id === activeCompanyId) || selectedCompany;
-  const activeCompanyName = currentCompany?.name || 'Market Almacén';
-  const activeCompanyRut = currentCompany?.rut || '76.123.456-7';
+  // Pedido automático si los folios disponibles caen por debajo del umbral mínimo
+  useEffect(() => {
+    if (isOpen && autoRequestFolios && canSubmitRequest && !isRequesting && totalDisponibles <= alertaMinima && totalDisponibles > 0) {
+      console.log('Nivel crítico de folios alcanzado con auto-solicitud habilitada. Ejecutando pedido...');
+      handleSolicitarFolios();
+    }
+  }, [isOpen, autoRequestFolios, canSubmitRequest, totalDisponibles, alertaMinima, isRequesting]);
+
+
+
+
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
@@ -638,23 +733,133 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
           </div>
 
           {/* PANEL DE CONFIGURACIÓN Y SOLICITUD DE NUEVOS FOLIOS */}
-          <div className={`p-4 sm:p-5 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} space-y-4 shadow-xs`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-500" />
-                <span>Opciones de Carga y Alerta Elegible por el Administrador</span>
-              </span>
-              <span className="text-[10.5px] font-bold text-slate-400 font-mono">
-                DTE {dteLabelMap[activeDteTab].code} ({dteLabelMap[activeDteTab].name})
-              </span>
+          <div className={`p-4 sm:p-5 rounded-3xl border-2 ${themeClasses.border} ${themeClasses.cardSubtle} space-y-5 shadow-md`}>
+            
+            {/* Header del Panel */}
+            <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-xs">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>Solicitud de Folios Oficiales al SII (SimpleAPI)</span>
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] font-bold text-slate-500">
+                    Conexión dinámica multiempresa para emisión oficial de DTEs
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
+                  DTE {dteLabelMap[activeDteTab].code} ({dteLabelMap[activeDteTab].name})
+                </span>
+              </div>
             </div>
 
+            {/* SECCIÓN 1: CREDENCIALES Y AMBIENTE SIMPLEAPI */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-500" />
+                  <span>1. Credencial API Key de SimpleAPI *</span>
+                </span>
+                <a
+                  href="https://www.simpleapi.cl"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  <span>Crear cuenta / Obtener Clave</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={simpleApiKey}
+                    onChange={(e) => setSimpleApiKey(e.target.value)}
+                    placeholder="Ingresa tu API Key de SimpleAPI (Ej: sk_live_...)"
+                    className={`w-full pl-3 pr-9 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} focus:outline-none`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+                    title={showApiKey ? 'Ocultar clave' : 'Mostrar clave'}
+                  >
+                    {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSaveApiKey(simpleApiKey)}
+                  className="px-3.5 py-2 text-xs font-black rounded-xl bg-slate-800 hover:bg-slate-900 text-white shrink-0 cursor-pointer active:scale-95 transition flex items-center gap-1.5"
+                >
+                  {isKeySaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                  <span>{isKeySaved ? '¡Guardada!' : 'Guardar'}</span>
+                </button>
+              </div>
+
+              {/* Selector de Ambiente SII */}
+              <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-bold text-slate-600 dark:text-slate-400 text-[11px]">
+                  Ambiente de emisión en el SII:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveEnv('CERTIFICACION')}
+                    className={`px-3 py-1 text-xs font-black rounded-xl border transition cursor-pointer ${
+                      siiEnvironment === 'CERTIFICACION'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    🧪 Certificación (Pruebas)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveEnv('PRODUCCION')}
+                    className={`px-3 py-1 text-xs font-black rounded-xl border transition cursor-pointer ${
+                      siiEnvironment === 'PRODUCCION'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    🏭 Producción (Oficial)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: DATOS DE LA EMPRESA Y CERTIFICADO DIGITAL */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
-              {/* Opción 1: Modificar Cantidad de Folios a Pedir */}
-              <div className="space-y-2">
+              {/* RUT de la Empresa Emisora */}
+              <div className="space-y-1.5">
                 <label className="text-xs font-black text-slate-700 dark:text-slate-300 block">
-                  1. Cantidad de Folios a Pedir en cada carga:
+                  2. RUT de la Empresa Emisora *
+                </label>
+                <input
+                  type="text"
+                  value={editingRut}
+                  onChange={(e) => setEditingRut(e.target.value)}
+                  placeholder="Ej: 77.890.120-5"
+                  className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} focus:outline-none`}
+                />
+                <p className="text-[10px] text-slate-500 font-bold">
+                  Empresa activa: <strong>{activeCompanyName}</strong>
+                </p>
+              </div>
+
+              {/* Cantidad de Folios a Pedir */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300 block">
+                  3. Cantidad de Folios a Solicitar *
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -665,7 +870,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                     onChange={(e) => handleUpdateCantidadAPedir(Number(e.target.value))}
                     className={`w-28 px-3 py-2 rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} font-mono font-black text-sm text-center focus:outline-none`}
                   />
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     {(activeDteTab === 'NOTA_CREDITO' ? [20, 50, 100, 200] : [50, 100, 200, 500]).map(val => (
                       <button
                         key={val}
@@ -683,66 +888,101 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-500 font-bold">
-                  Define cuántos folios solicitará automáticamente la conexión al SII para {activeCompanyName}.
-                </p>
-              </div>
-
-              {/* Opción 2: Alerta cuando se encuentren en cantidad mínima elegible */}
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300 block">
-                  2. Alertar cuando queden menos de:
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={currentDteConfig.alertaMinima}
-                    onChange={(e) => handleUpdateAlertaMinima(Number(e.target.value))}
-                    className={`w-28 px-3 py-2 rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} font-mono font-black text-sm text-center focus:outline-none`}
-                  />
-                  <div className="flex items-center gap-1">
-                    {[5, 10, 20, 50].map(val => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => handleUpdateAlertaMinima(val)}
-                        className={`px-2 py-1 text-[11px] font-black rounded-lg transition cursor-pointer ${
-                          currentDteConfig.alertaMinima === val
-                            ? 'bg-red-600 text-white shadow-2xs'
-                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
-                        }`}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-500 font-bold">
-                  Umbral para activar la advertencia visual en rojo para {dteLabelMap[activeDteTab].short}.
+                  Remesa que autorizará el SII para {dteLabelMap[activeDteTab].short}.
                 </p>
               </div>
 
             </div>
 
-            {/* BOTÓN PRINCIPAL: SOLICITAR FOLIOS */}
+            {/* SECCIÓN 3: CERTIFICADO DIGITAL Y PEDIDO AUTOMÁTICO */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-800/60 space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  id="certConfirmedCheck"
+                  checked={certConfirmed}
+                  onChange={(e) => handleToggleCert(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 text-blue-600 rounded cursor-pointer shrink-0"
+                />
+                <label htmlFor="certConfirmedCheck" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
+                  Confirmo que el Certificado Digital (.pfx / .p12) de esta empresa ({effectiveRut}) ya fue subido y vinculado en SimpleAPI *
+                </label>
+              </div>
+              <p className="text-[10.5px] text-amber-900 dark:text-amber-300 pl-6 leading-relaxed">
+                El Servicio de Impuestos Internos (SII) requiere la firma del Representante Legal con Certificado Digital para entregar el archivo CAF.
+              </p>
+
+              {/* Opción de Pedido Automático */}
+              <div className="pt-2 border-t border-amber-200 dark:border-amber-800/50 flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoRequestFolios}
+                    onChange={(e) => handleToggleAutoRequest(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                  />
+                  <span>Pedir folios automáticamente cuando queden menos de {currentDteConfig.alertaMinima} unidades</span>
+                </label>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                  Auto-Gestión
+                </span>
+              </div>
+            </div>
+
+            {/* CHECKLIST VISUAL DE REQUISITOS */}
+            <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`flex items-center gap-1 font-black text-[11px] ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                  {hasApiKey ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                  API Key SimpleAPI
+                </span>
+                <span className={`flex items-center gap-1 font-black text-[11px] ${isRutValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                  {isRutValid ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                  RUT Empresa ({effectiveRut || 'Falta'})
+                </span>
+                <span className={`flex items-center gap-1 font-black text-[11px] ${isCertReady ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                  {isCertReady ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                  Certificado Vinculado
+                </span>
+              </div>
+
+              <div>
+                {canSubmitRequest ? (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-200">
+                    Requisitos Completos
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-200">
+                    Faltan Requisitos Obligatorios
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* BOTÓN PRINCIPAL DE SOLICITUD */}
             <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
                 <Info className="w-4 h-4 text-blue-500 shrink-0" />
-                <span>Trámite con SimpleAPI y SII para {dteLabelMap[activeDteTab].name}.</span>
+                <span>Trámite oficial directo con SimpleAPI y SII ({siiEnvironment}).</span>
               </div>
 
               <button
                 type="button"
-                disabled={isRequesting}
+                disabled={isRequesting || !canSubmitRequest}
                 onClick={handleSolicitarFolios}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs transition cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-black text-xs transition cursor-pointer shadow-md flex items-center justify-center gap-2 ${
+                  canSubmitRequest
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white active:scale-95'
+                    : 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-60'
+                }`}
               >
                 <RefreshCw className={`w-4 h-4 ${isRequesting ? 'animate-spin' : ''}`} />
                 <span>
                   {isRequesting
-                    ? (requestProgressText || 'Procesando con SII...')
-                    : `Solicitar ${currentDteConfig.cantidadAPedir} Folios de ${dteLabelMap[activeDteTab].short} al SII`}
+                    ? (requestProgressText || 'Procesando con el SII...')
+                    : canSubmitRequest
+                    ? `⚡ Solicitar ${currentDteConfig.cantidadAPedir} Folios de ${dteLabelMap[activeDteTab].short} al SII`
+                    : 'Complete los requisitos obligatorios para solicitar folios'}
                 </span>
               </button>
             </div>

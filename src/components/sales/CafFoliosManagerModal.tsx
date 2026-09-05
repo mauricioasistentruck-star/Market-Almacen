@@ -160,6 +160,16 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   });
 
   // Credenciales y configuración SimpleAPI
+  // Certificado Digital File & Password
+  const [certFile, setCertFile] = useState<File | null>(null);
+  const [certPassword, setCertPassword] = useState<string>('');
+  const [showCertPass, setShowCertPass] = useState<boolean>(false);
+  const [certFileName, setCertFileName] = useState<string>(() => {
+    return localStorage.getItem(`marketalmacen_cert_filename_${activeCompanyId}`) || '';
+  });
+  const [isUploadingCert, setIsUploadingCert] = useState<boolean>(false);
+  const [certUploadSuccess, setCertUploadSuccess] = useState<string>('');
+
   const [simpleApiKey, setSimpleApiKey] = useState<string>(() => {
     return localStorage.getItem('marketalmacen_simpleapi_key') || '';
   });
@@ -389,6 +399,63 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
+  };
+
+  // Subir y vincular el Certificado Digital (.pfx / .p12) directamente desde la app
+  const handleUploadCertificate = async () => {
+    if (!certFile) {
+      alert('Por favor seleccione el archivo del Certificado Digital (.pfx o .p12).');
+      return;
+    }
+    if (!certPassword.trim()) {
+      alert('Por favor ingrese la contraseña del Certificado Digital.');
+      return;
+    }
+
+    setIsUploadingCert(true);
+    setCertUploadSuccess('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+
+          const res = await fetch('/api/certificados/cargar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: activeCompanyId,
+              rutEmpresa: effectiveRut,
+              fileName: certFile.name,
+              fileBase64: base64Data,
+              password: certPassword.trim()
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.status === 'success') {
+            setCertFileName(certFile.name);
+            setCertConfirmed(true);
+            localStorage.setItem(`marketalmacen_cert_filename_${activeCompanyId}`, certFile.name);
+            localStorage.setItem(`marketalmacen_cert_confirmed_${activeCompanyId}`, 'true');
+            setCertUploadSuccess(`¡Certificado ${certFile.name} vinculado con éxito!`);
+            setCertPassword('');
+          } else {
+            alert(`Error al guardar certificado: ${data.message || 'Error desconocido'}`);
+          }
+        } catch (err: any) {
+          console.error('Error enviando certificado:', err);
+          alert(`Error de conexión al cargar certificado: ${err.message || err}`);
+        } finally {
+          setIsUploadingCert(false);
+        }
+      };
+      reader.readAsDataURL(certFile);
+    } catch (e: any) {
+      setIsUploadingCert(false);
+      alert('Error leyendo el archivo del certificado: ' + e.message);
+    }
   };
 
   // Solicitar nueva remesa de folios ante el SII vía SimpleAPI
@@ -758,56 +825,35 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
               </div>
             </div>
 
-            {/* SECCIÓN 1: CREDENCIALES Y AMBIENTE SIMPLEAPI */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3">
+            {/* SECCIÓN 1: CREDENCIAL DE SERVIDOR BLINDADA Y AMBIENTE SII */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900 text-white border-2 border-slate-800 space-y-3 shadow-md">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-amber-500" />
-                  <span>1. Credencial API Key de SimpleAPI *</span>
+                <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-emerald-400">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>1. API Key SimpleAPI: Protegida en Servidor (Oficial)</span>
                 </span>
-                <a
-                  href="https://www.simpleapi.cl"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Crear cuenta / Obtener Clave</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  <span>Bloqueada y Segura</span>
+                </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={simpleApiKey}
-                    onChange={(e) => setSimpleApiKey(e.target.value)}
-                    placeholder="Ingresa tu API Key de SimpleAPI (Ej: sk_live_...)"
-                    className={`w-full pl-3 pr-9 py-2 text-xs font-mono font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} focus:outline-none`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
-                    title={showApiKey ? 'Ocultar clave' : 'Mostrar clave'}
-                  >
-                    {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-mono font-bold text-slate-300 tracking-wider">
+                    ••••-••••-••••-5631
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleSaveApiKey(simpleApiKey)}
-                  className="px-3.5 py-2 text-xs font-black rounded-xl bg-slate-800 hover:bg-slate-900 text-white shrink-0 cursor-pointer active:scale-95 transition flex items-center gap-1.5"
-                >
-                  {isKeySaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                  <span>{isKeySaved ? '¡Guardada!' : 'Guardar'}</span>
-                </button>
+                <span className="text-[10.5px] font-bold text-slate-400">
+                  Activa para todas las empresas que ingresen
+                </span>
               </div>
 
               {/* Selector de Ambiente SII */}
-              <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="font-bold text-slate-600 dark:text-slate-400 text-[11px]">
-                  Ambiente de emisión en el SII:
+              <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs border-t border-slate-800">
+                <span className="font-bold text-slate-300 text-[11px]">
+                  Ambiente de timbraje ante el SII:
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -816,7 +862,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                     className={`px-3 py-1 text-xs font-black rounded-xl border transition cursor-pointer ${
                       siiEnvironment === 'CERTIFICACION'
                         ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
                     }`}
                   >
                     🧪 Certificación (Pruebas)
@@ -827,16 +873,16 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                     className={`px-3 py-1 text-xs font-black rounded-xl border transition cursor-pointer ${
                       siiEnvironment === 'PRODUCCION'
                         ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
                     }`}
                   >
-                    🏭 Producción (Oficial)
+                    🏭 Producción (Oficial SII)
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* SECCIÓN 2: DATOS DE LA EMPRESA Y CERTIFICADO DIGITAL */}
+            {/* SECCIÓN 2: DATOS DE LA EMPRESA Y FOLIOS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
               {/* RUT de la Empresa Emisora */}
@@ -894,23 +940,89 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
 
             </div>
 
-            {/* SECCIÓN 3: CERTIFICADO DIGITAL Y PEDIDO AUTOMÁTICO */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-800/60 space-y-2.5">
-              <div className="flex items-start gap-2.5">
-                <input
-                  type="checkbox"
-                  id="certConfirmedCheck"
-                  checked={certConfirmed}
-                  onChange={(e) => handleToggleCert(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 text-blue-600 rounded cursor-pointer shrink-0"
-                />
-                <label htmlFor="certConfirmedCheck" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
-                  Confirmo que el Certificado Digital (.pfx / .p12) de esta empresa ({effectiveRut}) ya fue subido y vinculado en SimpleAPI *
-                </label>
+            {/* SECCIÓN 3: SUBIDA AUTOMATIZADA DE CERTIFICADO DIGITAL (.PFX / .P12) */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-800/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-amber-950 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  <span>4. Certificado Digital (.pfx / .p12) de la Empresa *</span>
+                </span>
+                {certConfirmed && (
+                  <span className="text-[10.5px] font-black px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    <span>Vinculado ({certFileName || 'pfx'})</span>
+                  </span>
+                )}
               </div>
-              <p className="text-[10.5px] text-amber-900 dark:text-amber-300 pl-6 leading-relaxed">
-                El Servicio de Impuestos Internos (SII) requiere la firma del Representante Legal con Certificado Digital para entregar el archivo CAF.
+
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-tight">
+                El SII exige la firma del Representante Legal con Certificado Digital para autorizar los folios CAF de <strong>{effectiveRut}</strong>.
               </p>
+
+              {/* Formulario de Carga del Certificado */}
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-500 block mb-1">
+                      Archivo del Certificado (.pfx o .p12):
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pfx,.p12"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setCertFile(file);
+                      }}
+                      className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-500 block mb-1">
+                      Contraseña del Certificado:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCertPass ? 'text' : 'password'}
+                        value={certPassword}
+                        onChange={(e) => setCertPassword(e.target.value)}
+                        placeholder="Ingresa la clave del .pfx"
+                        className={`w-full pl-3 pr-8 py-1.5 text-xs font-mono font-bold rounded-lg border ${themeClasses.inputBorder} ${themeClasses.inputBg} focus:outline-none`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCertPass(!showCertPass)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                      >
+                        {showCertPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  {certUploadSuccess ? (
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{certUploadSuccess}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {certConfirmed ? 'Certificado ya activo en el sistema' : 'Selecciona el archivo y la contraseña para vincularlo'}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isUploadingCert || !certFile || !certPassword}
+                    onClick={handleUploadCertificate}
+                    className="px-3.5 py-1.5 text-xs font-black rounded-xl bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0 shadow-xs"
+                  >
+                    <ShieldCheck className={`w-3.5 h-3.5 ${isUploadingCert ? 'animate-spin' : ''}`} />
+                    <span>{isUploadingCert ? 'Cargando...' : 'Vincular Certificado'}</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Opción de Pedido Automático */}
               <div className="pt-2 border-t border-amber-200 dark:border-amber-800/50 flex items-center justify-between">

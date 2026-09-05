@@ -2,12 +2,13 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = Number(process.env.PORT) || 10000;
 
 // API Key de SimpleAPI protegida en el servidor (Nadie en la APK ni en el frontend puede verla ni cambiarla)
 const SECURE_SIMPLE_API_KEY = process.env.SIMPLE_API_KEY || '5696-R950-6395-8019-5631';
@@ -16,6 +17,20 @@ const SECURE_SIMPLE_API_KEY = process.env.SIMPLE_API_KEY || '5696-R950-6395-8019
 const CERTS_DIR = path.join(__dirname, 'data', 'certificados');
 if (!fs.existsSync(CERTS_DIR)) {
   fs.mkdirSync(CERTS_DIR, { recursive: true });
+}
+
+// Auto-construir dist si no existe al arrancar en el servidor
+const distPath = path.join(__dirname, 'dist');
+const indexHtmlPath = path.join(distPath, 'index.html');
+
+if (!fs.existsSync(indexHtmlPath)) {
+  console.log('[Market Almacén Server] dist/index.html no existe. Ejecutando npm run build en el servidor...');
+  try {
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('[Market Almacén Server] Compilación dist/ completada con éxito.');
+  } catch (err) {
+    console.error('[Market Almacén Server] Error al compilar dist/:', err.message);
+  }
 }
 
 // Middleware para procesar JSON con límite suficiente para certificados en base64
@@ -38,6 +53,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     service: 'Market Almacén API Server',
     version: '10.0',
+    port: PORT,
     simpleApiConfigured: Boolean(SECURE_SIMPLE_API_KEY),
     maskedKey: '••••-••••-••••-' + SECURE_SIMPLE_API_KEY.slice(-4),
     time: new Date().toISOString()
@@ -67,7 +83,7 @@ app.post('/api/certificados/cargar', async (req, res) => {
     const buffer = Buffer.from(fileBase64.replace(/^data:.*?;base64,/, ''), 'base64');
     fs.writeFileSync(certPath, buffer);
 
-    // Guardar metadatos cifrados/protegidos en servidor
+    // Guardar metadatos protegidos en servidor
     const metaPath = path.join(CERTS_DIR, `meta_${safeCompanyId}_${rutLimpio}.json`);
     fs.writeFileSync(metaPath, JSON.stringify({
       companyId: safeCompanyId,
@@ -206,13 +222,34 @@ app.post('/api/folios/solicitar', async (req, res) => {
 });
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(distPath));
 
-// SPA fallback
+// SPA fallback resiliente
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  if (fs.existsSync(indexHtmlPath)) {
+    res.sendFile(indexHtmlPath);
+  } else {
+    res.status(503).send(`
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <title>Iniciando Market Almacén</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;">
+          <div style="max-width:480px;background:#1e293b;border:2px solid #334155;border-radius:24px;padding:32px;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
+            <div style="font-size:36px;margin-bottom:12px;">⏳</div>
+            <h2 style="font-size:20px;font-weight:900;margin:0 0 8px 0;color:#38bdf8;">Iniciando Market Almacén</h2>
+            <p style="font-size:14px;color:#94a3b8;line-height:1.5;margin:0 0 20px 0;">El servidor se está iniciando y preparando los archivos en la nube. Por favor recarga esta página en unos segundos.</p>
+            <button onclick="window.location.reload()" style="background:#2563eb;color:white;border:none;padding:12px 24px;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;">Recargar Página</button>
+          </div>
+        </body>
+      </html>
+    `);
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Market Almacén Server] escuchando en puerto ${PORT} con SimpleAPI activada`);
+  console.log(`[Market Almacén Server] escuchando en 0.0.0.0:${PORT}`);
 });

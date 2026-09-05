@@ -133,7 +133,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   onClose
 }) => {
   const { themeClasses } = useTheme();
-  const { isAdmin, isSuperAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin, currentUser } = useAuth();
   const { selectedCompanyId, selectedCompany, companies, setSelectedCompanyId } = useCompany();
   useBodyScrollLock(Boolean(isOpen));
 
@@ -213,7 +213,6 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   }, [isOpen]);
 
   // Sincronizar activeCompanyId con la empresa propia del usuario si es Admin
-  const { currentUser } = useAuth();
   useEffect(() => {
     if (!isSuperAdmin && currentUser?.companyId && currentUser.companyId !== 'ALL') {
       setActiveCompanyId(currentUser.companyId);
@@ -310,32 +309,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
     syncWithRealSales();
   }, [isOpen, activeCompanyId]);
 
-  if (!isOpen) return null;
 
-  // Acceso exclusivo para administradores
-  if (!isAdmin && !isSuperAdmin) {
-    return createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-        <div className={`w-full max-w-md p-6 rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} text-center space-y-4`}>
-          <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950 text-red-600 mx-auto flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <h3 className="font-black text-lg text-slate-900 dark:text-white">Acceso Restringido</h3>
-          <p className="text-xs font-bold text-slate-500">
-            El sistema de solicitud y control de folios CAF es exclusivo para usuarios con rol de Administrador.
-          </p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-slate-800 text-white font-black text-xs cursor-pointer"
-          >
-            Cerrar Ventana
-          </button>
-        </div>
-      </div>,
-      document.body
-    );
-  }
 
   // Configuración del DTE activo
   const getDteConfig = (tab: DteTabType): DteCafConfig => {
@@ -554,6 +528,33 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
       handleSolicitarFolios();
     }
   }, [isOpen, autoRequestFolios, canSubmitRequest, totalDisponibles, alertaMinima, isRequesting]);
+
+  if (!isOpen) return null;
+
+  // Acceso exclusivo para administradores
+  if (!isAdmin && !isSuperAdmin) {
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+        <div className={`w-full max-w-md p-6 rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} text-center space-y-4`}>
+          <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950 text-red-600 mx-auto flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h3 className="font-black text-lg text-slate-900 dark:text-white">Acceso Restringido</h3>
+          <p className="text-xs font-bold text-slate-500">
+            El sistema de solicitud y control de folios CAF es exclusivo para usuarios con rol de Administrador.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl bg-slate-800 text-white font-black text-xs cursor-pointer"
+          >
+            Cerrar Ventana
+          </button>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
 
 

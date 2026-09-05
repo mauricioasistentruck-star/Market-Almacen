@@ -62,6 +62,7 @@ export interface CompanyCafData {
 type AllCompaniesCafStorage = Record<string, CompanyCafData>;
 
 const STORAGE_KEY = 'marketalmacen_caf_folios_v2';
+const SYSTEM_SIMPLE_API_KEY = '5696-R950-6395-8019-5631';
 
 const createDefaultCompanyData = (): CompanyCafData => ({
   boleta: {
@@ -171,7 +172,12 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
   const [certUploadSuccess, setCertUploadSuccess] = useState<string>('');
 
   const [simpleApiKey, setSimpleApiKey] = useState<string>(() => {
-    return localStorage.getItem('marketalmacen_simpleapi_key') || '';
+    const saved = localStorage.getItem('marketalmacen_simpleapi_key');
+    if (!saved || saved.trim().length === 0) {
+      try { localStorage.setItem('marketalmacen_simpleapi_key', SYSTEM_SIMPLE_API_KEY); } catch (e) {}
+      return SYSTEM_SIMPLE_API_KEY;
+    }
+    return saved;
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [isKeySaved, setIsKeySaved] = useState(false);
@@ -254,7 +260,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
 
   const effectiveRut = editingRut.trim() || activeCompanyRut.trim();
   const isRutValid = effectiveRut.length >= 8;
-  const hasApiKey = simpleApiKey.trim().length >= 6;
+  const hasApiKey = Boolean((simpleApiKey || SYSTEM_SIMPLE_API_KEY).trim().length >= 6);
   const isCertReady = certConfirmed;
   const canSubmitRequest = hasApiKey && isRutValid && isCertReady;
 
@@ -449,7 +455,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          apiKey: simpleApiKey.trim(),
+          apiKey: (simpleApiKey || SYSTEM_SIMPLE_API_KEY).trim(),
           rutEmpresa: effectiveRut,
           tipoDte: dteInfo.code,
           cantidad: currentDteConfig.cantidadAPedir,
@@ -1025,6 +1031,33 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
                 </div>
               </div>
 
+              {/* Opción rápida: Certificado ya vinculado en SimpleAPI */}
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="toggleCertConfirm"
+                    checked={certConfirmed}
+                    onChange={(e) => handleToggleCert(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                  />
+                  <label htmlFor="toggleCertConfirm" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
+                    El Certificado Digital de {effectiveRut} ya fue cargado o vinculado en SimpleAPI
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleCert(!certConfirmed)}
+                  className={`px-3 py-1.5 text-xs font-black rounded-xl transition cursor-pointer active:scale-95 shrink-0 ${
+                    certConfirmed
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
+                  }`}
+                >
+                  {certConfirmed ? '✓ Certificado Confirmado' : 'Marcar como Confirmado'}
+                </button>
+              </div>
+
               {/* Opción de Pedido Automático */}
               <div className="pt-2 border-t border-amber-200 dark:border-amber-800/50 flex items-center justify-between">
                 <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-2 cursor-pointer">
@@ -1047,7 +1080,7 @@ export const CafFoliosManagerModal: React.FC<CafFoliosManagerModalProps> = ({
               <div className="flex items-center gap-3 flex-wrap">
                 <span className={`flex items-center gap-1 font-black text-[11px] ${hasApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                   {hasApiKey ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
-                  API Key SimpleAPI
+                  API Key SimpleAPI Conectada
                 </span>
                 <span className={`flex items-center gap-1 font-black text-[11px] ${isRutValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                   {isRutValid ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}

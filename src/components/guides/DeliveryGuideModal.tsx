@@ -388,7 +388,7 @@ export const DeliveryGuideModal: React.FC<DeliveryGuideModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className={`w-full max-w-3xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92vh]`}>
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700/60">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 pb-3 bg-slate-50 dark:bg-slate-900/60 -mx-6 -mt-6 p-4 sm:p-5 rounded-t-3xl mb-4">
           <div className="flex items-center gap-2.5">
             <div className={`p-2 rounded-xl ${themeClasses.badge}`}>
               <Truck className="w-5 h-5 text-orange-500" />

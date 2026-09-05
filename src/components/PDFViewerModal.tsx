@@ -70,50 +70,56 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
         className={`w-full max-w-5xl h-[92vh] rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-                {/* Header Bar Compacto & Moderno */}
-        <div className="px-3 sm:px-5 py-2.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 shrink-0">
-              <FileText className="w-4 h-4" />
+                {/* Header Bar Aclarada, Nítida & Moderna */}
+        <div className="px-3 sm:px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 shrink-0 shadow-sm">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-black text-xs sm:text-sm text-slate-100 truncate">{title}</h3>
-              {subtitle && <p className="text-[10px] text-slate-400 font-mono truncate hidden sm:block">{subtitle}</p>}
+              <h3 className="font-black text-sm sm:text-base text-slate-950 dark:text-white truncate tracking-tight">
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold truncate">
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Action Buttons Compactos */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Action Buttons Claros y Nítidos */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-sm active:scale-95"
               title="Imprimir documento"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="hidden md:inline ml-1">Imprimir</span>
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Imprimir</span>
             </button>
 
             <button
               onClick={handleShare}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition active:scale-95"
-              title="Compartir por WhatsApp / Enviar"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-black rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-sm transition active:scale-95"
+              title="Compartir por WhatsApp"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-black">WhatsApp</span>
+              <Share2 className="w-4 h-4" />
+              <span>WhatsApp</span>
             </button>
 
             <button
               onClick={handleDownload}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-black rounded-xl ${themeClasses.accentBg} ${themeClasses.accentHover} shadow-md shadow-orange-500/20 transition active:scale-95`}
+              className="flex items-center gap-1 px-3 sm:px-3.5 py-1.5 text-xs font-black rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 border border-blue-700 transition active:scale-95"
               title="Descargar archivo PDF"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="text-[11px]">PDF</span>
+              <Download className="w-4 h-4" />
+              <span>PDF</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition ml-0.5"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white border border-slate-300 dark:border-slate-700 transition ml-0.5 sm:ml-1"
               title="Cerrar visor"
             >
               <X className="w-4 h-4" />
@@ -122,7 +128,7 @@ export const PDFViewerModal: React.FC<PDFViewerModalProps> = ({
         </div>
 
         {/* Document Reader / Content */}
-        <div className="flex-1 bg-slate-900/90 w-full h-full p-2 sm:p-4 overflow-y-auto flex flex-col items-center">
+        <div className="flex-1 bg-slate-200 dark:bg-slate-950 w-full h-full p-2 sm:p-4 overflow-y-auto flex flex-col items-center">
           {previewNode ? (
             <div className="w-full max-w-4xl py-1">
               {previewNode}

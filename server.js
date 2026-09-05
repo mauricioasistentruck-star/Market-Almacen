@@ -2,41 +2,32 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 10000;
 
-// API Key de SimpleAPI protegida en el servidor (Nadie en la APK ni en el frontend puede verla ni cambiarla)
+// Usar el puerto inyectado por Railway o fallback a 10000
+const PORT = process.env.PORT || 10000;
+
+// API Key de SimpleAPI protegida en el servidor
 const SECURE_SIMPLE_API_KEY = process.env.SIMPLE_API_KEY || '5696-R950-6395-8019-5631';
 
-// Carpeta local segura para certificados digitales por empresa
+// Carpeta local para certificados digitales
 const CERTS_DIR = path.join(__dirname, 'data', 'certificados');
 if (!fs.existsSync(CERTS_DIR)) {
   fs.mkdirSync(CERTS_DIR, { recursive: true });
 }
 
-// Auto-construir dist si no existe al arrancar en el servidor
+// Ruta absoluta de dist
 const distPath = path.join(__dirname, 'dist');
 const indexHtmlPath = path.join(distPath, 'index.html');
 
-if (!fs.existsSync(indexHtmlPath)) {
-  console.log('[Market Almacén Server] dist/index.html no existe. Ejecutando npm run build en el servidor...');
-  try {
-    execSync('npm run build', { stdio: 'inherit' });
-    console.log('[Market Almacén Server] Compilación dist/ completada con éxito.');
-  } catch (err) {
-    console.error('[Market Almacén Server] Error al compilar dist/:', err.message);
-  }
-}
-
-// Middleware para procesar JSON con límite suficiente para certificados en base64
+// Middleware para procesar JSON con límite suficiente para certificados
 app.use(express.json({ limit: '15mb' }));
 
-// CORS headers
+// CORS headers universales
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -47,13 +38,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Endpoint de estado y verificación segura (sin exponer la clave completa)
+// Endpoint de health check para Railway y monitoreo
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'Market Almacén API Server',
+    service: 'Market Almacén Production Server',
     version: '10.0',
     port: PORT,
+    hasDist: fs.existsSync(indexHtmlPath),
     simpleApiConfigured: Boolean(SECURE_SIMPLE_API_KEY),
     maskedKey: '••••-••••-••••-' + SECURE_SIMPLE_API_KEY.slice(-4),
     time: new Date().toISOString()
@@ -79,11 +71,9 @@ app.post('/api/certificados/cargar', async (req, res) => {
     const certFilename = `cert_${safeCompanyId}_${rutLimpio}.pfx`;
     const certPath = path.join(CERTS_DIR, certFilename);
 
-    // Guardar archivo pfx en el servidor local de forma segura
     const buffer = Buffer.from(fileBase64.replace(/^data:.*?;base64,/, ''), 'base64');
     fs.writeFileSync(certPath, buffer);
 
-    // Guardar metadatos protegidos en servidor
     const metaPath = path.join(CERTS_DIR, `meta_${safeCompanyId}_${rutLimpio}.json`);
     fs.writeFileSync(metaPath, JSON.stringify({
       companyId: safeCompanyId,
@@ -134,14 +124,13 @@ app.post('/api/folios/solicitar', async (req, res) => {
     const cantNum = Math.max(1, Number(cantidad || 100));
     const rutLimpio = String(rutEmpresa).replace(/\./g, '').trim();
 
-    // 1. Petición oficial a SimpleAPI con la clave protegida
     if (keyToUse && keyToUse.trim().length > 0) {
       try {
         console.log(`[SimpleAPI] Solicitando ${cantNum} folios para ${rutLimpio} (DTE ${tipoDte}) en ambiente ${ambiente || 'CERTIFICACION'}...`);
 
         const simpleApiUrl = 'https://api.simpleapi.cl/api/v1/folios/solicitar';
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         const simpleRes = await fetch(simpleApiUrl, {
           method: 'POST',
@@ -197,7 +186,6 @@ app.post('/api/folios/solicitar', async (req, res) => {
       }
     }
 
-    // 2. Fallback de modo simulación si no hubiese clave
     const baseFolio = tipoDte === 39 ? 1000 : tipoDte === 33 ? 500 : 100;
     const nuevoDesde = baseFolio + 1;
     const nuevoHasta = baseFolio + cantNum;
@@ -221,28 +209,26 @@ app.post('/api/folios/solicitar', async (req, res) => {
   }
 });
 
-// Servir archivos estáticos del frontend
+// Servir archivos estáticos del frontend desde dist
 app.use(express.static(distPath));
 
-// SPA fallback resiliente
+// Fallback para Single Page Application (SPA)
 app.get('*', (req, res) => {
   if (fs.existsSync(indexHtmlPath)) {
     res.sendFile(indexHtmlPath);
   } else {
-    res.status(503).send(`
+    res.status(200).send(`
       <!DOCTYPE html>
       <html lang="es">
         <head>
-          <title>Iniciando Market Almacén</title>
+          <title>Market Almacén</title>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
         <body style="font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;">
-          <div style="max-width:480px;background:#1e293b;border:2px solid #334155;border-radius:24px;padding:32px;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
-            <div style="font-size:36px;margin-bottom:12px;">⏳</div>
-            <h2 style="font-size:20px;font-weight:900;margin:0 0 8px 0;color:#38bdf8;">Iniciando Market Almacén</h2>
-            <p style="font-size:14px;color:#94a3b8;line-height:1.5;margin:0 0 20px 0;">El servidor se está iniciando y preparando los archivos en la nube. Por favor recarga esta página en unos segundos.</p>
-            <button onclick="window.location.reload()" style="background:#2563eb;color:white;border:none;padding:12px 24px;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;">Recargar Página</button>
+          <div style="max-width:480px;background:#1e293b;border:2px solid #334155;border-radius:24px;padding:32px;text-align:center;">
+            <h2 style="font-size:22px;font-weight:900;color:#38bdf8;">Market Almacén API & Web</h2>
+            <p style="font-size:14px;color:#94a3b8;">Servidor operativo en puerto ${PORT}.</p>
           </div>
         </body>
       </html>
@@ -250,6 +236,7 @@ app.get('*', (req, res) => {
   }
 });
 
+// Iniciar servidor inmediatamente en 0.0.0.0 y puerto dinámico
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Market Almacén Server] escuchando en 0.0.0.0:${PORT}`);
+  console.log(`[Market Almacén Server] corriendo exitosamente en 0.0.0.0:${PORT}`);
 });

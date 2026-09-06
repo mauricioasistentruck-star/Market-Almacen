@@ -38,6 +38,88 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// ============================================================================
+// ENDPOINT: SINCRONIZACIÓN EN TIEMPO REAL (APK ↔ WEB) CADA 3 SEGUNDOS
+// ============================================================================
+const SYNC_DATA_FILE = path.join(__dirname, 'data', 'sync_db.json');
+
+function getSyncStore() {
+  try {
+    if (fs.existsSync(SYNC_DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(SYNC_DATA_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.warn('[Sync Store Read Error]:', e.message);
+  }
+  return { lastUpdated: new Date().toISOString(), tables: {} };
+}
+
+function saveSyncStore(data) {
+  try {
+    fs.writeFileSync(SYNC_DATA_FILE, JSON.stringify(data), 'utf8');
+  } catch (e) {
+    console.warn('[Sync Store Write Error]:', e.message);
+  }
+}
+
+app.post('/api/sync', (req, res) => {
+  try {
+    const { updates, clientTimestamp } = req.body || {};
+    const store = getSyncStore();
+
+    if (updates && typeof updates === 'object') {
+      let hasChanges = false;
+      for (const [table, records] of Object.entries(updates)) {
+        if (!store.tables[table]) store.tables[table] = {};
+        if (Array.isArray(records)) {
+          for (const rec of records) {
+            const key = rec.uuid || (table === 'companies' ? rec.id : (rec.code ? `${rec.code}_${rec.companyId || ''}` : (rec.folio || (rec.id ? `id_${rec.id}_${rec.createdAt || ''}` : `${Date.now()}_${Math.random()}`))));
+            store.tables[table][key] = {
+              ...rec,
+              _syncedAt: Date.now()
+            };
+            hasChanges = true;
+          }
+        }
+      }
+      if (hasChanges) {
+        store.lastUpdated = new Date().toISOString();
+        saveSyncStore(store);
+      }
+    }
+
+    const responseTables = {};
+    for (const [table, map] of Object.entries(store.tables)) {
+      responseTables[table] = Object.values(map);
+    }
+
+    return res.json({
+      status: 'success',
+      serverTime: Date.now(),
+      lastUpdated: store.lastUpdated,
+      tables: responseTables
+    });
+  } catch (err) {
+    console.error('[Sync Error]:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/sync', (req, res) => {
+  const store = getSyncStore();
+  const responseTables = {};
+  for (const [table, map] of Object.entries(store.tables)) {
+    responseTables[table] = Object.values(map);
+  }
+  return res.json({
+    status: 'success',
+    serverTime: Date.now(),
+    lastUpdated: store.lastUpdated,
+    tables: responseTables
+  });
+});
+
 // Endpoint de health check para Railway y monitoreo
 app.get('/api/health', (req, res) => {
   res.json({

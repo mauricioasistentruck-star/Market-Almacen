@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import { ProductSalesDetailModal, ProductSaleRecord } from './ProductSalesDetailModal';
+import { ExpensesERPView } from './ExpensesERPView';
 import { useTheme } from '../../utils/themeContext';
 import type { Sale, Company } from '../../types';
 import { formatCLP, generateSalesReportPDF } from '../../utils/salesPdfGenerator';
@@ -17,6 +18,7 @@ import {
   Tag,
   Building,
   TrendingUp,
+  TrendingDown,
   Award,
   CreditCard,
   Banknote,
@@ -52,6 +54,7 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
   });
   const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().split('T')[0]);
   const [isProductSalesModalOpen, setIsProductSalesModalOpen] = useState(false);
+  const [activeReportTab, setActiveReportTab] = useState<'sales' | 'expenses'>('sales');
 
   // Etiqueta legible del período
   const periodLabel = useMemo(() => {
@@ -264,8 +267,45 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
   };
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-200">
+    <div className="space-y-4 animate-in fade-in duration-200">
+      
+      {/* Selector Principal de Informes: Ventas vs Gastos ERP */}
+      <div className="p-1 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 w-fit shadow-xs">
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('sales')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+            activeReportTab === 'sales'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Ventas & Facturación</span>
+        </button>
 
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('expenses')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+            activeReportTab === 'expenses'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <TrendingDown className="w-4 h-4" />
+          <span>Control de Gastos ERP</span>
+        </button>
+      </div>
+
+      {/* Pestaña de Gastos ERP */}
+      {activeReportTab === 'expenses' ? (
+        <ExpensesERPView
+          totalSalesRevenue={totalRevenue}
+          company={company}
+        />
+      ) : (
+        <>
       {/* Barra de Control de Informes */}
       <div className={`p-3.5 sm:p-4 rounded-2xl border ${themeClasses.card} shadow-xs space-y-3`}>
         <div className="flex items-center gap-2.5">
@@ -717,6 +757,8 @@ export const SalesReportsSubView: React.FC<SalesReportsSubViewProps> = ({
         totalRevenue={totalRevenue}
         periodLabel={periodLabel}
       />
+        </>
+      )}
     </div>
   );
 };

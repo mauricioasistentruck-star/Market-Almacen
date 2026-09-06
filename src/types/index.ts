@@ -683,3 +683,31 @@ export interface InventoryTakingSession {
   sections: InventoryTakingSection[];
   createdAt: string;
 }
+
+
+export type ExpenseCategory =
+  | 'ARRIENDO'
+  | 'SUELDOS'
+  | 'SERVICIOS_BASICOS'
+  | 'PROVEEDORES'
+  | 'MANTENIMIENTO'
+  | 'LOGISTICA'
+  | 'MARKETING'
+  | 'IMPUESTOS'
+  | 'OTROS';
+
+export interface Expense {
+  id?: number;
+  date: string;
+  category: ExpenseCategory;
+  categoryLabel?: string;
+  description: string;
+  amount: number;
+  paymentMethod: 'EFECTIVO' | 'DEBITO' | 'CREDITO' | 'TRANSFERENCIA';
+  voucherNumber?: string;
+  supplierName?: string;
+  companyId?: string;
+  companyName?: string;
+  registeredBy?: string;
+  createdAt: string;
+}

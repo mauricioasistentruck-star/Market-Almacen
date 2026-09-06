@@ -254,15 +254,18 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
                 </button>
               )}
 
-              {/* Sistema Folios CAF */}
-              {permissions.cafFolios && onOpenCafModal && (
+              {/* Sistema de Folios CAF / SII (Solicitar Folios) */}
+              {(isAdmin || isSuperAdmin || permissions.cafFolios) && onOpenCafModal && (
                 <button
                   type="button"
                   onClick={() => { onClose(); onOpenCafModal(); }}
-                  className="w-full p-2.5 rounded-xl text-left text-xs font-black text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-3 transition cursor-pointer"
+                  className="w-full p-2.5 rounded-xl text-left text-xs font-black text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-3 transition cursor-pointer border border-amber-300/40 dark:border-amber-700/40 rounded-xl bg-amber-50/40 dark:bg-amber-950/20"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>Folios CAF / SII</span>
+                  <div className="flex-1 truncate">
+                    <span className="block truncate">Sistema de Folios SII</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 block truncate font-bold">Solicitar y Cargar Folios CAF</span>
+                  </div>
                 </button>
               )}
 

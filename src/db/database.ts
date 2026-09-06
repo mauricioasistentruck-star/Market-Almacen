@@ -20,7 +20,8 @@ import type {
   Customer,
   InventoryTakingSection,
   InventoryTakingCountItem,
-  InventoryTakingSession
+  InventoryTakingSession,
+  Expense
 } from '../types';
 
 export class MarketAlmacenDatabase extends Dexie {
@@ -45,6 +46,7 @@ export class MarketAlmacenDatabase extends Dexie {
   inventorySections!: Table<InventoryTakingSection, string>;
   inventoryCounts!: Table<InventoryTakingCountItem, number>;
   inventorySessions!: Table<InventoryTakingSession, number>;
+  expenses!: Table<Expense, number>;
 
   constructor() {
     super('MarketAlmacenDB');
@@ -73,6 +75,10 @@ export class MarketAlmacenDatabase extends Dexie {
       inventorySections: 'id, name, zone, companyId',
       inventoryCounts: '++id, sessionId, sectionName, productCode, workerName, countedAt, companyId',
       inventorySessions: '++id, sessionCode, date, companyId, status, createdAt'
+    });
+
+    this.version(3).stores({
+      expenses: '++id, date, category, companyId, paymentMethod, createdAt'
     });
   }
 }

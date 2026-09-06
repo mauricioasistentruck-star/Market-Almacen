@@ -847,7 +847,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   };
 
   return (
-    <div className="h-full flex-1 flex flex-col space-y-1.5 overflow-hidden animate-fadeIn">
+    <div className={`h-full flex-1 flex flex-col space-y-1.5 ${activeSubTab === "history" ? "overflow-y-auto pb-28 lg:pb-6" : "overflow-hidden"} animate-fadeIn`}>
       {/* 1. Encabezado de HISTORIAL (Alineado exactamente con la columna del Menú de Ventas) */}
       {activeSubTab === 'history' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
@@ -1475,7 +1475,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
       {/* Vista de Historial de Ventas (Listado hacia abajo con apertura en tarjeta) */}
       {activeSubTab === 'history' && (
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 pb-24 lg:pb-6 custom-scrollbar">
           {/* Tarjetas y Botones Interactivos de Métricas por Tipo de Comprobante */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {/* 1. Botón Métrica: Total Recaudado / Todos */}

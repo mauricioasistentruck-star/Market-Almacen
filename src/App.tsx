@@ -9,6 +9,7 @@ import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { LoginView } from './components/auth/LoginView';
 import { initCloudSync } from './utils/cloudSync';
+import { startRealtimeSync } from './utils/realtimeSync';
 
 // Tab Views
 import { SalesView } from './components/sales/SalesView';
@@ -37,6 +38,7 @@ import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { MobileMoreMenuModal } from './components/common/MobileMoreMenuModal';
 import { ProductConsultantModal } from './components/inventory/ProductConsultantModal';
 import { CashClosingModal } from './components/sales/CashClosingModal';
+import { CafFoliosManagerModal } from './components/sales/CafFoliosManagerModal';
 
 export const App: React.FC = () => {
   const { themeClasses } = useTheme();
@@ -49,7 +51,13 @@ export const App: React.FC = () => {
   const [isConsultantOpen, setIsConsultantOpen] = useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
+  const [isCafModalOpen, setIsCafModalOpen] = useState(false);
   const [cartCount, setCartCount] = useState<number>(0);
+
+  useEffect(() => {
+    // Iniciar sincronización en tiempo real cada 3 segundos (APK ↔ Web)
+    startRealtimeSync();
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -147,7 +155,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className={`${activeTab === 'sales' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen pb-16 xl:pb-0'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200`}>
+    <div className={`${activeTab === 'sales' ? 'min-h-screen lg:h-[100dvh] lg:overflow-hidden' : 'min-h-screen pb-16 xl:pb-0'} ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200`}>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -163,7 +171,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className={`flex-1 max-w-[1750px] w-full mx-auto ${activeTab === 'sales' ? 'p-1.5 sm:p-2 overflow-hidden' : 'p-2.5 sm:p-4 lg:p-5'}`}>
+      <main className={`flex-1 max-w-[1750px] w-full mx-auto ${activeTab === 'sales' ? 'p-1.5 sm:p-2 flex flex-col min-h-0' : 'p-2.5 sm:p-4 lg:p-5'}`}>
         
         {/* Menú Exclusivo de Informes (Activado desde Sesión de Usuario) */}
         {activeTab === 'reports' && (
@@ -398,6 +406,7 @@ export const App: React.FC = () => {
         onOpenUserManager={() => setIsUserManagerOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
         onOpenCompanies={() => setIsCompanyManagerOpen(true)}
+        onOpenCafModal={() => setIsCafModalOpen(true)}
       />
 
       {/* Consultor Rápido de Precios y Stock */}
@@ -412,6 +421,14 @@ export const App: React.FC = () => {
           isOpen={isCashClosingOpen}
           onClose={() => setIsCashClosingOpen(false)}
           onClosingSuccess={() => triggerRefresh()}
+        />
+      )}
+
+      {/* Sistema de Folios CAF / SII para Celular y PC */}
+      {isCafModalOpen && (
+        <CafFoliosManagerModal
+          isOpen={isCafModalOpen}
+          onClose={() => setIsCafModalOpen(false)}
         />
       )}
     </div>

@@ -83,6 +83,15 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     const pName = (prod.name || '').toLowerCase();
     const pCat = (prod.category || '').toLowerCase();
 
+    // El producto tomate pertenece exclusivamente a Verduras / Tomates, nunca a Frutas
+    if (pName.includes('tomate')) {
+      const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+      if (isMobileScreen) {
+        return CATEGORY_PRESETS_MOBILE.find(p => p.id === 'verduras') || CATEGORY_PRESETS[0];
+      }
+      return CATEGORY_PRESETS.find(p => p.id === 'tomates') || CATEGORY_PRESETS.find(p => p.id === 'verduras') || CATEGORY_PRESETS[0];
+    }
+
     for (const preset of CATEGORY_PRESETS) {
       if (preset.id === 'frutos') {
         const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
@@ -130,6 +139,13 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
       if (categoryPreset.id === 'carnes') {
         const isMeat = categoryPreset.keywords.some(k => pName.includes(k) || pCat.includes(k));
         return isMeat;
+      }
+
+      // Eliminar estrictamente tomates de la categoría frutas
+      if (categoryPreset.id === 'frutas') {
+        if (pName.includes('tomate') || pName.includes('morron') || pName.includes('morrón') || pName.includes('aji') || pName.includes('ají') || pName.includes('papa')) {
+          return false;
+        }
       }
 
       const matchesKeyword = categoryPreset.keywords.some(k => pName.includes(k) || pCat.includes(k));

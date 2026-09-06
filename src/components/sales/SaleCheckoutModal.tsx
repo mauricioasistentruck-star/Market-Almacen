@@ -452,23 +452,24 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-4xl max-h-[96vh] flex flex-col rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      {/* Modal Principal Web: Amplio, equilibrado, sin scroll de ventana */}
+      <div className="w-full max-w-2xl sm:max-w-4xl lg:max-w-5xl max-h-[95vh] flex flex-col rounded-3xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden my-auto">
         
-        {/* Header Compacto de Alto Contraste */}
-        <div className="px-3.5 py-2 sm:py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/30 font-black shrink-0">
-              <Calculator className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+        {/* Header Proporcionado y con Alto Contraste */}
+        <div className="px-5 py-3 sm:py-3.5 border-b-2 border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30 font-black shrink-0">
+              <Calculator className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <div style={{ color: '#ffffff' }} className="text-sm sm:text-base font-black flex items-center gap-2">
+              <div style={{ color: '#ffffff' }} className="text-base sm:text-lg font-black flex items-center gap-2.5">
                 <span style={{ color: '#ffffff' }}>Finalizar Cobro y Emisión</span>
-                <span style={{ color: '#ffffff', backgroundColor: '#ea580c' }} className="px-2 py-0.2 rounded-full text-[10.5px] font-black shadow-xs">
+                <span style={{ color: '#ffffff', backgroundColor: '#ea580c' }} className="px-2.5 py-0.5 rounded-full text-xs font-black shadow-sm">
                   {cartItems.length} {cartItems.length === 1 ? 'ítem' : 'ítems'}
                 </span>
               </div>
-              <p style={{ color: '#cbd5e1' }} className="text-[10.5px] font-medium leading-tight">
+              <p style={{ color: '#cbd5e1' }} className="text-xs font-medium leading-tight mt-0.5">
                 Seleccione el medio de pago y el documento tributario
               </p>
             </div>
@@ -476,41 +477,41 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/15 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/15 transition cursor-pointer"
             title="Cerrar modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        {/* Content Body: 100% visible sin scrollbar en pantallas estándar */}
-        <div className="flex-1 p-2.5 sm:p-3 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-2.5 lg:gap-3 custom-scrollbar">
+        {/* Content Body: Cómodo, proporcionado y sin desbordes */}
+        <div className="flex-1 p-3.5 sm:p-4.5 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:gap-4.5 custom-scrollbar">
           
           {/* Columna Izquierda: Opciones de Pago y Documento */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-1.5 select-none">
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-2.5 select-none">
             
             {/* 1. Selección de Documento Tributario */}
-            <div className="space-y-0.5 shrink-0">
-              <label className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1">
-                <FileText className="w-3.5 h-3.5 text-orange-500" />
+            <div className="space-y-1 shrink-0">
+              <label className="text-[11px] sm:text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500" />
                 <span>1. Tipo de Documento Tributario (SII)</span>
               </label>
 
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-2">
                 {/* Boleta Electrónica */}
                 <button
                   type="button"
                   onClick={() => setDteType('BOLETA_ELECTRONICA')}
-                  className={`py-1.5 px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2.5 rounded-2xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
                     dteType === 'BOLETA_ELECTRONICA'
-                      ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-950 dark:text-orange-100 shadow-xs ring-1 ring-orange-400/30'
+                      ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-950 dark:text-orange-100 shadow-sm ring-2 ring-orange-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Receipt className={`w-4 h-4 shrink-0 ${dteType === 'BOLETA_ELECTRONICA' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
+                  <Receipt className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'BOLETA_ELECTRONICA' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
                   <div className="min-w-0 flex-1">
-                    <span className="text-[11px] font-black block leading-tight truncate">Boleta</span>
-                    <span className="text-[8.5px] font-semibold text-orange-700 dark:text-orange-300 block leading-tight truncate">Consumidor</span>
+                    <span className="text-xs sm:text-sm font-black block leading-tight truncate">Boleta</span>
+                    <span className="text-[9.5px] sm:text-[10.5px] font-semibold text-orange-700 dark:text-orange-300 block leading-tight truncate">Consumidor</span>
                   </div>
                 </button>
 
@@ -535,16 +536,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                       }
                     } catch (e) {}
                   }}
-                  className={`py-1.5 px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2.5 rounded-2xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
                     dteType === 'FACTURA_ELECTRONICA'
-                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-xs ring-1 ring-blue-400/30'
+                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm ring-2 ring-blue-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Building className={`w-4 h-4 shrink-0 ${dteType === 'FACTURA_ELECTRONICA' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
+                  <Building className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'FACTURA_ELECTRONICA' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
                   <div className="min-w-0 flex-1">
-                    <span className="text-[11px] font-black block leading-tight truncate">Factura</span>
-                    <span className="text-[8.5px] font-semibold text-blue-700 dark:text-blue-300 block leading-tight truncate">IVA Crédito</span>
+                    <span className="text-xs sm:text-sm font-black block leading-tight truncate">Factura</span>
+                    <span className="text-[9.5px] sm:text-[10.5px] font-semibold text-blue-700 dark:text-blue-300 block leading-tight truncate">IVA Crédito</span>
                   </div>
                 </button>
 
@@ -552,122 +553,122 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setDteType('TICKET_INTERNO')}
-                  className={`py-1.5 px-2 rounded-xl border-2 text-left transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2.5 rounded-2xl border-2 text-left transition flex items-center gap-2 cursor-pointer ${
                     dteType === 'TICKET_INTERNO'
-                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-xs ring-1 ring-purple-400/30'
+                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-sm ring-2 ring-purple-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <QrCode className={`w-4 h-4 shrink-0 ${dteType === 'TICKET_INTERNO' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`} />
+                  <QrCode className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${dteType === 'TICKET_INTERNO' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`} />
                   <div className="min-w-0 flex-1">
-                    <span className="text-[11px] font-black block leading-tight truncate">Ticket</span>
-                    <span className="text-[8.5px] font-semibold text-purple-700 dark:text-purple-300 block leading-tight truncate">Interno</span>
+                    <span className="text-xs sm:text-sm font-black block leading-tight truncate">Ticket</span>
+                    <span className="text-[9.5px] sm:text-[10.5px] font-semibold text-purple-700 dark:text-purple-300 block leading-tight truncate">Interno</span>
                   </div>
                 </button>
               </div>
             </div>
 
             {/* 2. Medios de Pago */}
-            <div className="space-y-0.5 shrink-0">
-              <label className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1">
-                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="space-y-1 shrink-0">
+              <label className="text-[11px] sm:text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
+                <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
                 <span>2. Medio de Pago</span>
               </label>
 
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-2">
                 {/* Efectivo */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('EFECTIVO')}
-                  className={`py-1.5 px-1 rounded-xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-2xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'EFECTIVO'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-100 shadow-xs ring-1 ring-emerald-400/30'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-100 shadow-sm ring-2 ring-emerald-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="text-[10.5px] font-black leading-none truncate">Efectivo</span>
+                  <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-black leading-none truncate">Efectivo</span>
                 </button>
 
                 {/* Débito */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('DEBITO')}
-                  className={`py-1.5 px-1 rounded-xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-2xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'DEBITO'
-                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-xs ring-1 ring-blue-400/30'
+                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm ring-2 ring-blue-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="text-[10.5px] font-black leading-none truncate">Débito</span>
+                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-black leading-none truncate">Débito</span>
                 </button>
 
                 {/* Crédito */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CREDITO')}
-                  className={`py-1.5 px-1 rounded-xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-2xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'CREDITO'
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-100 shadow-xs ring-1 ring-indigo-400/30'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-100 shadow-sm ring-2 ring-indigo-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <span className="text-[10.5px] font-black leading-none truncate">Crédito</span>
+                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-black leading-none truncate">Crédito</span>
                 </button>
 
                 {/* Transferencia */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('TRANSFERENCIA')}
-                  className={`py-1.5 px-1 rounded-xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-2xl border-2 text-center transition flex items-center justify-center gap-1 cursor-pointer ${
                     paymentMethod === 'TRANSFERENCIA'
-                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-xs ring-1 ring-purple-400/30'
+                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-950 dark:text-purple-100 shadow-sm ring-2 ring-purple-400/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80'
                   }`}
                 >
-                  <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
-                  <span className="text-[10.5px] font-black leading-none truncate">Transf.</span>
+                  <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-black leading-none truncate">Transf.</span>
                 </button>
               </div>
             </div>
 
-            {/* Panel Dinámico de Pago Compacto */}
+            {/* Panel Dinámico de Pago Proporcionado */}
             <div className="shrink-0">
               {paymentMethod === 'EFECTIVO' ? (
-                <div className="p-2 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[10.5px]">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="font-black text-emerald-950 dark:text-emerald-200">MONTO RECIBIDO DEL CLIENTE:</span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {rounding.applied && (
-                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                        <span className="text-[10px] sm:text-xs font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
                           Redondeo: {roundingDifference > 0 ? `+${roundingDifference}` : `-${Math.abs(roundingDifference)}`}
                         </span>
                       )}
-                      <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono text-[11px]">
+                      <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono text-xs sm:text-sm">
                         Total: {formatCLP(cashRoundedTotal)}
                       </span>
                     </div>
                   </div>
 
                   <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-base font-black text-emerald-600 font-mono select-none">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl font-black text-emerald-600 font-mono select-none">$</span>
                     <input
                       type="number"
                       value={amountPaid === 0 ? '' : amountPaid}
                       onChange={(e) => setAmountPaid(Number(e.target.value))}
                       placeholder="0"
-                      className="w-full pl-7 pr-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-900 border-2 border-emerald-400 text-slate-900 dark:text-slate-100 text-base font-mono font-black focus:ring-1 focus:ring-emerald-400 focus:outline-none shadow-inner text-left"
+                      className="w-full pl-8 pr-3 py-1 sm:py-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-emerald-400 text-slate-900 dark:text-slate-100 text-lg sm:text-xl font-mono font-black focus:ring-2 focus:ring-emerald-400/30 focus:outline-none shadow-inner text-left"
                     />
                   </div>
 
                   {/* Atajos de billetes chilenos */}
-                  <div className="flex items-center gap-1 overflow-x-auto py-0.2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     <button
                       type="button"
                       onClick={() => setAmountPaid(cashRoundedTotal)}
-                      className="px-2 py-0.5 rounded-md bg-emerald-600 active:bg-emerald-700 text-white text-[10px] font-black shrink-0 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 active:bg-emerald-700 text-white text-xs font-black shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
                     >
                       Exacto ({formatCLP(cashRoundedTotal)})
                     </button>
@@ -676,27 +677,27 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                         key={quickM}
                         type="button"
                         onClick={() => setAmountPaid(quickM)}
-                        className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-200 text-[10px] font-black active:bg-emerald-50 dark:active:bg-emerald-950/50 transition shrink-0 cursor-pointer shadow-xs whitespace-nowrap"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-200 text-xs font-black active:bg-emerald-50 dark:active:bg-emerald-950/50 transition shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
                       >
                         ${quickM.toLocaleString('es-CL')}
                       </button>
                     ))}
                   </div>
 
-                  <div className="p-1.5 px-2.5 rounded-lg bg-emerald-600 text-white flex items-center justify-between shadow-xs">
-                    <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1">
+                  <div className="p-2 px-3 rounded-xl bg-emerald-600 text-white flex items-center justify-between shadow-sm">
+                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-1.5">
                       <span>💵</span> VUELTO A ENTREGAR:
                     </span>
-                    <span className="text-base font-mono font-black">{formatCLP(cashChange)}</span>
+                    <span className="text-lg sm:text-xl font-mono font-black">{formatCLP(cashChange)}</span>
                   </div>
                 </div>
               ) : (
-                <div className="p-2 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[10.5px]">
+                <div className="p-2.5 sm:p-3 rounded-2xl bg-blue-500/10 border-2 border-blue-500/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="font-black text-blue-950 dark:text-blue-200">
                       {paymentMethod === 'TRANSFERENCIA' ? 'N° DE TRANSFERENCIA / COMPROBANTE:' : 'N° DE VOUCHER / CÓDIGO POS:'}
                     </span>
-                    <span className="text-[9.5px] font-mono font-black px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-200">
+                    <span className="text-xs font-mono font-black px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-200">
                       Total: {formatCLP(finalTotal)}
                     </span>
                   </div>
@@ -706,49 +707,49 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                     value={paymentReference}
                     onChange={(e) => setPaymentReference(e.target.value)}
                     placeholder={paymentMethod === 'TRANSFERENCIA' ? 'Ej: TRANSF-89320 o RUT Titular' : 'Ej: AUT-984210 o Voucher'}
-                    className="w-full px-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-900 border-2 border-blue-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 text-xs font-mono font-bold focus:border-blue-500 focus:outline-none shadow-inner"
+                    className="w-full px-3 py-1 sm:py-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-blue-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-mono font-bold focus:border-blue-500 focus:outline-none shadow-inner"
                   />
 
-                  <div className="p-1 px-2 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[10px] font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
-                    <span className="text-xs">{paymentMethod === 'TRANSFERENCIA' ? '🏦' : '💳'}</span>
+                  <div className="p-1.5 px-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs font-bold text-blue-950 dark:text-blue-200 flex items-center gap-2">
+                    <span className="text-sm">{paymentMethod === 'TRANSFERENCIA' ? '🏦' : '💳'}</span>
                     <span className="truncate">
-                      {paymentMethod === 'DEBITO' && 'Pase o inserte tarjeta en POS y solicite PIN.'}
-                      {paymentMethod === 'CREDITO' && 'Inserte tarjeta en POS y verifique cuotas.'}
-                      {paymentMethod === 'TRANSFERENCIA' && 'Verifique recepción de transferencia antes de emitir.'}
+                      {paymentMethod === 'DEBITO' && 'Pase o inserte la tarjeta en el POS y solicite la clave PIN.'}
+                      {paymentMethod === 'CREDITO' && 'Inserte la tarjeta en el POS y verifique el número de cuotas.'}
+                      {paymentMethod === 'TRANSFERENCIA' && 'Verifique la recepción conforme de la transferencia antes de emitir.'}
                     </span>
                   </div>
 
-                  <div className="p-1 px-2.5 rounded-lg bg-slate-900 text-white flex items-center justify-between shadow-xs">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">TOTAL AUTORIZADO EN POS:</span>
-                    <span className="text-base font-black font-mono text-emerald-400">{formatCLP(finalTotal)}</span>
+                  <div className="p-1.5 px-3 rounded-xl bg-slate-900 text-white flex items-center justify-between shadow-sm">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-300">TOTAL AUTORIZADO EN POS:</span>
+                    <span className="text-lg font-black font-mono text-emerald-400">{formatCLP(finalTotal)}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* 3. Datos del Cliente Compactos */}
-            <div className="shrink-0 space-y-1">
-              <label className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <User className="w-3 h-3 text-blue-600" />
+            {/* 3. Datos del Cliente */}
+            <div className="shrink-0 space-y-1.5">
+              <label className="text-[11px] sm:text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-600" />
                   <span>3. Datos del Cliente</span>
                 </span>
                 {dteType === 'FACTURA_ELECTRONICA' ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     {foundCustomerNotice && (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black text-[9px] bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.2 rounded border border-emerald-300 animate-fadeIn">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black text-[10px] bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-300 animate-fadeIn">
                         {foundCustomerNotice}
                       </span>
                     )}
-                    <span className="text-red-500 font-black text-[9px] bg-red-50 dark:bg-red-950/50 px-1.5 py-0.2 rounded border border-red-200">* Obligatorio para Factura</span>
+                    <span className="text-red-500 font-black text-[10px] bg-red-50 dark:bg-red-950/50 px-2 py-0.5 rounded border border-red-200">* Obligatorio para Factura</span>
                   </div>
                 ) : (
-                  <span className="text-slate-500 font-bold text-[9.5px]">Opcional para Boleta</span>
+                  <span className="text-slate-500 font-bold text-[10px]">Opcional para Boleta</span>
                 )}
               </label>
 
               {dteType === 'FACTURA_ELECTRONICA' ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {/* Fila 1: RUT con botón Aceptar al lado */}
                   <div className="relative">
                     <div className="flex items-center gap-1.5">
@@ -763,13 +764,13 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                           }
                         }}
                         placeholder="RUT Empresa (Ej: 76.890.123-4) *"
-                        className="flex-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none focus:border-blue-600"
+                        className="flex-1 px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold font-mono focus:outline-none focus:border-blue-600"
                         required
                       />
                       <button
                         type="button"
                         onClick={handleSearchRut}
-                        className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs shadow-xs cursor-pointer shrink-0 transition"
+                        className="px-3.5 py-1.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs sm:text-sm shadow-sm cursor-pointer shrink-0 transition"
                         title="Aceptar RUT para autocompletar datos del cliente"
                       >
                         Aceptar
@@ -801,18 +802,18 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Razón Social de la Empresa *"
-                    className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-600"
+                    className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none focus:border-blue-600"
                     required
                   />
 
                   {/* Fila 3: Giro y Dirección */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       type="text"
                       value={customerBusiness}
                       onChange={(e) => setCustomerBusiness(e.target.value)}
                       placeholder="Giro Comercial *"
-                      className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-600"
+                      className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-400 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none focus:border-blue-600"
                       required
                     />
                     <input
@@ -820,20 +821,20 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
                       placeholder="Dirección y Comuna"
-                      className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                      className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none"
                     />
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12 gap-1.5">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-2">
                     <div className="col-span-12 sm:col-span-6">
                       <input
                         type="text"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Nombre del Cliente"
-                        className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                        className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none"
                       />
                     </div>
                     <div className="col-span-12 sm:col-span-6">
@@ -842,19 +843,19 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="WhatsApp (Ej: +56912345678)"
-                        className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-emerald-400 dark:border-emerald-600 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none placeholder:text-slate-400 shadow-2xs"
+                        className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-400 dark:border-emerald-600 text-slate-900 dark:text-white text-xs sm:text-sm font-bold font-mono focus:outline-none placeholder:text-slate-400 shadow-2xs"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-12 gap-1.5">
+                  <div className="grid grid-cols-12 gap-2">
                     <div className="col-span-12 sm:col-span-6">
                       <input
                         type="email"
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         placeholder="Correo electrónico (opcional)"
-                        className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none"
+                        className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none"
                       />
                     </div>
                     <div className="col-span-12 sm:col-span-6">
@@ -863,14 +864,14 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                         value={customerRut}
                         onChange={(e) => setCustomerRut(e.target.value)}
                         placeholder="RUT (Opcional)"
-                        className="w-full px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none"
+                        className="w-full px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold font-mono focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  <div className="h-[22px] px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-[9.5px]">
+                  <div className="h-[26px] sm:h-[28px] px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
                     <span className="text-emerald-800 dark:text-emerald-300 font-bold truncate">💬 Envío de boleta digital a WhatsApp o Correo</span>
-                    <span className="px-1.5 py-0.2 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-200 font-black text-[8.5px] shrink-0 ml-1">Envío Digital</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-200 font-black text-[9px] shrink-0 ml-1">Envío Digital</span>
                   </div>
                 </div>
               )}
@@ -878,32 +879,32 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
 
           </div>
 
-          {/* Columna Derecha: Resumen de Carrito y Totales Compacto */}
-          <div className="lg:col-span-5 flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl bg-slate-900 border-2 border-slate-800 shadow-xl h-full overflow-hidden checkout-dark-panel select-none" style={{ color: "#ffffff", backgroundColor: "#0f172a" }}>
+          {/* Columna Derecha: Resumen de Carrito y Totales Proporcionado */}
+          <div className="lg:col-span-5 flex flex-col justify-between p-3.5 sm:p-4.5 rounded-3xl bg-slate-900 border-2 border-slate-800 shadow-2xl h-full overflow-hidden checkout-dark-panel select-none" style={{ color: "#ffffff", backgroundColor: "#0f172a" }}>
             
-            <div className="space-y-1.5 overflow-hidden">
-              <div style={{ color: "#fbbf24" }} className="text-[10.5px] font-black uppercase tracking-wider flex items-center justify-between pb-1 border-b border-slate-800">
+            <div className="space-y-2.5 overflow-hidden">
+              <div style={{ color: "#fbbf24" }} className="text-xs font-black uppercase tracking-wider flex items-center justify-between pb-1.5 border-b border-slate-800">
                 <span style={{ color: "#fbbf24" }}>Resumen de Venta</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[9.5px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
                   {cartItems.reduce((acc, it) => acc + it.quantity, 0)} ítems
                 </span>
               </div>
 
-              {/* Lista de productos compacta */}
-              <div className="h-[96px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-1 pr-0.5">
+              {/* Lista de productos en carro */}
+              <div className="h-[120px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-1.5 pr-1">
                 {cartItems.map((item, idx) => (
                   <div
                     key={item.productId || idx}
-                    className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs"
+                    className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs"
                     style={{ color: "#ffffff" }}
                   >
-                    <div className="truncate pr-1.5">
-                      <span className="font-bold text-white block truncate text-[11px] leading-tight">{item.productName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                    <div className="truncate pr-2">
+                      <span className="font-bold text-white block truncate text-xs sm:text-sm leading-tight">{item.productName}</span>
+                      <span className="text-[11px] text-slate-400 font-mono">
                         {item.quantity} x {formatCLP(item.unitPrice)}
                       </span>
                     </div>
-                    <span className="font-mono font-black text-emerald-400 text-xs shrink-0">
+                    <span className="font-mono font-black text-emerald-400 text-xs sm:text-sm shrink-0">
                       {formatCLP(item.subtotal)}
                     </span>
                   </div>
@@ -911,9 +912,9 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </div>
 
               {/* Selector de Descuento Promocional */}
-              <div className="pt-1 border-t border-slate-800 flex items-center justify-between">
-                <span className="text-[10.5px] font-bold text-slate-300 flex items-center gap-1">
-                  <Percent className="w-3 h-3 text-amber-400" />
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Percent className="w-3.5 h-3.5 text-amber-400" />
                   <span>Descuento Promocional:</span>
                 </span>
                 <div className="flex items-center gap-1">
@@ -922,9 +923,9 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                       key={disc}
                       type="button"
                       onClick={() => setDiscountPercent(disc)}
-                      className={`px-1.5 py-0.5 rounded-md text-[10.5px] font-black font-mono transition cursor-pointer ${
+                      className={`px-2 py-1 rounded-lg text-xs font-black font-mono transition cursor-pointer ${
                         discountPercent === disc
-                          ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                          ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
                           : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                       }`}
                     >
@@ -935,7 +936,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </div>
 
               {/* Desglose Contable */}
-              <div className="space-y-0.5 text-[10px] pt-1 border-t border-slate-800 text-slate-300">
+              <div className="space-y-1 text-xs pt-1.5 border-t border-slate-800 text-slate-300">
                 <div className="flex justify-between">
                   <span>Monto Neto:</span>
                   <span className="font-mono font-bold">{formatCLP(Math.round(finalTotal / 1.19))}</span>
@@ -953,16 +954,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               </div>
 
               {/* TOTAL A COBRAR DESTACADO */}
-              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-200">TOTAL A COBRAR:</span>
-                <span className="text-xl font-black font-mono text-amber-400">{formatCLP(finalTotal)}</span>
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">TOTAL A COBRAR:</span>
+                <span className="text-2xl sm:text-3xl font-black font-mono text-amber-400">{formatCLP(finalTotal)}</span>
               </div>
             </div>
 
             {/* Acciones Finales: Botón de Cobro y Volver */}
-            <div className="space-y-1.5 pt-1.5">
+            <div className="space-y-2 pt-2">
               {errorMessage && (
-                <div className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 text-[10.5px] font-bold text-center">
+                <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold text-center">
                   {errorMessage}
                 </div>
               )}
@@ -971,16 +972,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 type="button"
                 onClick={handleProcessSale}
                 disabled={isProcessing || cartItems.length === 0}
-                className="w-full h-[40px] rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-[46px] rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-5 h-5 animate-spin" />
                     <span>Emitiendo DTE...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-5 h-5" />
                     <span>CONFIRMAR VENTA Y EMITIR DTE</span>
                   </>
                 )}
@@ -990,7 +991,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isProcessing}
-                className="w-full text-center text-[10.5px] font-bold text-slate-400 hover:text-white transition py-0.5"
+                className="w-full text-center text-xs font-bold text-slate-400 hover:text-white transition py-1"
               >
                 Volver al Carrito
               </button>

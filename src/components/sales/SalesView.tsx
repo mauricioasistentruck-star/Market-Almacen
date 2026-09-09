@@ -1,4 +1,4 @@
-import { QuickProductsPickerModal } from './QuickProductsPickerModal';
+import { WebCheckoutBoard } from './WebCheckoutBoard';
 import { getRubroPreset, type CompanyServiceOption } from '../../utils/rubroPresets';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../../utils/themeContext';
@@ -919,7 +919,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch flex-1 h-full min-h-0 overflow-hidden">
           
           {/* Columna Izquierda: Encabezado -> Buscador -> Categorías + 9 Favoritos en 1 sola línea -> Tarjetas */}
-          <div className={`lg:col-span-7 xl:col-span-8 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-14 lg:pb-0`}>
+          <div className={`lg:col-span-5 xl:col-span-5 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-14 lg:pb-0`}>
             
             {/* 1. ENCABEZADO POS */}
             <div className={`p-2.5 sm:p-3 rounded-2xl border ${themeClasses.card} shadow-xs flex flex-wrap items-center justify-between gap-2`}>
@@ -1184,175 +1184,55 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </div>
             </div>
 
-            {/* 3. BARRA DE 9 PRODUCTOS RÁPIDOS EN VENTAS */}
-            <div className="hidden lg:flex items-center justify-between px-1.5 py-1.5 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                  {searchQuery.trim() ? (
-                    <>
-                      <Search className="w-4 h-4 text-blue-500" />
-                      <span>Resultados de Búsqueda ({displayedProducts.length})</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>9 Productos Rápidos ({displayedProducts.length})</span>
-                    </>
-                  )}
-                </span>
-                {!searchQuery.trim() && (
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden xl:inline">
-                    • Acceso rápido en caja (Usa el buscador para otros ítems del catálogo)
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickConfigOpen(true)}
-                  className="px-3 py-1.5 text-xs font-black rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/80 flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
-                  title="Personalizar los 9 productos rápidos para caja"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Configurar 9 Rápidos</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 4. MATRIZ DE PRODUCTOS (Tarjetas Limpias y Espaciosas sin botón de liquidar) */}
-            <div className={`hidden lg:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-1 scrollbar-thin ${
-              isSearching ? 'max-h-[540px] overflow-y-auto pr-1' : ''
-            }`}>
-              {displayedProducts.map((prod) => {
-                const isOutOfStock = (prod.stock || 0) <= 0;
-                const regularPrice = prod.price && prod.price > 0 ? prod.price : 10000;
-                const hasOffer = Boolean(prod.offerPrice && prod.offerPrice > 0 && (prod.offerStockRemaining === undefined || prod.offerStockRemaining > 0));
-                const currentPrice = hasOffer ? prod.offerPrice! : regularPrice;
-                const offerStockRem = prod.offerStockRemaining !== undefined ? prod.offerStockRemaining : (prod.offerStockLimit || 0);
-
-                return (
-                  <div
-                    key={prod.id}
-                    onClick={() => !isOutOfStock && handleAddToCart(prod)}
-                    className={`p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-150 flex flex-col justify-between cursor-pointer group select-none shadow-xs min-h-[118px] sm:min-h-[124px] overflow-hidden ${
-                      isOutOfStock
-                        ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                        : hasOffer
-                        ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 hover:border-amber-500 hover:shadow-md active:bg-amber-100/60 dark:active:bg-amber-900/40'
-                        : `${themeClasses.card} hover:border-blue-500 hover:shadow-md active:bg-blue-50/40 dark:active:bg-slate-800`
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1.5">
-                        <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-lg border ${themeClasses.badge}`}>
-                          {prod.code}
-                        </span>
-
-                        <div className="flex items-center gap-1">
-                          {hasOffer && (
-                            <span className="text-[9.5px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs animate-pulse">
-                              🔥 {offerStockRem} en Oferta
-                            </span>
-                          )}
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                            isOutOfStock ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                          }`}>
-                            {prod.unit === 'Kg' || prod.unit === 'Gramos' || prod.category === 'Panadería y Pastelería' || prod.category === 'Frutas y Verduras' ? '⚖️ Granel' : `Stock: ${prod.stock} ${prod.unit || 'UN'}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                        {prod.name}
-                      </h4>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-slate-800/80 mt-2 shrink-0">
-                      {hasOffer && !isOutOfStock ? (
-                        <div className="flex items-center gap-1.5 w-full justify-between" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => handleAddToCart(prod, 'NORMAL')}
-                            className="flex-1 py-1.5 px-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-black text-[10.5px] text-center transition active:scale-95 cursor-pointer shadow-2xs"
-                            title="Llevar a Precio Normal"
-                          >
-                            Normal: ${regularPrice.toLocaleString('es-CL')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAddToCart(prod, 'OFFER')}
-                            className="flex-1 py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-mono font-black text-[10.5px] text-center transition active:scale-95 cursor-pointer shadow-xs"
-                            title="Llevar a Precio Liquidación"
-                          >
-                            🔥 Liq: ${prod.offerPrice!.toLocaleString('es-CL')}
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex flex-col">
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-sm sm:text-base font-black font-mono text-emerald-700 dark:text-emerald-400">
-                                ${currentPrice.toLocaleString('es-CL')}
-                              </span>
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            disabled={isOutOfStock}
-                            onClick={(e) => { e.stopPropagation(); handleAddToCart(prod); }}
-                            className={`w-8 h-8 rounded-xl text-white transition flex items-center justify-center ${
-                              isOutOfStock ? 'bg-slate-400' : `${themeClasses.accentBg} group-hover:scale-110 shadow-xs`
-                            }`}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Columna Derecha: Carrito de Venta - Alargado hacia Abajo */}
-          <div className={`lg:col-span-5 xl:col-span-4 ${mobilePosTab === 'cart' ? 'flex' : 'hidden lg:flex'} flex-col h-full min-h-0 overflow-hidden pb-16 lg:pb-0`}>
-            <div className={`rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} shadow-xl p-3 sm:p-3.5 flex flex-col justify-between h-full min-h-[460px] sticky top-0`}>
-              
-              {/* Header del Carrito */}
+            {/* 3. VISTA WEB: LISTADO DE PRODUCTOS EN COMPRA (COLUMNA IZQUIERDA) */}
+            <div className="hidden lg:flex flex-col flex-1 min-h-0 rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md p-3.5 overflow-hidden">
+              {/* Encabezado del Listado de Compra */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className={`w-5 h-5 ${themeClasses.accent}`} />
-                  <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                    Carrito de Venta
-                  </h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${themeClasses.badge}`}>
-                    {cart.reduce((a, b) => a + b.quantity, 0)}
-                  </span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
+                    <ShoppingCart className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <span>Productos en Compra Actual</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+                        {cart.reduce((a, b) => a + b.quantity, 0)} unid.
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">
+                      Artículos cargados a la cuenta del cliente
+                    </p>
+                  </div>
                 </div>
+
                 {cart.length > 0 && (
                   <button
+                    type="button"
                     onClick={handleClearCart}
-                    className="text-xs font-bold text-red-500 hover:text-red-600 transition flex items-center gap-1 cursor-pointer active:scale-95"
+                    className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 px-2.5 py-1 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer active:scale-95"
+                    title="Vaciar todos los productos de la compra"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Vaciar
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Vaciar</span>
                   </button>
                 )}
               </div>
 
-              {/* Lista de Ítems Alargada: Llena el Alto y Scroll Interno cuando sea necesario */}
+              {/* Lista interactiva de productos que el cliente está llevando */}
               {cart.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 opacity-50 min-h-[300px]">
-                  <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <ShoppingCart className="w-8 h-8 opacity-60" />
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 opacity-60 min-h-[280px]">
+                  <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-inner">
+                    <ShoppingCart className="w-8 h-8 text-slate-400" />
                   </div>
-                  <p className="text-sm font-black">El carrito está vacío</p>
-                  <p className="text-xs font-bold">Haz clic en los productos para agregarlos a la venta</p>
+                  <div>
+                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">El listado de compra está vacío</p>
+                    <p className="text-xs font-bold text-slate-500 max-w-xs mt-1">
+                      Pistolee un código con la pistola lectora, use la balanza o busque productos en la barra superior para cargarlos al cobro.
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div className="flex-1 space-y-2 overflow-y-auto pr-1 my-2 max-h-[260px] sm:max-h-[320px] lg:max-h-[360px] scrollbar-thin">
+                <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 my-3 max-h-[380px] xl:max-h-[460px] scrollbar-thin">
                   {cart.map((item, idx) => {
                     const prod = products.find(p => p.id === item.productId);
                     const canOffer = prod && prod.offerPrice && prod.offerPrice > 0 && (prod.offerStockRemaining === undefined || prod.offerStockRemaining > 0);
@@ -1360,11 +1240,18 @@ export const SalesView: React.FC<SalesViewProps> = ({
                     return (
                       <div
                         key={`${item.productId || idx}_${item.isOffer ? 'offer' : 'normal'}`}
-                        className={`p-2.5 sm:p-3 rounded-2xl border ${item.isOffer ? 'bg-amber-50/90 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700' : themeClasses.cardSubtle} flex items-center justify-between gap-2 shadow-2xs`}
+                        className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs ${
+                          item.isOffer
+                            ? 'bg-amber-50/90 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700'
+                            : `${themeClasses.cardSubtle} border-slate-200 dark:border-slate-800`
+                        }`}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="font-black text-xs sm:text-sm truncate leading-tight text-slate-900 dark:text-slate-100">
+                            <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              {item.productCode}
+                            </span>
+                            <p className="font-black text-xs sm:text-sm truncate text-slate-900 dark:text-slate-100">
                               {item.productName}
                             </p>
                             {item.isOffer ? (
@@ -1389,22 +1276,22 @@ export const SalesView: React.FC<SalesViewProps> = ({
                               </button>
                             ) : null}
                           </div>
-                          <p className="text-[11px] opacity-75 font-mono font-bold mt-0.5">
+                          <p className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 mt-1">
                             ${item.unitPrice.toLocaleString('es-CL')}/{item.unit || 'UN'}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                        {/* Controles de Cantidad */}
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             type="button"
                             onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
-                            className="p-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 active:scale-95 cursor-pointer font-bold"
-                            title="Restar 1 unidad"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 flex items-center justify-center font-bold active:scale-95 cursor-pointer"
+                            title="Restar 1"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Input directo para anotar el número de unidades exacto que solicita el cliente */}
                           <div className="relative flex items-center">
                             <CartQuantityInput
                               quantity={item.quantity}
@@ -1416,21 +1303,23 @@ export const SalesView: React.FC<SalesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
-                            className="p-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 active:scale-95 cursor-pointer font-bold"
-                            title="Sumar 1 unidad"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 flex items-center justify-center font-bold active:scale-95 cursor-pointer"
+                            title="Sumar 1"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
 
-                          <span className="text-xs sm:text-sm font-black font-mono ml-1 text-emerald-700 dark:text-emerald-400 min-w-[64px] text-right">
-                            ${item.subtotal.toLocaleString('es-CL')}
-                          </span>
+                          <div className="min-w-[70px] sm:min-w-[80px] text-right">
+                            <span className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                              ${item.subtotal.toLocaleString('es-CL')}
+                            </span>
+                          </div>
 
                           <button
                             type="button"
                             onClick={() => handleRemoveFromCart(item.productId!, item.isOffer)}
-                            className="p-1 text-slate-400 hover:text-red-500 ml-0.5 cursor-pointer"
-                            title="Quitar producto"
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
+                            title="Quitar producto de la compra"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1441,33 +1330,26 @@ export const SalesView: React.FC<SalesViewProps> = ({
                 </div>
               )}
 
-              {/* Totales Fijos */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5 text-xs shrink-0">
-                <div className="flex justify-between opacity-75 font-bold">
-                  <span>Neto:</span>
-                  <span className="font-mono text-xs sm:text-sm">${cartNeto.toLocaleString('es-CL')}</span>
-                </div>
-                <div className="flex justify-between opacity-75 font-bold">
-                  <span>19% I.V.A.:</span>
-                  <span className="font-mono text-xs sm:text-sm">${cartIva.toLocaleString('es-CL')}</span>
-                </div>
-                <div className="flex justify-between font-black text-base sm:text-lg pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-950 dark:text-white">
-                  <span>TOTAL:</span>
-                  <span className="font-mono font-black text-blue-600 dark:text-blue-400">${cartSubtotal.toLocaleString('es-CL')}</span>
-                </div>
+              {/* Barra inferior del Listado de Compra */}
+              <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
+                <span className="font-bold text-slate-500 dark:text-slate-400">
+                  {cart.length} productos ({cart.reduce((a, b) => a + b.quantity, 0)} unid.)
+                </span>
+                <span className="font-mono font-black text-sm text-slate-900 dark:text-slate-100">
+                  Subtotal: ${cartSubtotal.toLocaleString('es-CL')}
+                </span>
               </div>
-
-              {/* Botón Cobrar Fijo */}
-              <button
-                type="button"
-                disabled={cart.length === 0 || isReadOnly}
-                onClick={() => setIsCheckoutOpen(true)}
-                className={`w-full mt-3.5 py-3.5 rounded-2xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed text-white ${themeClasses.accentBg} shrink-0 cursor-pointer active:scale-98`}
-              >
-                <DollarSign className="w-4 h-4" />
-                <span>COBRAR / FINALIZAR VENTA</span>
-              </button>
             </div>
+          </div>
+
+          {/* 4. COLUMNA DERECHA: CUADRO DE COBRO DE LA IMAGEN 1 (<WebCheckoutBoard />) */}
+          <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 flex-col h-full min-h-0 overflow-hidden">
+            <WebCheckoutBoard
+              cart={cart}
+              onSaleCompleted={handleSaleCompleted}
+              onClearCart={handleClearCart}
+              isReadOnly={isReadOnly}
+            />
           </div>
 
         </div>
@@ -2141,29 +2023,6 @@ export const SalesView: React.FC<SalesViewProps> = ({
         />
       )}
 
-      {/* Modal de 9 Rápidos (Productos Más Vendidos o Elegidos por el Usuario) */}
-      <QuickProductsPickerModal
-        isOpen={isQuickPickerOpen}
-        onClose={() => setIsQuickPickerOpen(false)}
-        products={quick9Products}
-        onAddToCart={handleAddToCart}
-        onOpenConfig={() => {
-          setIsQuickPickerOpen(false);
-          setIsQuickConfigOpen(true);
-        }}
-      />
-
-      {/* Modal de Configuración de 9 Favoritos */}
-      {isQuickConfigOpen && (
-        <QuickProductsConfigModal
-          isOpen={isQuickConfigOpen}
-          onClose={() => setIsQuickConfigOpen(false)}
-          products={products}
-          selectedIds={customQuickProductIds.length > 0 ? customQuickProductIds : top9SoldProducts.map(p => p.id!).filter(Boolean)}
-          onSave={saveCustomQuickProducts}
-        />
-      )}
-
       {/* Modal de Visualización PDF */}
       {isPdfModalOpen && pdfDoc && (
         <PDFViewerModal
@@ -2179,138 +2038,3 @@ export const SalesView: React.FC<SalesViewProps> = ({
 };
 
 
-interface QuickProductsConfigModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  products: Product[];
-  selectedIds: number[];
-  onSave: (selectedIds: number[]) => void;
-}
-
-const QuickProductsConfigModal: React.FC<QuickProductsConfigModalProps> = ({
-  isOpen,
-  onClose,
-  products,
-  selectedIds,
-  onSave
-}) => {
-  const { themeClasses } = useTheme();
-  const [selected, setSelected] = useState<number[]>(selectedIds);
-  const [filterSearch, setFilterSearch] = useState('');
-
-  if (!isOpen) return null;
-
-  const toggleSelect = (id: number) => {
-    if (selected.includes(id)) {
-      setSelected(selected.filter(i => i !== id));
-    } else {
-      if (selected.length >= 9) {
-        alert('Solo puedes seleccionar un máximo de 9 productos favoritos.');
-        return;
-      }
-      setSelected([...selected, id]);
-    }
-  };
-
-  const filteredProds = products.filter(p =>
-    !filterSearch.trim() ||
-    p.name.toLowerCase().includes(filterSearch.toLowerCase().trim()) ||
-    p.code.toLowerCase().includes(filterSearch.toLowerCase().trim())
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className={`w-full max-w-xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl p-4 sm:p-5 space-y-3 animate-scaleIn`}>
-        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-blue-600" />
-            <div>
-              <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                Personalizar 9 Productos Rápidos
-              </h3>
-              <p className="text-[11px] font-bold text-slate-500">
-                Selecciona hasta 9 productos para acceder a ellos con un solo clic ({selected.length}/9 seleccionados)
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
-          <input
-            type="text"
-            value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
-            placeholder="Buscar productos a incluir en los 9 rápidos..."
-            className={`w-full pl-9 pr-3 py-1.5 text-xs font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg}`}
-          />
-        </div>
-
-        <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
-          {filteredProds.map(p => {
-            const isSelected = selected.includes(p.id!);
-            return (
-              <div
-                key={p.id}
-                onClick={() => toggleSelect(p.id!)}
-                className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                  isSelected
-                    ? 'bg-blue-50/90 border-blue-500 dark:bg-blue-950/60 font-black'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${
-                    isSelected ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-400'
-                  }`}>
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-900 dark:text-slate-100">{p.name}</p>
-                    <p className="text-[10px] font-mono opacity-60">{p.code} • Stock: {p.stock} {p.unit || 'UN'}</p>
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-black text-emerald-600">
-                  ${(p.price || 0).toLocaleString('es-CL')}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
-          <button
-            type="button"
-            onClick={() => setSelected([])}
-            className="text-xs font-bold text-slate-500 hover:text-red-500 cursor-pointer"
-          >
-            Restablecer a Top Automático
-          </button>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => onSave(selected)}
-              className="px-4 py-1.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer"
-            >
-              Guardar 9 Favoritos
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};

@@ -234,14 +234,60 @@ export const SuperAdminMasterPortal: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // Guardar icono de la empresa
+  // Helper para generar imagen PNG en DataURL desde un preset
+  const generatePresetIconDataUrl = (presetId: string, compName: string): string => {
+    try {
+      const preset = ICON_PRESETS.find(p => p.id === presetId);
+      const color = preset?.color || '#2563eb';
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+
+      // Fondo redondeado con el color del rubro
+      ctx.fillStyle = color;
+      const r = 28;
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(128 - r, 0);
+      ctx.quadraticCurveTo(128, 0, 128, r);
+      ctx.lineTo(128, 128 - r);
+      ctx.quadraticCurveTo(128, 128, 128 - r, 128);
+      ctx.lineTo(r, 128);
+      ctx.quadraticCurveTo(0, 128, 0, 128 - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Iniciales de la empresa nítidas y centradas
+      const initials = (compName.trim() || 'MA').split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 52px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initials || 'MA', 64, 66);
+
+      return canvas.toDataURL('image/png');
+    } catch {
+      return '';
+    }
+  };
+
+  // Guardar icono de la empresa y propagarlo a todos los documentos
   const handleSaveCompanyIcon = async () => {
     if (!targetCompanyForIcon) return;
 
     try {
+      let finalLogoUrl = customLogoDataUrl;
+      if (!finalLogoUrl && selectedPresetId) {
+        finalLogoUrl = generatePresetIconDataUrl(selectedPresetId, targetCompanyForIcon.tradeName || targetCompanyForIcon.name);
+      }
+
       const updated: Company = {
         ...targetCompanyForIcon,
-        logoUrl: customLogoDataUrl || undefined,
+        logoUrl: finalLogoUrl || undefined,
         appIconPreset: selectedPresetId || undefined,
         updatedAt: new Date().toISOString()
       };
@@ -251,7 +297,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
       triggerCloudSync();
       syncNow().catch(() => {});
       setIsBrandingModalOpen(false);
-      alert(`¡Ícono actualizado correctamente para ${updated.tradeName || updated.name}!`);
+      alert(`¡Ícono actualizado correctamente para ${updated.tradeName || updated.name}! Se aplicará de inmediato a documentos (guías, facturas y boletas) y a toda la aplicación.`);
     } catch (err: any) {
       alert('Error al guardar ícono: ' + err.message);
     }

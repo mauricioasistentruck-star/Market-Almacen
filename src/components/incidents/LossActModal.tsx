@@ -67,7 +67,7 @@ export const LossActModal: React.FC<LossActModalProps> = ({ isOpen, onClose, inc
             {/* Header Preview */}
             <div className="flex justify-between items-start border-b pb-3">
               <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                <img src={comp?.logoUrl || "/logo.png"} alt="Logo" className="w-12 h-12 object-contain rounded-xl" />
                 <div>
                   <h4 className="font-black text-sm text-orange-600 uppercase">{compName}</h4>
                   <p className="text-[10px] text-slate-600">RUT: {compRut} • Depto. Bodega y Operaciones</p>

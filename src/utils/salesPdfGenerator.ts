@@ -107,22 +107,39 @@ export function generateSaleInvoicePDF(sale: Sale, company?: Company, config?: S
   const emisorComuna = config?.comunaOrigen || 'Santiago';
   const emisorCiudad = config?.ciudadOrigen || 'Santiago';
 
-  // 1. Datos Emisor (Izquierda)
+  // 1. Datos Emisor y Logo Corporativo (Izquierda)
+  let textStartX = 14;
+  if (company?.logoUrl) {
+    try {
+      const logoW = 20;
+      const logoH = 20;
+      doc.addImage(company.logoUrl, 'PNG', 14, 12, logoW, logoH);
+      textStartX = 38;
+    } catch {
+      try {
+        const logoW = 20;
+        const logoH = 20;
+        doc.addImage(company.logoUrl, 'JPEG', 14, 12, logoW, logoH);
+        textStartX = 38;
+      } catch {}
+    }
+  }
+
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(emisorNombre, 14, 18);
+  doc.setFontSize(12);
+  doc.text(emisorNombre, textStartX, 17);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text(`GIRO: ${emisorGiro}`, 14, 23);
-  doc.text(`DIRECCIÓN: ${emisorDir}, ${emisorComuna} - ${emisorCiudad}`, 14, 27.5);
+  doc.text(`GIRO: ${emisorGiro}`, textStartX, 21.5);
+  doc.text(`DIRECCIÓN: ${emisorDir}, ${emisorComuna} - ${emisorCiudad}`, textStartX, 25.5);
   if (config?.telefono || company?.phone) {
-    doc.text(`TELÉFONO: ${config?.telefono || company?.phone}`, 14, 32);
+    doc.text(`TELÉFONO: ${config?.telefono || company?.phone}`, textStartX, 29.5);
   }
   if (config?.email) {
-    doc.text(`EMAIL: ${config.email}`, 14, 36.5);
+    doc.text(`EMAIL: ${config.email}`, textStartX, 33.5);
   }
 
   // 2. Recuadro Tributario Rojo SII (Derecha Superior)
@@ -364,7 +381,22 @@ export function generateSaleThermalTicketPDF(sale: Sale, company?: Company, conf
   const emisorGiro = config?.giro || company?.industry || 'VENTA AL POR MENOR EN ALMACENES Y MINIMARKET';
   const emisorDir = config?.direccionOrigen || company?.address || 'Av. Principal 1234';
 
-  let curY = 8;
+  let curY = 6;
+
+  // Logo de la empresa en ticket térmico (si está configurado)
+  if (company?.logoUrl) {
+    try {
+      const logoSize = 14;
+      doc.addImage(company.logoUrl, 'PNG', (pageWidth - logoSize) / 2, curY, logoSize, logoSize);
+      curY += logoSize + 2.5;
+    } catch {
+      try {
+        const logoSize = 14;
+        doc.addImage(company.logoUrl, 'JPEG', (pageWidth - logoSize) / 2, curY, logoSize, logoSize);
+        curY += logoSize + 2.5;
+      } catch {}
+    }
+  }
 
   // Encabezado
   doc.setFont('helvetica', 'bold');

@@ -3,25 +3,53 @@ import autoTable from 'jspdf-autotable';
 import type { ReceptionGuide, DeliveryGuide, Incident, Company, ProductMovement, ToolLoan, LogbookEntry, PurchaseRequest } from '../types';
 import { MAURICIO_CHAMORRO_SIGNATURE_BASE64 } from './signatureAsset';
 
-// Helper to load logo as base64 string
-async function getLogoBase64(): Promise<string | null> {
+// Helper to load logo as base64 string (supports custom company logoUrl)
+export async function getLogoBase64(company?: Company): Promise<string | null> {
+  if (company?.logoUrl && company.logoUrl.startsWith('data:image/')) {
+    return company.logoUrl;
+  }
+
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
-    img.src = '/logo.png';
+    img.src = company?.logoUrl || '/logo.png';
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width || 200;
-      canvas.height = img.height || 200;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 200;
+        canvas.height = img.naturalHeight || img.height || 200;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(company?.logoUrl || null);
+      }
+    };
+    img.onerror = () => {
+      if (company?.logoUrl && company.logoUrl !== '/logo.png') {
+        const fallback = new Image();
+        fallback.src = '/logo.png';
+        fallback.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = fallback.naturalWidth || 200;
+            canvas.height = fallback.naturalHeight || 200;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(fallback, 0, 0);
+              resolve(canvas.toDataURL('image/png'));
+            } else resolve(null);
+          } catch { resolve(null); }
+        };
+        fallback.onerror = () => resolve(null);
       } else {
         resolve(null);
       }
     };
-    img.onerror = () => resolve(null);
   });
 }
 
@@ -40,12 +68,12 @@ export async function generateReceptionGuidePDF(guide: ReceptionGuide, company?:
   const margin = 14;
   const contentWidth = pageWidth - margin * 2;
 
-  const logoBase64 = await getLogoBase64();
+  const logoBase64 = await getLogoBase64(company);
   if (logoBase64) {
     try {
       doc.addImage(logoBase64, 'PNG', margin, 12, 22, 22);
     } catch {
-      // ignore
+      try { doc.addImage(logoBase64, 'JPEG', margin, 12, 22, 22); } catch {}
     }
   }
 
@@ -277,12 +305,12 @@ export async function generateDeliveryGuidePDF(guide: DeliveryGuide, company?: C
   const margin = 14;
   const contentWidth = pageWidth - margin * 2;
 
-  const logoBase64 = await getLogoBase64();
+  const logoBase64 = await getLogoBase64(company);
   if (logoBase64) {
     try {
       doc.addImage(logoBase64, 'PNG', margin, 12, 22, 22);
     } catch {
-      // ignore
+      try { doc.addImage(logoBase64, 'JPEG', margin, 12, 22, 22); } catch {}
     }
   }
 
@@ -705,10 +733,19 @@ export function generateLossActPDF(incident: any, company?: Company): jsPDF {
   const margin = 14;
   const contentWidth = pageWidth - margin * 2;
 
+  if (company?.logoUrl) {
+    try {
+      doc.addImage(company.logoUrl, 'PNG', margin, 12, 18, 18);
+    } catch {
+      try { doc.addImage(company.logoUrl, 'JPEG', margin, 12, 18, 18); } catch {}
+    }
+  }
+
+  const textX = company?.logoUrl ? margin + 22 : margin;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(220, 38, 38);
-  doc.text((company?.name || 'MARKET ALMACÉN SpA').toUpperCase(), margin, 18);
+  doc.text((company?.name || 'MARKET ALMACÉN SpA').toUpperCase(), textX, 18);
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');

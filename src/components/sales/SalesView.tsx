@@ -847,7 +847,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   };
 
   return (
-    <div className={`h-full flex-1 flex flex-col space-y-1.5 ${activeSubTab === "history" ? "overflow-y-auto pb-28 lg:pb-6" : "overflow-hidden"} animate-fadeIn`}>
+    <div className={`h-full flex-1 flex flex-col space-y-1.5 ${activeSubTab === "history" ? "overflow-y-auto pb-28 lg:pb-6" : "overflow-y-auto lg:overflow-hidden pb-28 lg:pb-0"} animate-fadeIn`}>
       {/* 1. Encabezado de HISTORIAL (Alineado exactamente con la columna del Menú de Ventas) */}
       {activeSubTab === 'history' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">

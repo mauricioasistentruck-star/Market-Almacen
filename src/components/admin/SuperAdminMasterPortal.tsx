@@ -4,6 +4,8 @@ import { useAuth } from '../../utils/authContext';
 import { useCompany } from '../../utils/companyContext';
 import { useTheme } from '../../utils/themeContext';
 import { triggerCloudSync } from '../../utils/cloudSync';
+import { syncNow } from '../../utils/realtimeSync';
+import { ThemeSelectorMenu } from '../common/ThemeSelectorMenu';
 import type { Company, AppUser, Sale, Expense, Product, Worker, UserRole } from '../../types';
 import {
   Shield,
@@ -12,22 +14,16 @@ import {
   DollarSign,
   TrendingDown,
   Package,
-  FileText,
   Plus,
   Trash2,
-  Edit3,
   Image as ImageIcon,
   Upload,
   RefreshCw,
   LogOut,
-  CheckCircle2,
-  AlertTriangle,
   Search,
-  UserCheck,
   UserPlus,
-  Key,
-  Eye,
-  Sliders,
+  Receipt,
+  Download,
   Store,
   Croissant,
   Hammer,
@@ -39,11 +35,7 @@ import {
   Beef,
   Apple,
   Boxes,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  Receipt,
-  Download
+  Palette
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -66,7 +58,7 @@ const ICON_PRESETS = [
 export const SuperAdminMasterPortal: React.FC = () => {
   const { logout } = useAuth();
   const { companies, reloadCompanies } = useCompany();
-  const { themeClasses } = useTheme();
+  const { theme, themeClasses } = useTheme();
 
   // Estados de datos cargados de toda la plataforma
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -77,15 +69,13 @@ export const SuperAdminMasterPortal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Filtros y pestañas
-  const [activeTab, setActiveTab] = useState<'companies' | 'branding' | 'users' | 'requests'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'branding' | 'users'>('companies');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCompId, setSelectedCompId] = useState<string | null>(null);
 
   // Modales
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
   const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   // Estado para modal de cambio de icono
   const [targetCompanyForIcon, setTargetCompanyForIcon] = useState<Company | null>(null);
@@ -259,6 +249,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
       await db.companies.put(updated);
       await loadMasterData();
       triggerCloudSync();
+      syncNow().catch(() => {});
       setIsBrandingModalOpen(false);
       alert(`¡Ícono actualizado correctamente para ${updated.tradeName || updated.name}!`);
     } catch (err: any) {
@@ -295,11 +286,12 @@ export const SuperAdminMasterPortal: React.FC = () => {
     await db.users.add(newUser);
     await loadMasterData();
     triggerCloudSync();
+    syncNow().catch(() => {});
     setIsAddUserModalOpen(false);
     setNewUserName('');
     setNewUserUsername('');
     setNewUserPassword('');
-    alert(`Usuario ${newUser.username} creado con éxito para ${targetCompanyForUser.tradeName || targetCompanyForUser.name}`);
+    alert(`Usuario ${newUser.username} creado con éxito y guardado permanentemente para ${targetCompanyForUser.tradeName || targetCompanyForUser.name}`);
   };
 
   // Eliminar usuario
@@ -316,6 +308,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
       await db.users.delete(user.id);
       await loadMasterData();
       triggerCloudSync();
+      syncNow().catch(() => {});
     }
   };
 
@@ -360,6 +353,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
     await loadMasterData();
     triggerCloudSync();
+    syncNow().catch(() => {});
     setIsNewCompanyModalOpen(false);
     // Limpiar formulario
     setNewCompRut('');
@@ -387,6 +381,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
       await deleteCompanyWithCascade(comp.id);
       await loadMasterData();
       triggerCloudSync();
+      syncNow().catch(() => {});
       alert(`Empresa "${comp.name}" eliminada correctamente.`);
     } catch (err: any) {
       alert('Error al eliminar empresa: ' + err.message);
@@ -439,202 +434,212 @@ export const SuperAdminMasterPortal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
-      {/* Top SuperAdmin Master Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/90 border-b border-slate-800 backdrop-blur-md px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col font-sans transition-colors duration-200 overflow-y-auto pb-28`}>
+      {/* Top SuperAdmin Master Header: Adaptado responsive y temático */}
+      <header className={`sticky top-0 z-50 ${themeClasses.card} border-b ${themeClasses.border} backdrop-blur-md px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-sm`}>
+        <div className="max-w-7xl mx-auto space-y-2.5">
           
-          {/* Logo & SuperAdmin Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>CENTRO DE CONTROL MAESTRO</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                    SuperAdmin
-                  </span>
-                </h1>
+          {/* Fila 1: Logo, Título, Selector de Tema y Salir */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+                <Shield className="w-5 h-5 text-white" />
               </div>
-              <p className="text-[11px] text-slate-400">
-                Bienvenido, <strong className="text-slate-200">Mauricio Chamorro</strong> (@mauricio) — Control Total de la Aplicación
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="text-xs sm:text-sm font-black tracking-tight uppercase text-slate-900 dark:text-slate-100">
+                    CONTROL SUPERADMIN
+                  </h1>
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-black">
+                    Master
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                  Mauricio Chamorro (@mauricio) — Control Total
+                </p>
+              </div>
+            </div>
+
+            {/* Controles de Tema y Logout */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <ThemeSelectorMenu />
+              <button
+                type="button"
+                onClick={logout}
+                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-black flex items-center gap-1 transition cursor-pointer"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Salir</span>
+              </button>
             </div>
           </div>
 
-          {/* Sync status & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-300 font-semibold">Sincronización 3s Activa</span>
+          {/* Fila 2: Barra de acciones rápidas */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsNewCompanyModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-sm flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Nueva Empresa</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={loadMasterData}
+                title="Refrescar datos"
+                className={`p-1.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer`}
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportGlobalReport}
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                title="Descargar Informe Consolidado PDF"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={loadMasterData}
-              title="Refrescar datos"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExportGlobalReport}
-              className="px-3 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Descargar Informe PDF</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsNewCompanyModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-lg shadow-orange-500/20 flex items-center gap-1.5 transition cursor-pointer active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Empresa</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={logout}
-              className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-              title="Cerrar Sesión"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] sm:text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold whitespace-nowrap">Cloud Sync 3s</span>
+            </div>
           </div>
+
         </div>
       </header>
 
       {/* Main Content Dashboard */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 space-y-4 sm:space-y-6">
         
-        {/* KPI Cards Globales */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* KPI Cards Globales: Adaptadas visualmente al Tema */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Empresas</span>
-              <Building2 className="w-4 h-4 text-orange-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Empresas</span>
+              <Building2 className="w-3.5 h-3.5 text-orange-500" />
             </div>
-            <div className="text-2xl font-black text-white">{globalStats.totalCompanies}</div>
-            <p className="text-[10px] text-slate-400 mt-1">Registradas y activas</p>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{globalStats.totalCompanies}</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Activas en sistema</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Usuarios</span>
-              <Users className="w-4 h-4 text-blue-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Usuarios</span>
+              <Users className="w-3.5 h-3.5 text-blue-500" />
             </div>
-            <div className="text-2xl font-black text-white">{globalStats.totalUsers}</div>
-            <p className="text-[10px] text-slate-400 mt-1">{globalStats.adminCount} Admins / {globalStats.ventasCount} Ventas</p>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">{globalStats.totalUsers}</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{globalStats.adminCount} Adm / {globalStats.ventasCount} Ventas</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Ventas Globales</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Ventas Global</span>
+              <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
             </div>
-            <div className="text-xl font-black text-emerald-400">
+            <div className="text-base sm:text-xl font-black text-emerald-600 dark:text-emerald-400 truncate">
               ${globalStats.totalSalesAmount.toLocaleString('es-CL')}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Todas las empresas</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Todas las empresas</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Gastos Totales</span>
-              <TrendingDown className="w-4 h-4 text-rose-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Gastos Totales</span>
+              <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
             </div>
-            <div className="text-xl font-black text-rose-400">
+            <div className="text-base sm:text-xl font-black text-rose-600 dark:text-rose-400 truncate">
               ${globalStats.totalExpensesAmount.toLocaleString('es-CL')}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Egresos registrados</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Egresos registrados</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Boletas / DTEs</span>
-              <Receipt className="w-4 h-4 text-purple-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Boletas / DTE</span>
+              <Receipt className="w-3.5 h-3.5 text-purple-500" />
             </div>
-            <div className="text-2xl font-black text-purple-400">{globalStats.totalDtes}</div>
-            <p className="text-[10px] text-slate-400 mt-1">Documentos tributarios</p>
+            <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">{globalStats.totalDtes}</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Emitidos</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800/80 relative overflow-hidden group">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Catálogo Total</span>
-              <Package className="w-4 h-4 text-cyan-400" />
+          <div className={`p-3 sm:p-4 rounded-2xl border ${themeClasses.border} ${themeClasses.card} relative overflow-hidden shadow-xs`}>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Catálogo Total</span>
+              <Package className="w-3.5 h-3.5 text-cyan-500" />
             </div>
-            <div className="text-2xl font-black text-cyan-400">{globalStats.totalProductsCount}</div>
-            <p className="text-[10px] text-slate-400 mt-1">Productos creados</p>
+            <div className="text-xl sm:text-2xl font-black text-cyan-600 dark:text-cyan-400">{globalStats.totalProductsCount}</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Productos creados</p>
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
           </div>
 
         </div>
 
         {/* Barra de navegación de pestañas del portal */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2 overflow-x-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             <button
               type="button"
               onClick={() => setActiveTab('companies')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'companies'
                   ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  : `${themeClasses.cardSubtle} border ${themeClasses.border} text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white`
               }`}
             >
-              <Building2 className="w-4 h-4" />
-              <span>Informes y Auditoría de Empresas ({companies.length})</span>
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Informes ({companies.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('branding')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'branding'
                   ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  : `${themeClasses.cardSubtle} border ${themeClasses.border} text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white`
               }`}
             >
-              <ImageIcon className="w-4 h-4" />
-              <span>Personalizar Ícono de la App por Empresa</span>
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Ícono de la App</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'users'
                   ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  : `${themeClasses.cardSubtle} border ${themeClasses.border} text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white`
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>Personas y Roles ({users.filter(u => u.username?.toLowerCase() !== 'mauricio').length})</span>
+              <Users className="w-3.5 h-3.5" />
+              <span>Personas ({users.filter(u => u.username?.toLowerCase() !== 'mauricio').length})</span>
             </button>
           </div>
 
           {/* Buscador de empresas */}
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Buscar por RUT o nombre..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
+              className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-orange-500`}
             />
           </div>
         </div>
@@ -643,9 +648,9 @@ export const SuperAdminMasterPortal: React.FC = () => {
         {activeTab === 'companies' && (
           <div className="space-y-4">
             {filteredAudits.length === 0 ? (
-              <div className="p-12 text-center rounded-2xl bg-slate-900/50 border border-slate-800">
-                <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-sm font-bold text-slate-400">No se encontraron empresas con ese criterio.</p>
+              <div className={`p-8 text-center rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle}`}>
+                <Building2 className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No se encontraron empresas con ese criterio.</p>
               </div>
             ) : (
               filteredAudits.map(item => {
@@ -655,23 +660,23 @@ export const SuperAdminMasterPortal: React.FC = () => {
                 return (
                   <div
                     key={item.company.id}
-                    className="p-5 rounded-2xl bg-slate-900 border border-slate-800/90 shadow-lg hover:border-slate-700 transition space-y-4"
+                    className={`p-4 sm:p-5 rounded-2xl border ${themeClasses.border} ${themeClasses.card} shadow-sm space-y-3.5`}
                   >
                     {/* Header de la Empresa */}
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex items-center gap-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
                         
                         {/* Ícono de la Aplicación de esta Empresa */}
-                        <div className="relative group">
+                        <div className="relative group shrink-0">
                           {item.company.logoUrl ? (
                             <img
                               src={item.company.logoUrl}
                               alt={item.company.name}
-                              className="w-14 h-14 rounded-2xl object-cover border-2 border-orange-500/50 shadow-md bg-white p-0.5"
+                              className="w-12 h-12 rounded-2xl object-cover border-2 border-orange-500/50 shadow-md bg-white p-0.5"
                             />
                           ) : (
-                            <div className={`w-14 h-14 rounded-2xl ${presetObj?.bg || 'bg-slate-800'} border-2 border-slate-700 flex items-center justify-center shadow-md`}>
-                              <PresetIcon className="w-7 h-7 text-white" />
+                            <div className={`w-12 h-12 rounded-2xl ${presetObj?.bg || 'bg-blue-600'} flex items-center justify-center shadow-md text-white`}>
+                              <PresetIcon className="w-6 h-6 text-white" />
                             </div>
                           )}
 
@@ -685,22 +690,22 @@ export const SuperAdminMasterPortal: React.FC = () => {
                           </button>
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-base font-black text-white">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
                               {item.company.tradeName || item.company.name}
                             </h2>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 font-bold">
+                            <span className="text-[10px] font-mono px-2 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold">
                               {item.company.rut}
                             </span>
                             {item.company.id === 'market-almacen' && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-bold">
+                              <span className="text-[10px] px-2 py-0.2 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 font-bold">
                                 Empresa Base
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            Razón Social: <strong className="text-slate-300">{item.company.name}</strong> • Giro: {item.company.industry || 'Comercio General'}
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                            Razón Social: <strong className="text-slate-800 dark:text-slate-200">{item.company.name}</strong> • Giro: {item.company.industry || 'Comercio General'}
                           </p>
                           <p className="text-[11px] text-slate-500">
                             {item.company.address ? `📍 ${item.company.address}` : 'Sin dirección'} {item.company.phone ? ` • 📞 ${item.company.phone}` : ''}
@@ -709,13 +714,13 @@ export const SuperAdminMasterPortal: React.FC = () => {
                       </div>
 
                       {/* Acciones para la Empresa */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 self-start sm:self-auto">
                         <button
                           type="button"
                           onClick={() => handleOpenIconModal(item.company)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition cursor-pointer"
+                          className={`px-2.5 py-1.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 transition cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
                         >
-                          <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
+                          <ImageIcon className="w-3.5 h-3.5 text-orange-500" />
                           <span>Ícono App</span>
                         </button>
 
@@ -725,7 +730,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                             setTargetCompanyForUser(item.company);
                             setIsAddUserModalOpen(true);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-xs font-bold text-blue-400 flex items-center gap-1.5 transition cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 transition cursor-pointer"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
                           <span>+ Usuario</span>
@@ -734,7 +739,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleDeleteCompany(item.company)}
-                          className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition cursor-pointer"
+                          className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 transition cursor-pointer"
                           title="Eliminar Empresa"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -743,22 +748,23 @@ export const SuperAdminMasterPortal: React.FC = () => {
                     </div>
 
                     {/* Resumen de Personas y Roles en esta Empresa */}
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-blue-400" />
-                          <h3 className="text-xs font-bold text-slate-200">
-                            Personal y Usuarios de la Empresa ({item.users.length} con acceso / {item.workers.length} trabajadores)
+                    <div className={`p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} space-y-2`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-blue-500" />
+                          <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                            Personal y Usuarios ({item.users.length} con acceso / {item.workers.length} trabajadores)
                           </h3>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px]">
-                          <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">
+                        {/* Badges de Roles con wrap garantizado para que nunca se desborden */}
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                          <span className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/20">
                             {item.adminsCount} Admin(s)
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
                             {item.ventasCount} Ventas/Caja
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                          <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/20">
                             {item.bodegaCount} Bodega
                           </span>
                         </div>
@@ -766,24 +772,24 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
                       {/* Lista de usuarios con botones de acción */}
                       {item.users.length === 0 ? (
-                        <p className="text-xs text-slate-500 italic">
-                          No hay usuarios registrados directamente en esta empresa. Puedes agregar un Administrador o Cajero con el botón "+ Usuario".
+                        <p className="text-[11px] text-slate-500 italic pt-1">
+                          No hay usuarios registrados en esta empresa. Puedes agregar un Administrador o Cajero con el botón "+ Usuario".
                         </p>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 pt-1">
                           {item.users.map(u => (
                             <div
                               key={u.id || u.username}
-                              className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-2"
+                              className={`p-2 rounded-xl border ${themeClasses.border} ${themeClasses.card} flex items-center justify-between gap-2 shadow-xs`}
                             >
                               <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-200 truncate">{u.name}</p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{u.name}</p>
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500">
                                   <span className="font-mono">@{u.username}</span>
                                   <span>•</span>
                                   <span className={`font-bold ${
-                                    u.role === 'ADMIN' ? 'text-blue-400' :
-                                    u.role === 'VENTAS' ? 'text-emerald-400' : 'text-amber-400'
+                                    u.role === 'ADMIN' ? 'text-blue-600 dark:text-blue-400' :
+                                    u.role === 'VENTAS' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                                   }`}>
                                     {u.role}
                                   </span>
@@ -792,7 +798,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteUser(u)}
-                                className="p-1 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-red-500 transition cursor-pointer"
                                 title="Eliminar usuario"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -804,32 +810,32 @@ export const SuperAdminMasterPortal: React.FC = () => {
                     </div>
 
                     {/* Métricas Financieras y Operativas de la Empresa */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                      <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Ventas Acumuladas</span>
-                        <span className="text-sm font-black text-emerald-400">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      <div className={`p-2.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle}`}>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Ventas Acumuladas</span>
+                        <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400">
                           ${item.salesTotal.toLocaleString('es-CL')}
                         </span>
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{item.salesCount} ventas</span>
+                        <span className="text-[10px] text-slate-500 block">{item.salesCount} ventas</span>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Gastos Registrados</span>
-                        <span className="text-sm font-black text-rose-400">
+                      <div className={`p-2.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle}`}>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Gastos Registrados</span>
+                        <span className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400">
                           ${item.expensesTotal.toLocaleString('es-CL')}
                         </span>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Margen Neto Operativo</span>
-                        <span className={`text-sm font-black ${item.netMargin >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                      <div className={`p-2.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle}`}>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Margen Neto</span>
+                        <span className={`text-xs sm:text-sm font-black ${item.netMargin >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                           ${item.netMargin.toLocaleString('es-CL')}
                         </span>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Catálogo y Boletas</span>
-                        <span className="text-sm font-black text-purple-400">
+                      <div className={`p-2.5 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle}`}>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Catálogo y Boletas</span>
+                        <span className="text-xs sm:text-sm font-black text-purple-600 dark:text-purple-400">
                           {item.productsCount} prod. / {item.dteCount} DTE
                         </span>
                       </div>
@@ -844,19 +850,19 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
         {/* PESTAÑA 2: PERSONALIZACIÓN DE ÍCONO Y MARCA */}
         {activeTab === 'branding' && (
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
+          <div className={`p-4 sm:p-6 rounded-2xl border ${themeClasses.border} ${themeClasses.card} space-y-5`}>
             <div>
-              <h2 className="text-base font-black text-white flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-orange-400" />
+              <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-orange-500" />
                 <span>Personalizar Ícono de la Aplicación por Empresa</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 Aplica a cada empresa el ícono y logo deseado para otorgarle total identidad y pertenencia corporativa.
                 Cuando los trabajadores de la empresa usen la app, verán su propio ícono en la barra superior y documentos.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {companies.map(comp => {
                 const presetObj = ICON_PRESETS.find(p => p.id === comp.appIconPreset);
                 const PresetIcon = presetObj?.icon || Building2;
@@ -864,41 +870,41 @@ export const SuperAdminMasterPortal: React.FC = () => {
                 return (
                   <div
                     key={comp.id}
-                    className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4"
+                    className={`p-3.5 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} flex flex-col justify-between space-y-3.5`}
                   >
                     <div className="flex items-center gap-3">
                       {comp.logoUrl ? (
                         <img
                           src={comp.logoUrl}
                           alt={comp.name}
-                          className="w-12 h-12 rounded-xl object-contain bg-white p-0.5 border border-slate-700 shadow"
+                          className="w-12 h-12 rounded-xl object-contain bg-white p-0.5 border border-slate-300 dark:border-slate-700 shadow"
                         />
                       ) : (
-                        <div className={`w-12 h-12 rounded-xl ${presetObj?.bg || 'bg-slate-800'} flex items-center justify-center shadow`}>
+                        <div className={`w-12 h-12 rounded-xl ${presetObj?.bg || 'bg-blue-600'} flex items-center justify-center shadow text-white`}>
                           <PresetIcon className="w-6 h-6 text-white" />
                         </div>
                       )}
                       <div>
-                        <h3 className="text-xs font-black text-slate-200">{comp.tradeName || comp.name}</h3>
-                        <p className="text-[11px] font-mono text-slate-400">{comp.rut}</p>
-                        <span className="text-[10px] text-orange-400 font-semibold">
-                          {comp.logoUrl ? 'Logo personalizado cargado' : `Ícono preset: ${presetObj?.label || 'Genérico'}`}
+                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100">{comp.tradeName || comp.name}</h3>
+                        <p className="text-[11px] font-mono text-slate-500">{comp.rut}</p>
+                        <span className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold">
+                          {comp.logoUrl ? 'Logo personalizado cargado' : `Ícono: ${presetObj?.label || 'Genérico'}`}
                         </span>
                       </div>
                     </div>
 
                     {/* Previsualización Navbar simulada */}
-                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px]">
+                    <div className={`p-2.5 rounded-xl border ${themeClasses.border} ${themeClasses.card} text-[11px]`}>
                       <span className="text-[9px] uppercase font-bold text-slate-500 block mb-1">Vista en Barra Superior (Navbar):</span>
-                      <div className="flex items-center gap-2 py-1 px-2 rounded-lg bg-slate-950 border border-slate-800">
+                      <div className="flex items-center gap-2 py-1 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                         {comp.logoUrl ? (
                           <img src={comp.logoUrl} className="w-6 h-6 rounded-md object-contain bg-white p-0.5" />
                         ) : (
-                          <div className={`w-6 h-6 rounded-md ${presetObj?.bg || 'bg-orange-500'} flex items-center justify-center`}>
+                          <div className={`w-6 h-6 rounded-md ${presetObj?.bg || 'bg-blue-600'} flex items-center justify-center text-white`}>
                             <PresetIcon className="w-3.5 h-3.5 text-white" />
                           </div>
                         )}
-                        <span className="font-black text-xs text-white uppercase truncate">
+                        <span className="font-black text-xs text-slate-900 dark:text-slate-100 uppercase truncate">
                           {comp.tradeName || comp.name}
                         </span>
                       </div>
@@ -907,7 +913,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenIconModal(comp)}
-                      className="w-full py-2 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow transition flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-2 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
                       <span>Cambiar Ícono / Logo</span>
@@ -921,23 +927,21 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
         {/* PESTAÑA 3: GESTIÓN GLOBAL DE PERSONAS Y ROLES */}
         {activeTab === 'users' && (
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-black text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-400" />
-                  <span>Control Global de Personas y Roles</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Auditoría completa de todas las personas registradas en las empresas de la aplicación.
-                </p>
-              </div>
+          <div className={`p-4 sm:p-6 rounded-2xl border ${themeClasses.border} ${themeClasses.card} space-y-4`}>
+            <div>
+              <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <span>Control Global de Personas y Roles</span>
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Auditoría completa de todas las personas registradas en las empresas de la aplicación.
+              </p>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] font-black">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase text-[10px] font-black">
                     <th className="py-2.5 px-3">Persona / Nombre</th>
                     <th className="py-2.5 px-3">Usuario</th>
                     <th className="py-2.5 px-3">Empresa Asignada</th>
@@ -946,21 +950,21 @@ export const SuperAdminMasterPortal: React.FC = () => {
                     <th className="py-2.5 px-3 text-right">Acción</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {users.filter(u => u.username?.toLowerCase() !== 'mauricio').map(u => {
                     const comp = companies.find(c => c.id === u.companyId);
                     return (
-                      <tr key={u.id || u.username} className="hover:bg-slate-800/40 transition">
-                        <td className="py-2.5 px-3 font-bold text-slate-200">{u.name}</td>
-                        <td className="py-2.5 px-3 font-mono text-slate-400">@{u.username}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-300">
+                      <tr key={u.id || u.username} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100">{u.name}</td>
+                        <td className="py-2.5 px-3 font-mono text-slate-500">@{u.username}</td>
+                        <td className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-300">
                           {comp ? (comp.tradeName || comp.name) : 'Sin empresa / Global'}
                         </td>
                         <td className="py-2.5 px-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            u.role === 'ADMIN' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                            u.role === 'VENTAS' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                            'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            u.role === 'ADMIN' ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30' :
+                            u.role === 'VENTAS' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' :
+                            'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
                           }`}>
                             {u.role}
                           </span>
@@ -970,7 +974,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(u)}
-                            className="p-1 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-red-500 transition cursor-pointer"
                             title="Eliminar usuario"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -990,38 +994,38 @@ export const SuperAdminMasterPortal: React.FC = () => {
       {/* MODAL: CAMBIAR ÍCONO DE LA EMPRESA / APP */}
       {isBrandingModalOpen && targetCompanyForIcon && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-5 shadow-2xl">
+          <div className={`max-w-lg w-full rounded-3xl border ${themeClasses.border} ${themeClasses.card} p-5 sm:p-6 space-y-4 shadow-2xl`}>
             
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <ImageIcon className="w-5 h-5 text-orange-400" />
-                <h3 className="text-sm font-black text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-orange-500" />
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
                   Personalizar Ícono: {targetCompanyForIcon.tradeName || targetCompanyForIcon.name}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsBrandingModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             {/* Previsualización en vivo */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-4">
+            <div className={`p-3 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} flex items-center gap-3.5`}>
               <div className="shrink-0">
                 {customLogoDataUrl ? (
                   <img
                     src={customLogoDataUrl}
                     alt="Preview"
-                    className="w-14 h-14 rounded-xl object-contain bg-white p-1 border border-slate-700 shadow"
+                    className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-slate-300 dark:border-slate-700 shadow"
                   />
                 ) : (
-                  <div className={`w-14 h-14 rounded-xl ${ICON_PRESETS.find(p => p.id === selectedPresetId)?.bg || 'bg-slate-800'} flex items-center justify-center shadow`}>
+                  <div className={`w-12 h-12 rounded-xl ${ICON_PRESETS.find(p => p.id === selectedPresetId)?.bg || 'bg-blue-600'} flex items-center justify-center shadow text-white`}>
                     {(() => {
                       const P = ICON_PRESETS.find(p => p.id === selectedPresetId)?.icon || Building2;
-                      return <P className="w-7 h-7 text-white" />;
+                      return <P className="w-6 h-6 text-white" />;
                     })()}
                   </div>
                 )}
@@ -1029,15 +1033,15 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
               <div>
                 <span className="text-[10px] text-slate-500 font-bold uppercase block">Previsualización de la Marca</span>
-                <p className="text-xs font-black text-white">{targetCompanyForIcon.tradeName || targetCompanyForIcon.name}</p>
-                <p className="text-[11px] text-slate-400">Este ícono se verá en la app móvil y en la web.</p>
+                <p className="text-xs font-black text-slate-900 dark:text-slate-100">{targetCompanyForIcon.tradeName || targetCompanyForIcon.name}</p>
+                <p className="text-[11px] text-slate-500">Este ícono se verá en la app móvil y en la web.</p>
               </div>
             </div>
 
             {/* Opción 1: Subir imagen */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-300">
-                Opción A: Subir imagen o logo personalizado (PNG, JPG, SVG)
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                Opción A: Subir imagen o logo (PNG, JPG, SVG)
               </label>
               <input
                 type="file"
@@ -1050,16 +1054,16 @@ export const SuperAdminMasterPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className={`flex-1 py-2 px-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
                 >
-                  <Upload className="w-4 h-4 text-orange-400" />
+                  <Upload className="w-4 h-4 text-orange-500" />
                   <span>Subir Archivo de Imagen</span>
                 </button>
                 {customLogoDataUrl && (
                   <button
                     type="button"
                     onClick={() => setCustomLogoDataUrl('')}
-                    className="py-2 px-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold transition cursor-pointer"
+                    className="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-600 dark:text-red-400 text-xs font-bold transition cursor-pointer"
                   >
                     Quitar
                   </button>
@@ -1068,11 +1072,11 @@ export const SuperAdminMasterPortal: React.FC = () => {
             </div>
 
             {/* Opción 2: Galería de presets temáticos */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-300">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
                 Opción B: O seleccionar un ícono temático según el rubro
               </label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-44 overflow-y-auto pr-1">
                 {ICON_PRESETS.map(preset => {
                   const Icon = preset.icon;
                   const isSelected = selectedPresetId === preset.id && !customLogoDataUrl;
@@ -1084,14 +1088,14 @@ export const SuperAdminMasterPortal: React.FC = () => {
                         setSelectedPresetId(preset.id);
                         setCustomLogoDataUrl('');
                       }}
-                      className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 transition cursor-pointer text-center ${
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition cursor-pointer text-center ${
                         isSelected
-                          ? 'border-orange-500 bg-orange-500/20 text-orange-300 scale-95'
-                          : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-white hover:border-slate-700'
+                          ? 'border-orange-500 bg-orange-500/20 text-orange-600 dark:text-orange-300 scale-95'
+                          : `border-slate-200 dark:border-slate-800 ${themeClasses.cardSubtle} text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white`
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg ${preset.bg} flex items-center justify-center`}>
-                        <Icon className="w-4 h-4 text-white" />
+                      <div className={`w-7 h-7 rounded-lg ${preset.bg} flex items-center justify-center text-white`}>
+                        <Icon className="w-3.5 h-3.5 text-white" />
                       </div>
                       <span className="text-[10px] font-bold leading-tight line-clamp-1">{preset.label.split('/')[0]}</span>
                     </button>
@@ -1101,11 +1105,11 @@ export const SuperAdminMasterPortal: React.FC = () => {
             </div>
 
             {/* Botones de acción modal */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsBrandingModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
+                className={`px-3.5 py-2 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer`}
               >
                 Cancelar
               </button>
@@ -1114,7 +1118,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                 onClick={handleSaveCompanyIcon}
                 className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow transition cursor-pointer"
               >
-                Guardar Ícono en la Empresa
+                Guardar Ícono
               </button>
             </div>
 
@@ -1125,95 +1129,95 @@ export const SuperAdminMasterPortal: React.FC = () => {
       {/* MODAL: CREAR NUEVA EMPRESA */}
       {isNewCompanyModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className={`max-w-lg w-full rounded-3xl border ${themeClasses.border} ${themeClasses.card} p-5 sm:p-6 space-y-4 shadow-2xl`}>
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-orange-400" />
-                <h3 className="text-sm font-black text-white">Crear Nueva Empresa en la Plataforma</h3>
+                <Building2 className="w-5 h-5 text-orange-500" />
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Crear Nueva Empresa en la Plataforma</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsNewCompanyModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateCompany} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateCompany} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">RUT Empresa *</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">RUT Empresa *</label>
                   <input
                     type="text"
                     required
                     placeholder="76.123.456-7"
                     value={newCompRut}
                     onChange={e => setNewCompRut(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Nombre Fantasía</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Fantasía</label>
                   <input
                     type="text"
                     placeholder="Mi Tienda"
                     value={newCompTradeName}
                     onChange={e => setNewCompTradeName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Razón Social *</label>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Razón Social *</label>
                 <input
                   type="text"
                   required
                   placeholder="Comercial y Distribuidora Ejemplo SpA"
                   value={newCompName}
                   onChange={e => setNewCompName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Giro Comercial</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Giro Comercial</label>
                   <input
                     type="text"
                     placeholder="Almacén, Panadería..."
                     value={newCompIndustry}
                     onChange={e => setNewCompIndustry(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Teléfono</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
                   <input
                     type="text"
                     placeholder="+56 9 1234 5678"
                     value={newCompPhone}
                     onChange={e => setNewCompPhone(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Dirección Casa Matriz</label>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Dirección Casa Matriz</label>
                 <input
                   type="text"
                   placeholder="Av. Providencia 1234, Santiago"
                   value={newCompAddress}
                   onChange={e => setNewCompAddress(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                 />
               </div>
 
               {/* Crear Administrador inicial para la nueva empresa */}
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <span className="text-[11px] font-bold text-orange-400 block">
+              <div className={`p-3 rounded-2xl border ${themeClasses.border} ${themeClasses.cardSubtle} space-y-2`}>
+                <span className="text-[11px] font-bold text-orange-600 dark:text-orange-400 block">
                   👤 Asignar Administrador Inicial para esta Empresa
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -1222,23 +1226,23 @@ export const SuperAdminMasterPortal: React.FC = () => {
                     placeholder="Usuario Admin (ej: admin_tienda)"
                     value={newCompAdminUser}
                     onChange={e => setNewCompAdminUser(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-800 text-white"
+                    className={`px-2.5 py-1.5 text-xs rounded-lg border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
                   />
                   <input
                     type="text"
                     placeholder="Contraseña (ej: 123)"
                     value={newCompAdminPass}
                     onChange={e => setNewCompAdminPass(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-800 text-white"
+                    className={`px-2.5 py-1.5 text-xs rounded-lg border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100`}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsNewCompanyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
+                  className={`px-3.5 py-2 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer`}
                 >
                   Cancelar
                 </button>
@@ -1257,18 +1261,18 @@ export const SuperAdminMasterPortal: React.FC = () => {
       {/* MODAL: AGREGAR USUARIO A UNA EMPRESA ESPECÍFICA */}
       {isAddUserModalOpen && targetCompanyForUser && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className={`max-w-md w-full rounded-3xl border ${themeClasses.border} ${themeClasses.card} p-5 sm:p-6 space-y-3.5 shadow-2xl`}>
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-blue-400" />
-                <h3 className="text-sm font-black text-white">
+                <UserPlus className="w-5 h-5 text-blue-500" />
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
                   Agregar Persona a {targetCompanyForUser.tradeName || targetCompanyForUser.name}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddUserModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 ✕
               </button>
@@ -1276,47 +1280,47 @@ export const SuperAdminMasterPortal: React.FC = () => {
 
             <form onSubmit={handleCreateUserForCompany} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Nombre Completo *</label>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Juan Pérez"
                   value={newUserName}
                   onChange={e => setNewUserName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Nombre de Usuario *</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre de Usuario *</label>
                   <input
                     type="text"
                     required
                     placeholder="juanp"
                     value={newUserUsername}
                     onChange={e => setNewUserUsername(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Contraseña</label>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Contraseña</label>
                   <input
                     type="text"
                     placeholder="123"
                     value={newUserPassword}
                     onChange={e => setNewUserPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                    className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">Rol en la Empresa *</label>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Rol en la Empresa *</label>
                 <select
                   value={newUserRole}
                   onChange={e => setNewUserRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-orange-500"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:border-orange-500`}
                 >
                   <option value="ADMIN">ADMIN — Administrador de la Empresa</option>
                   <option value="VENTAS">VENTAS — Cajero y Punto de Venta</option>
@@ -1325,11 +1329,11 @@ export const SuperAdminMasterPortal: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsAddUserModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
+                  className={`px-3.5 py-2 rounded-xl border ${themeClasses.border} ${themeClasses.cardSubtle} text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer`}
                 >
                   Cancelar
                 </button>
@@ -1337,7 +1341,7 @@ export const SuperAdminMasterPortal: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow transition cursor-pointer"
                 >
-                  Crear Usuario
+                  Crear y Guardar Usuario
                 </button>
               </div>
             </form>

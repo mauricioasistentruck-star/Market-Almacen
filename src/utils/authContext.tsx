@@ -3,6 +3,7 @@ import type { AppUser, UserRole, UserPermissions } from '../types';
 import { getUserPermissions, DEFAULT_PERMISSIONS_BY_ROLE } from '../types';
 import { db } from '../db/database';
 import { triggerCloudSync } from './cloudSync';
+import { syncNow } from './realtimeSync';
 
 interface AuthContextType {
   currentUser: AppUser | null;
@@ -174,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await loadUsers();
       triggerCloudSync();
+      syncNow().catch(() => {});
       return true;
     } catch (e: any) {
       alert('Error al crear usuario: ' + e.message);

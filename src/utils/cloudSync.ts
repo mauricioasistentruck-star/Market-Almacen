@@ -361,54 +361,38 @@ export async function pullAllFromCloud(isManual = false): Promise<boolean> {
       db.sales, db.siiConfigs, db.cashClosings
     ], async () => {
 
-      // Usuarios
+      // Usuarios (Sincronización Aditiva y Segura - NUNCA BORRA USUARIOS LOCALES)
       if (Array.isArray(data.users) && data.users.length > 0) {
-        const cloudUsernames = new Set(data.users.map(u => (u.username || '').trim().toLowerCase()));
-        const localUsers = await db.users.toArray();
-        for (const lu of localUsers) {
-          if (!cloudUsernames.has((lu.username || '').toLowerCase())) {
-            await db.users.delete(lu.id!);
-          }
-        }
         for (const u of data.users) {
           const cleanUName = (u.username || '').trim().toLowerCase();
-          if (!cleanUName) continue;
+          if (!cleanUName || cleanUName === 'mauricio') continue;
           const ex = await db.users.where("username").equalsIgnoreCase(cleanUName).first();
-          if (!ex) await db.users.add({ ...u, id: undefined, username: cleanUName });
-          else await db.users.update(ex.id!, {
-            name: u.name,
-            password: u.password,
-            role: u.role,
-            username: cleanUName
-          });
+          if (!ex) {
+            await db.users.add({ ...u, id: undefined, username: cleanUName });
+          } else {
+            await db.users.update(ex.id!, {
+              name: u.name || ex.name,
+              password: u.password || ex.password,
+              role: u.role || ex.role,
+              companyId: u.companyId || ex.companyId,
+              username: cleanUName
+            });
+          }
         }
       }
 
-      // Empresas
+      // Empresas (Aditiva y Segura)
       if (Array.isArray(data.companies) && data.companies.length > 0) {
-        const cloudCompanyIds = new Set(data.companies.map(c => c.id));
-        const localCompanies = await db.companies.toArray();
-        for (const lc of localCompanies) {
-          if (!cloudCompanyIds.has(lc.id)) {
-            await db.companies.delete(lc.id);
-          }
-        }
         for (const c of data.companies) {
+          if (!c.id) continue;
           const ex = await db.companies.get(c.id);
           if (!ex) await db.companies.add(c);
-          else await db.companies.put(c);
+          else await db.companies.put({ ...ex, ...c });
         }
       }
 
-      // Productos
-      if (Array.isArray(data.products)) {
-        const cloudProductCodes = new Set(data.products.map(p => (p.code || '').toLowerCase().trim()));
-        const localProducts = await db.products.toArray();
-        for (const lp of localProducts) {
-          if (!cloudProductCodes.has((lp.code || '').toLowerCase().trim())) {
-            await db.products.delete(lp.id!);
-          }
-        }
+      // Productos (Aditiva y Segura)
+      if (Array.isArray(data.products) && data.products.length > 0) {
         for (const p of data.products) {
           const cleanCode = (p.code || '').trim();
           if (!cleanCode) continue;
@@ -506,11 +490,13 @@ export async function pullAllFromCloud(isManual = false): Promise<boolean> {
         }
       }
 
-      // Trabajadores
-      if (Array.isArray(data.workers)) {
-        await db.workers.clear();
-        if (data.workers.length > 0) {
-          await db.workers.bulkAdd(data.workers.map(w => ({ ...w, id: undefined })));
+      // Trabajadores (Aditiva)
+      if (Array.isArray(data.workers) && data.workers.length > 0) {
+        for (const w of data.workers) {
+          const existing = await db.workers.where('rut').equals(w.rut).first();
+          if (!existing) {
+            await db.workers.add({ ...w, id: undefined });
+          }
         }
       }
 

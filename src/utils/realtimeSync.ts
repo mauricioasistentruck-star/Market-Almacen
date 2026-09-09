@@ -138,6 +138,41 @@ async function mergeServerTables(serverTables: { [table: string]: any[] }) {
           const existing = await db.companies.get(comp.id);
           if (!existing) {
             await db.companies.add(comp);
+          } else if (comp.logoUrl && comp.logoUrl !== existing.logoUrl) {
+            await db.companies.update(comp.id, { logoUrl: comp.logoUrl, appIconPreset: comp.appIconPreset });
+          }
+        }
+      }
+    }
+
+    // 5. Usuarios (Sincronización Aditiva y Segura - NUNCA BORRA)
+    if (Array.isArray(serverTables.users) && serverTables.users.length > 0) {
+      for (const u of serverTables.users) {
+        const uClean = (u.username || '').trim().toLowerCase();
+        if (!uClean || uClean === 'mauricio') continue;
+        const existing = await db.users.where('username').equalsIgnoreCase(uClean).first();
+        if (!existing) {
+          const { id, ...userWithoutId } = u;
+          await db.users.add(userWithoutId);
+        } else if (u.password && u.password !== existing.password) {
+          await db.users.update(existing.id!, {
+            password: u.password,
+            role: u.role,
+            name: u.name,
+            companyId: u.companyId
+          });
+        }
+      }
+    }
+
+    // 6. Trabajadores
+    if (Array.isArray(serverTables.workers) && serverTables.workers.length > 0) {
+      for (const w of serverTables.workers) {
+        if (w.rut) {
+          const existing = await db.workers.where('rut').equals(w.rut).first();
+          if (!existing) {
+            const { id, ...workerWithoutId } = w;
+            await db.workers.add(workerWithoutId);
           }
         }
       }

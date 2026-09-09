@@ -94,32 +94,31 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
           
-          {/* Logo & App Title: Dinámico por Empresa para Pertenencia Corporativa */}
+          {/* Logo & App Title: Idéntico a Imagen 1 */}
           <div className="flex items-center gap-2 shrink-0 select-none">
             {selectedCompany?.logoUrl ? (
               <img
                 src={selectedCompany.logoUrl}
                 alt={selectedCompany.tradeName || selectedCompany.name}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-contain bg-white shadow-md border border-slate-200 dark:border-slate-700 p-0.5 shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain bg-white shadow-md border border-slate-200 dark:border-slate-700 p-0.5 shrink-0"
               />
             ) : (
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-md ${themeClasses.accentBg} shrink-0`}>
-                <span className="font-black text-sm sm:text-base tracking-tighter leading-none">
-                  <span className="text-white">
-                    {(selectedCompany?.tradeName || selectedCompany?.name || 'M')[0]?.toUpperCase()}
-                  </span>
-                  <span className="text-cyan-300 font-extrabold">
-                    {(selectedCompany?.tradeName || selectedCompany?.name || 'A')[1]?.toUpperCase() || 'A'}
-                  </span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center shadow-md shrink-0">
+                <span className="font-black text-sm sm:text-base tracking-tight leading-none text-white">
+                  MA
                 </span>
               </div>
             )}
-            <div className="flex flex-col justify-center leading-none max-w-[130px] sm:max-w-[220px]">
-              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-slate-900 dark:text-slate-100 uppercase truncate">
-                {selectedCompany?.tradeName || selectedCompany?.name || 'MARKET ALMACÉN'}
+            <div className="flex flex-col justify-center leading-none">
+              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-slate-900 dark:text-slate-100 uppercase">
+                {selectedCompany && selectedCompany.id !== 'market-almacen'
+                  ? (selectedCompany.tradeName || selectedCompany.name).split(' ')[0]
+                  : 'MARKET'}
               </span>
-              <span className={`font-bold text-[9px] sm:text-[9.5px] tracking-wider ${themeClasses.accent} uppercase -mt-0.5 truncate`}>
-                {selectedCompany?.industry || 'PUNTO DE VENTA'}
+              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-blue-600 dark:text-blue-400 uppercase -mt-0.5">
+                {selectedCompany && selectedCompany.id !== 'market-almacen'
+                  ? ((selectedCompany.tradeName || selectedCompany.name).split(' ').slice(1).join(' ') || 'STORE')
+                  : 'ALMACEN'}
               </span>
             </div>
           </div>

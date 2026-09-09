@@ -8,6 +8,7 @@ import type { Product, Tool, Sale } from './types';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { LoginView } from './components/auth/LoginView';
+import { SuperAdminMasterPortal } from './components/admin/SuperAdminMasterPortal';
 import { initCloudSync } from './utils/cloudSync';
 import { startRealtimeSync } from './utils/realtimeSync';
 
@@ -43,7 +44,7 @@ import { CafFoliosManagerModal } from './components/sales/CafFoliosManagerModal'
 export const App: React.FC = () => {
   const { themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany, companies } = useCompany();
-  const { isAuthenticated, isReadOnly, currentUser, permissions } = useAuth();
+  const { isAuthenticated, isReadOnly, currentUser, permissions, isSuperAdmin } = useAuth();
 
   // Pestaña inicial por defecto: Ventas y POS
   const [activeTab, setActiveTab] = useState<string>('sales');
@@ -152,6 +153,11 @@ export const App: React.FC = () => {
   // If user is not authenticated, show Login view
   if (!isAuthenticated) {
     return <LoginView />;
+  }
+
+  // Superadmin Maestro Mauricio: Control Total Directo de Empresas y Reportes
+  if (isSuperAdmin) {
+    return <SuperAdminMasterPortal />;
   }
 
   return (

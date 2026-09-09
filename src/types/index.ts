@@ -154,6 +154,9 @@ export interface Company {
   siiAmbiente?: 'certificacion' | 'produccion';
   resolucionNumero?: string;
   resolucionFecha?: string;
+  logoUrl?: string;
+  appIconPreset?: string;
+  themeColor?: string;
   createdAt: string;
   updatedAt?: string;
 }

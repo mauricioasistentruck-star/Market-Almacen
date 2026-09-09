@@ -7,7 +7,7 @@ import { Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, KeyRound } from 'luci
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
-  const { theme, toggleTheme, themeClasses } = useTheme();
+  const { themeClasses } = useTheme();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -62,7 +62,7 @@ export const LoginView: React.FC = () => {
               MARKET ALMACÉN
             </h1>
             <p className="text-xs sm:text-sm font-semibold text-slate-400">
-              Market Almacén — Sistema de Control de Inventario y Ventas
+              Sistema de Control de Inventario y Ventas
             </p>
           </div>
         </div>
@@ -85,21 +85,6 @@ export const LoginView: React.FC = () => {
               <span>{errorMessage}</span>
             </div>
           )}
-
-          {/* Botón de Acceso Inmediato Directo para la Prueba de Estudio */}
-          <div className="p-3.5 rounded-2xl border-2 border-emerald-500/50 bg-emerald-500/10 text-center space-y-2">
-            <p className="text-xs font-black text-emerald-400">
-              🧪 Modo Prueba de Estudio Activo
-            </p>
-            <button
-              type="button"
-              onClick={() => login('mauricio', '041118')}
-              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
-            >
-              <span>🚀 Entrar a la Prueba de Estudio</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

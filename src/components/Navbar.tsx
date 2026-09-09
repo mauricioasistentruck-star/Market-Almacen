@@ -94,20 +94,32 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
           
-          {/* Logo & App Title: Ahorro de espacio con icono MA y texto montado */}
+          {/* Logo & App Title: Dinámico por Empresa para Pertenencia Corporativa */}
           <div className="flex items-center gap-2 shrink-0 select-none">
-            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-md ${themeClasses.accentBg} shrink-0`}>
-              <span className="font-black text-sm sm:text-base tracking-tighter leading-none">
-                <span className="text-white">M</span>
-                <span className="text-cyan-300 font-extrabold">A</span>
+            {selectedCompany?.logoUrl ? (
+              <img
+                src={selectedCompany.logoUrl}
+                alt={selectedCompany.tradeName || selectedCompany.name}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-contain bg-white shadow-md border border-slate-200 dark:border-slate-700 p-0.5 shrink-0"
+              />
+            ) : (
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-md ${themeClasses.accentBg} shrink-0`}>
+                <span className="font-black text-sm sm:text-base tracking-tighter leading-none">
+                  <span className="text-white">
+                    {(selectedCompany?.tradeName || selectedCompany?.name || 'M')[0]?.toUpperCase()}
+                  </span>
+                  <span className="text-cyan-300 font-extrabold">
+                    {(selectedCompany?.tradeName || selectedCompany?.name || 'A')[1]?.toUpperCase() || 'A'}
+                  </span>
+                </span>
+              </div>
+            )}
+            <div className="flex flex-col justify-center leading-none max-w-[130px] sm:max-w-[220px]">
+              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-slate-900 dark:text-slate-100 uppercase truncate">
+                {selectedCompany?.tradeName || selectedCompany?.name || 'MARKET ALMACÉN'}
               </span>
-            </div>
-            <div className="flex flex-col justify-center leading-none">
-              <span className="font-black text-[10.5px] sm:text-xs tracking-wider text-slate-900 dark:text-slate-100 uppercase">
-                MARKET
-              </span>
-              <span className={`font-black text-[10.5px] sm:text-xs tracking-wider ${themeClasses.accent} uppercase -mt-0.5`}>
-                ALMACÉN
+              <span className={`font-bold text-[9px] sm:text-[9.5px] tracking-wider ${themeClasses.accent} uppercase -mt-0.5 truncate`}>
+                {selectedCompany?.industry || 'PUNTO DE VENTA'}
               </span>
             </div>
           </div>

@@ -440,16 +440,16 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         </div>
 
         {/* Desktop View: Table (>= lg) */}
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-hidden">
           <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead className="bg-slate-100 dark:bg-slate-900 font-black text-slate-900 dark:text-slate-100 border-b-2 border-slate-300 dark:border-slate-700 select-none">
               <tr>
-                <th className="py-3.5 px-2 w-[6%] text-center">FOTO</th>
-                <th className="py-3.5 px-2 w-[16%] text-left whitespace-nowrap">CÓDIGO / SKU</th>
-                <th className="py-3.5 px-3 w-[42%] text-left">PRODUCTO / DESCRIPCIÓN</th>
+                <th className="py-3.5 px-2 w-[5%] text-center">FOTO</th>
+                <th className="py-3.5 px-2 w-[15%] text-left whitespace-nowrap">CÓDIGO / SKU</th>
+                <th className="py-3.5 px-3 w-[32%] text-left">PRODUCTO / DESCRIPCIÓN</th>
                 <th className="py-3.5 px-2 w-[12%] text-right whitespace-nowrap">PRECIO ($)</th>
-                <th className="py-3.5 px-2 w-[12%] text-center whitespace-nowrap">STOCK ACTUAL</th>
-                <th className="py-3.5 px-2 w-[12%] text-center whitespace-nowrap">UBICACIÓN</th>
+                <th className="py-3.5 px-2 w-[14%] text-center whitespace-nowrap">STOCK ACTUAL</th>
+                <th className="py-3.5 px-2 w-[22%] text-center whitespace-nowrap">UBICACIÓN</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -532,8 +532,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                       </td>
 
                       {/* 6. Ubicación */}
-                      <td className="py-2.5 px-2 text-center whitespace-nowrap align-middle">
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs">
+                      <td className="py-2.5 px-2 text-center align-middle">
+                        <span
+                          className="inline-block max-w-full px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs truncate"
+                          title={p.location || 'Sin Ubicación'}
+                        >
                           {p.location || 'Sin Ubicación'}
                         </span>
                       </td>

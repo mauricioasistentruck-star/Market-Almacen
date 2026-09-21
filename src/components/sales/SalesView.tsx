@@ -93,16 +93,16 @@ const CartQuantityInput: React.FC<{
 
 const STANDARD_CATEGORIES = [
   { code: '00', name: 'Producto Común', key: 'COMMON' },
-  { code: '01', name: 'ABARROTES', key: 'ABARROTES' },
-  { code: '02', name: 'LACTEOS', key: 'LACTEOS' },
-  { code: '03', name: 'ART ASEO PERSONAL', key: 'ASEO_PERSONAL' },
-  { code: '03', name: 'ADICIONAL', key: 'ADICIONAL' },
-  { code: '04', name: 'ART LIMPIEZA', key: 'LIMPIEZA' },
-  { code: '05', name: 'BEBIDAS', key: 'BEBIDAS' },
-  { code: '06', name: 'AGUA', key: 'AGUA' },
-  { code: '07', name: 'CONGELADOS', key: 'CONGELADOS' },
-  { code: '08', name: 'CERVEZAS', key: 'CERVEZAS' },
-  { code: '09', name: 'VINOS', key: 'VINOS' }
+  { code: '01', name: 'ABARROTES', key: 'Abarrotes' },
+  { code: '02', name: 'LACTEOS Y FIAMBRERÍA', key: 'Lácteos y Fiambrería' },
+  { code: '03', name: 'PANADERÍA Y PASTELERÍA', key: 'Panadería y Pastelería' },
+  { code: '04', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
+  { code: '05', name: 'FRUTAS Y VERDURAS', key: 'Frutas y Verduras' },
+  { code: '06', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
+  { code: '07', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
+  { code: '08', name: 'ART ASEO PERSONAL', key: 'Cuidado Personal' },
+  { code: '09', name: 'SNACKS Y GOLOSINAS', key: 'Snacks y Golosinas' },
+  { code: '10', name: 'ADICIONAL', key: 'ADICIONAL' }
 ];
 
 export const SalesView: React.FC<SalesViewProps> = ({
@@ -308,7 +308,12 @@ export const SalesView: React.FC<SalesViewProps> = ({
     const dbCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
     const list = [...STANDARD_CATEGORIES];
     dbCats.forEach((cat) => {
-      if (!list.some(c => c.name.toLowerCase() === cat.toLowerCase() || c.key.toLowerCase() === cat.toLowerCase())) {
+      const lower = cat.toLowerCase();
+      // Cervezas, vinos, bebidas van dentro de Bebidas y Licores
+      if (lower.includes('cerveza') || lower.includes('vino') || lower.includes('bebida') || lower.includes('licor')) {
+        return;
+      }
+      if (!list.some(c => c.name.toLowerCase() === lower || c.key.toLowerCase() === lower)) {
         list.push({
           code: String(list.length).padStart(2, '0'),
           name: cat.toUpperCase(),
@@ -330,6 +335,9 @@ export const SalesView: React.FC<SalesViewProps> = ({
       result = result.filter(p => {
         const cat = (p.category || '').toLowerCase();
         const key = selectedCategory.toLowerCase();
+        if (key.includes('bebida') || key.includes('licor') || key.includes('cerveza') || key.includes('vino')) {
+          return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');
+        }
         return cat.includes(key) || key.includes(cat);
       });
     }
@@ -578,28 +586,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             <span>{currentClock || 'Market Almacén POS'}</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1 pl-2">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSubTab('pos');
-                setSelectedCategory('ALL');
-                setSearchQuery('');
-              }}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition cursor-pointer"
-              title="Inicio / Restablecer Catálogo"
-            >
-              <Home className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => barcodeInputRef.current?.focus()}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition cursor-pointer"
-              title="Foco en Búsqueda y Código de Barras"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          </div>
+
         </div>
 
         {/* Centro: Accesos directos de Caja y Turno */}
@@ -994,14 +981,14 @@ export const SalesView: React.FC<SalesViewProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('BEBIDAS')}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-black text-xs shadow-xs hover:bg-amber-600 transition cursor-pointer"
+                  onClick={() => setSelectedCategory('Bebidas y Licores')}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold text-xs shadow-xs hover:bg-amber-600 transition cursor-pointer"
                 >
-                  Bebidas
+                  Bebidas y Licores
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('ABARROTES')}
+                  onClick={() => setSelectedCategory('Abarrotes')}
                   className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-black text-xs shadow-xs hover:bg-sky-700 transition cursor-pointer"
                 >
                   Abarrotes

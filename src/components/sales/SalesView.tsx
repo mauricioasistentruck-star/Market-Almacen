@@ -93,15 +93,15 @@ const CartQuantityInput: React.FC<{
 
 const STANDARD_CATEGORIES = [
   { code: '00', name: 'Producto Común', key: 'COMMON' },
-  { code: '01', name: 'ABARROTES', key: 'Abarrotes' },
-  { code: '02', name: 'LACTEOS Y FIAMBRERÍA', key: 'Lácteos y Fiambrería' },
-  { code: '03', name: 'PANADERÍA Y PASTELERÍA', key: 'Panadería y Pastelería' },
-  { code: '04', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
-  { code: '05', name: 'FRUTAS Y VERDURAS', key: 'Frutas y Verduras' },
-  { code: '06', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
-  { code: '07', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
-  { code: '08', name: 'ART ASEO PERSONAL', key: 'Cuidado Personal' },
-  { code: '09', name: 'SNACKS Y GOLOSINAS', key: 'Snacks y Golosinas' },
+  { code: '01', name: 'FIAMBRERÍA', key: 'Fiambrería' },
+  { code: '02', name: 'PANADERÍA', key: 'Panadería' },
+  { code: '03', name: 'VERDULERÍA', key: 'Verdulería' },
+  { code: '04', name: 'FRUTOS SECOS', key: 'Frutos Secos' },
+  { code: '05', name: 'ABARROTES', key: 'Abarrotes' },
+  { code: '06', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
+  { code: '07', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
+  { code: '08', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
+  { code: '09', name: 'CUIDADO PERSONAL', key: 'Cuidado Personal' },
   { code: '10', name: 'ADICIONAL', key: 'ADICIONAL' }
 ];
 
@@ -334,15 +334,41 @@ export const SalesView: React.FC<SalesViewProps> = ({
     if (selectedCategory && selectedCategory !== 'ALL' && selectedCategory !== 'COMMON') {
       result = result.filter(p => {
         const cat = (p.category || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
         const key = selectedCategory.toLowerCase();
-        if (key.includes('bebida') || key.includes('licor') || key.includes('cerveza') || key.includes('vino')) {
+
+        // 1. Pestaña Fiambrería
+        if (key.includes('fiambr') || key === 'fiambrería') {
+          return cat.includes('fiambr') || cat.includes('cecina') || cat.includes('jamon') || cat.includes('queso') ||
+                 name.includes('jamón') || name.includes('jamon') || name.includes('queso') || name.includes('cecina') || name.includes('salame');
+        }
+
+        // 2. Pestaña Panadería
+        if (key.includes('panad') || key === 'panadería') {
+          return cat.includes('panad') || cat.includes('pastel') ||
+                 name.includes('pan ') || name.includes('hallulla') || name.includes('marraqueta') || name.includes('molde') || name.includes('baguette') || name.includes('coliza');
+        }
+
+        // 3. Pestaña Verdulería
+        if (key.includes('verdur') || key.includes('fruta') || key === 'verdulería') {
+          return cat.includes('verdur') || cat.includes('fruta') || cat.includes('hortaliza') ||
+                 name.includes('tomate') || name.includes('palta') || name.includes('limon') || name.includes('limón') || name.includes('platano') || name.includes('plátano') || name.includes('papa');
+        }
+
+        // 4. Pestaña Frutos Secos
+        if (key.includes('fruto') || key.includes('seco') || key === 'frutos secos') {
+          return cat.includes('fruto') || cat.includes('seco') || cat.includes('nuez') || cat.includes('almendra') || cat.includes('mani') || cat.includes('maní') ||
+                 name.includes('nuez') || name.includes('nueces') || name.includes('almendra') || name.includes('maní') || name.includes('mani') || name.includes('frutos secos') || name.includes('pasas');
+        }
+
+        // 5. Bebidas y Licores
+        if (key.includes('bebida') || key.includes('licor')) {
           return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');
         }
+
         return cat.includes(key) || key.includes(cat);
       });
-    }
-
-    const q = searchQuery.toLowerCase().trim();
+    }const q = searchQuery.toLowerCase().trim();
     if (q) {
       result = result.filter(p =>
         p.name.toLowerCase().includes(q) ||
@@ -969,29 +995,76 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </div>
             </div>
 
-            {/* Barra Inferior de Navegacion Rapida (Estilo Market de la foto) */}
+            {/* Barra Inferior de Pestañas Pesables: Fiambrería, Panadería, Verdulería, Frutos Secos */}
             <div className="pt-2 flex items-center justify-between shrink-0 gap-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5">
+                {/* Botón Todos para regresar a ver el catálogo completo */}
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('ALL')}
-                  className="px-4 py-1.5 rounded-lg bg-[#10b981] text-white font-black text-xs shadow-xs hover:bg-[#059669] transition cursor-pointer"
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs ${
+                    selectedCategory === 'ALL'
+                      ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 font-black'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                  }`}
                 >
-                  Market
+                  Todos
                 </button>
+
+                {/* 1. Pestaña Fiambrería */}
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('Bebidas y Licores')}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold text-xs shadow-xs hover:bg-amber-600 transition cursor-pointer"
+                  onClick={() => setSelectedCategory(selectedCategory === 'Fiambrería' ? 'ALL' : 'Fiambrería')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
+                    selectedCategory === 'Fiambrería'
+                      ? 'bg-rose-600 text-white font-black shadow-xs ring-2 ring-rose-400/50'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
+                  }`}
+                  title="Filtrar solo cecinas, quesos y fiambrería pesable"
                 >
-                  Bebidas y Licores
+                  <span>Fiambrería</span>
                 </button>
+
+                {/* 2. Pestaña Panadería */}
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory('Abarrotes')}
-                  className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-black text-xs shadow-xs hover:bg-sky-700 transition cursor-pointer"
+                  onClick={() => setSelectedCategory(selectedCategory === 'Panadería' ? 'ALL' : 'Panadería')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
+                    selectedCategory === 'Panadería'
+                      ? 'bg-amber-600 text-white font-black shadow-xs ring-2 ring-amber-400/50'
+                      : 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
+                  }`}
+                  title="Filtrar solo panadería y masas pesables"
                 >
-                  Abarrotes
+                  <span>Panadería</span>
+                </button>
+
+                {/* 3. Pestaña Verdulería */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(selectedCategory === 'Verdulería' ? 'ALL' : 'Verdulería')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
+                    selectedCategory === 'Verdulería'
+                      ? 'bg-emerald-600 text-white font-black shadow-xs ring-2 ring-emerald-400/50'
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                  }`}
+                  title="Filtrar solo frutas y verduras a granel"
+                >
+                  <span>Verdulería</span>
+                </button>
+
+                {/* 4. Pestaña Frutos Secos */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(selectedCategory === 'Frutos Secos' ? 'ALL' : 'Frutos Secos')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
+                    selectedCategory === 'Frutos Secos'
+                      ? 'bg-orange-600 text-white font-black shadow-xs ring-2 ring-orange-400/50'
+                      : 'bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60'
+                  }`}
+                  title="Filtrar solo frutos secos y granel"
+                >
+                  <span>Frutos Secos</span>
                 </button>
               </div>
 

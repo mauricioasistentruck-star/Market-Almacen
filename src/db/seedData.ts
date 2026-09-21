@@ -26,26 +26,9 @@ const getRelativeDateStr = (daysOffset: number) => {
 export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
   {
     companyId: 'market-almacen',
-    code: '7801610001234',
-    name: 'Bebida Coca-Cola Original 1.5 L',
-    category: 'Bebidas y Licores',
-    brand: 'Coca-Cola',
-    stock: 48,
-    minStock: 12,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Pasillo 1 - Estante A',
-    costPrice: 1250,
-    price: 1990,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
     code: 'PAN-HALLULLA-01',
     name: 'Pan Hallulla Especial Tradicional',
-    category: 'Panadería y Pastelería',
+    category: 'Panadería',
     brand: 'Panadería Central',
     stock: 35,
     minStock: 10,
@@ -60,35 +43,52 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
   },
   {
     companyId: 'market-almacen',
-    code: '7802900001456',
-    name: 'Leche Entera Natural Colun 1 Litro',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Colun',
-    stock: 60,
-    minStock: 15,
-    unit: 'Unidades',
+    code: 'JAMON-PRAGA-KG',
+    name: 'Jamón Colonial Praga Artesanal',
+    category: 'Fiambrería',
+    brand: 'Llanquihue',
+    stock: 14,
+    minStock: 4,
+    unit: 'Kg',
     condition: 'NUEVO',
     completeness: 'COMPLETO',
-    location: 'Cámara Lácteos - Estante 2',
-    costPrice: 780,
-    price: 1190,
+    location: 'Vitrina Fiambrería',
+    costPrice: 6900,
+    price: 9990,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
     companyId: 'market-almacen',
-    code: '7801890003412',
-    name: 'Aceite Vegetal Chef 900 ml',
-    category: 'Abarrotes',
-    brand: 'Chef',
-    stock: 40,
+    code: 'VERD-TOMATE-KG',
+    name: 'Tomates Larga Vida Granel Selección',
+    category: 'Verdulería',
+    brand: 'Agrícola San Pedro',
+    stock: 42,
     minStock: 10,
-    unit: 'Unidades',
+    unit: 'Kg',
     condition: 'NUEVO',
     completeness: 'COMPLETO',
-    location: 'Pasillo 2 - Estante B',
-    costPrice: 1350,
-    price: 1990,
+    location: 'Isla Frutas y Verduras',
+    costPrice: 850,
+    price: 1490,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    companyId: 'market-almacen',
+    code: 'FRUTO-MIX-KG',
+    name: 'Mix Frutos Secos Almendras y Nueces',
+    category: 'Frutos Secos',
+    brand: 'Granel Selección',
+    stock: 25,
+    minStock: 5,
+    unit: 'Kg',
+    condition: 'NUEVO',
+    completeness: 'COMPLETO',
+    location: 'Estante Frutos Secos',
+    costPrice: 3200,
+    price: 4990,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -141,12 +141,36 @@ export async function initDatabaseIfEmpty() {
   ];
   await db.products.where('code').anyOf(extraDemoCodes).delete();
 
-  // Asegurar que ningun producto conserve imagenes no subidas por el usuario (Unsplash)
   const allCurrentProds = await db.products.toArray();
   for (const prod of allCurrentProds) {
     if (prod.imageUrl && (prod.imageUrl.includes('unsplash.com') || prod.imageUrl.trim() === '')) {
       await db.products.update(prod.id!, { imageUrl: undefined });
     }
+    const name = (prod.name || '').toLowerCase();
+    if (name.includes('jamón') || name.includes('jamon') || name.includes('queso gauda') || name.includes('cecina')) {
+      await db.products.update(prod.id!, { category: 'Fiambrería', unit: 'Kg' });
+    } else if (name.includes('hallulla') || name.includes('pan ')) {
+      await db.products.update(prod.id!, { category: 'Panadería', unit: 'Kg' });
+    } else if (name.includes('tomate') || name.includes('palta') || name.includes('verdura')) {
+      await db.products.update(prod.id!, { category: 'Verdulería', unit: 'Kg' });
+    } else if (name.includes('frutos secos') || name.includes('nuez') || name.includes('almendra')) {
+      await db.products.update(prod.id!, { category: 'Frutos Secos', unit: 'Kg' });
+    }
+  }
+
+  // Si no hay productos de alguna pestaña pesable, agregarlos de prueba
+  const hasFiambreria = allCurrentProds.some(p => (p.category || '').toLowerCase().includes('fiambr'));
+  const hasVerduleria = allCurrentProds.some(p => (p.category || '').toLowerCase().includes('verdur'));
+  const hasFrutosSecos = allCurrentProds.some(p => (p.category || '').toLowerCase().includes('fruto'));
+  
+  if (!hasFiambreria) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[1] as any);
+  }
+  if (!hasVerduleria) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[2] as any);
+  }
+  if (!hasFrutosSecos) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[3] as any);
   }
 
   const countProducts = await db.products.count();

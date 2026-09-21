@@ -35,6 +35,10 @@ interface ProductFormModalProps {
 }
 
 const CATEGORIES = [
+  'Fiambrería',
+  'Panadería',
+  'Verdulería',
+  'Frutos Secos',
   'Abarrotes',
   'Bebidas y Licores',
   'Lácteos y Fiambrería',
@@ -427,6 +431,86 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             </div>
 
+          </div>
+
+          {/* Selector de Departamento Pesable / Pestaña Rápida de POS */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                <span>⚖️ Asignar a Pestaña de Venta POS (Productos Pesables / Granel):</span>
+              </label>
+              <span className="text-[10px] text-slate-500 font-bold hidden sm:inline">
+                Ajusta automáticamente categoría y unidad por kilo
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory('Fiambrería');
+                  setUnit('Kg');
+                }}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  category === 'Fiambrería'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-sm ring-2 ring-rose-400/40'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                }`}
+              >
+                <span>🥪 Fiambrería</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory('Panadería');
+                  setUnit('Kg');
+                }}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  category === 'Panadería'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/30'
+                }`}
+              >
+                <span>🥖 Panadería</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory('Verdulería');
+                  setUnit('Kg');
+                }}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  category === 'Verdulería'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                }`}
+              >
+                <span>🥬 Verdulería</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory('Frutos Secos');
+                  setUnit('Kg');
+                }}
+                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  category === 'Frutos Secos'
+                    ? 'bg-orange-600 text-white border-orange-600 shadow-sm ring-2 ring-orange-400/40'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                }`}
+              >
+                <span>🥜 Frutos Secos</span>
+              </button>
+            </div>
+
+            {['Fiambrería', 'Panadería', 'Verdulería', 'Frutos Secos'].includes(category) && (
+              <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 pt-0.5">
+                <span>✓ Este producto se mostrará en la pestaña de POS: <strong>{category}</strong> (Venta por peso en {unit})</span>
+              </p>
+            )}
           </div>
 
           {/* 3. Categoría, Marca y Empresa */}

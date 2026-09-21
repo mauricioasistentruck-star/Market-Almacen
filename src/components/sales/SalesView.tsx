@@ -1,13 +1,11 @@
-import { WebCheckoutBoard } from './WebCheckoutBoard';
-import { getRubroPreset, type CompanyServiceOption } from '../../utils/rubroPresets';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
-import type { Product, Sale, SaleItem } from '../../types';
+import type { Product, Sale, SaleItem, Customer } from '../../types';
 import { getChileLocalDateString } from '../../utils/chileanCurrencyAndDates';
-import { formatCLP, formatRut, getDteLabel, getPaymentMethodLabel, generateSaleThermalTicketPDF, generateSaleInvoicePDF } from '../../utils/salesPdfGenerator';
+import { formatCLP, generateSaleInvoicePDF } from '../../utils/salesPdfGenerator';
 import { exportSalesLedgerExcel } from '../../utils/salesExcelExporter';
 import { PDFViewerModal } from '../PDFViewerModal';
 import { SiiConfigModal } from './SiiConfigModal';
@@ -17,36 +15,24 @@ import { SaleDetailsModal } from './SaleDetailsModal';
 import { CashClosingModal } from './CashClosingModal';
 import { WeighableProductModal } from './WeighableProductModal';
 import { ProductConsultantModal } from '../inventory/ProductConsultantModal';
+import type jsPDF from 'jspdf';
 import {
   X,
-  RotateCcw,
   ShoppingCart,
   Receipt,
   Search,
   Plus,
-  Tag,
   Minus,
   Trash2,
   Barcode,
-  FileSpreadsheet,
-  FileText,
-  Building,
-  Printer,
-  Eye,
-  Settings,
   Lock,
-  Boxes,
-  Package,
-  Calendar,
-  CheckCircle2,
-  DollarSign,
-  Scale,
-  Sparkles,
-  SlidersHorizontal,
-  CheckSquare,
-  Square,
-  ArrowRight,
-  LayoutGrid
+  Menu,
+  Home,
+  User,
+  Folder,
+  ChevronLeft,
+  ChevronRight,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface SalesViewProps {
@@ -57,7 +43,7 @@ interface SalesViewProps {
   onCartCountChange?: (count: number) => void;
 }
 
-// Subcomponente para edición libre y reactiva de cantidad de ítem en el carrito
+// Subcomponente de edición numérica rápida de cantidad
 const CartQuantityInput: React.FC<{
   quantity: number;
   unit?: string;
@@ -99,11 +85,62 @@ const CartQuantityInput: React.FC<{
         }
       }}
       onFocus={(e) => e.target.select()}
-      className="w-14 sm:w-16 h-8 text-center font-black font-mono text-xs sm:text-sm bg-white dark:bg-slate-900 border-2 border-blue-500/80 dark:border-blue-400 text-blue-950 dark:text-blue-100 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 shadow-xs cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-      title="Haz clic para anotar la cantidad solicitada por el cliente"
+      className="w-10 sm:w-12 h-7 text-center font-black font-mono text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded focus:outline-hidden focus:ring-1 focus:ring-sky-500 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
     />
   );
 };
+
+// Generador de fotos e ilustraciones representativas de productos de almacén
+const getProductImage = (product: Product): string => {
+  if (product.imageUrl && product.imageUrl.trim().length > 5) {
+    return product.imageUrl;
+  }
+  const name = product.name.toLowerCase();
+  const cat = (product.category || '').toLowerCase();
+
+  if (name.includes('coca') || name.includes('pepsi') || name.includes('bebida') || cat.includes('bebida')) {
+    return 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('corona') || name.includes('cerveza') || name.includes('escudo') || cat.includes('cerveza') || cat.includes('licor')) {
+    return 'https://images.unsplash.com/photo-1608270195514-6d9154f89d36?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('pan') || name.includes('hallulla') || name.includes('marraqueta') || cat.includes('panad')) {
+    return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('gansito') || name.includes('snack') || name.includes('takis') || name.includes('dorito') || name.includes('galleta') || cat.includes('snack')) {
+    return 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('limon') || name.includes('platano') || name.includes('palta') || name.includes('tomate') || cat.includes('fruta') || cat.includes('verdur')) {
+    return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('leche') || name.includes('queso') || name.includes('yogurt') || cat.includes('lact')) {
+    return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('ketchup') || name.includes('mayo') || name.includes('aceite') || name.includes('arroz') || cat.includes('abarrot')) {
+    return 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('desodorante') || name.includes('jabon') || name.includes('shampoo') || cat.includes('aseo personal')) {
+    return 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=260&auto=format&fit=crop&q=70';
+  }
+  if (name.includes('cloro') || name.includes('detergente') || name.includes('limp') || cat.includes('limpieza')) {
+    return 'https://images.unsplash.com/photo-1585670210693-e7fdd16b142e?w=260&auto=format&fit=crop&q=70';
+  }
+  return 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=260&auto=format&fit=crop&q=70';
+};
+
+const STANDARD_CATEGORIES = [
+  { code: '00', name: 'Producto Común', key: 'COMMON' },
+  { code: '01', name: 'ABARROTES', key: 'ABARROTES' },
+  { code: '02', name: 'LACTEOS', key: 'LACTEOS' },
+  { code: '03', name: 'ART ASEO PERSONAL', key: 'ASEO_PERSONAL' },
+  { code: '03', name: 'ADICIONAL', key: 'ADICIONAL' },
+  { code: '04', name: 'ART LIMPIEZA', key: 'LIMPIEZA' },
+  { code: '05', name: 'BEBIDAS', key: 'BEBIDAS' },
+  { code: '06', name: 'AGUA', key: 'AGUA' },
+  { code: '07', name: 'CONGELADOS', key: 'CONGELADOS' },
+  { code: '08', name: 'CERVEZAS', key: 'CERVEZAS' },
+  { code: '09', name: 'VINOS', key: 'VINOS' }
+];
 
 export const SalesView: React.FC<SalesViewProps> = ({
   onOpenScanner,
@@ -112,69 +149,115 @@ export const SalesView: React.FC<SalesViewProps> = ({
   refreshTrigger,
   onCartCountChange
 }) => {
-  const { theme, themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
-  const { isReadOnly, currentUser, isSuperAdmin, isAdmin } = useAuth();
+  const { isReadOnly, currentUser } = useAuth();
 
   const [activeSubTab, setActiveSubTab] = useState<'pos' | 'history'>('pos');
-  const [mobilePosTab, setMobilePosTab] = useState<'catalog' | 'cart'>('catalog');
-  const [isConsultantOpen, setIsConsultantOpen] = useState(false);
-  const [showQuick9Only, setShowQuick9Only] = useState(false);
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [showCategorySidebar, setShowCategorySidebar] = useState<boolean>(true);
 
-  // Perfil de Rubro y Servicios Contextuales de la Empresa
-  const currentRubro = React.useMemo(() => {
-    return getRubroPreset(selectedCompany?.rubroKey);
-  }, [selectedCompany?.rubroKey]);
+  // Reloj chileno en vivo
+  const [currentClock, setCurrentClock] = useState<string>('');
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const dayName = days[now.getDay()];
+      const day = now.getDate();
+      const month = months[now.getMonth()];
+      const year = now.getFullYear();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      setCurrentClock(`${dayName} ${day} ${month} ${year} ${hours}:${minutes} ${ampm}`);
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const activeServices = React.useMemo(() => {
-    if (selectedCompany?.customServices && selectedCompany.customServices.length > 0) {
-      return selectedCompany.customServices.filter(s => s.active);
-    }
-    return currentRubro.serviceOptions?.filter(s => s.active) || [];
-  }, [selectedCompany?.customServices, currentRubro]);
-
-  const [isServicesModalOpen, setIsServicesModalOpen] = useState(false);
-  const [servicePriceInput, setServicePriceInput] = useState<Record<string, number>>({});
-
+  // Datos de base de datos
   const [products, setProducts] = useState<Product[]>([]);
+  const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('FINAL');
+
+  // Filtros y busqueda
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [showOnlyQuick9, setShowOnlyQuick9] = useState(false);
+  const [categoryFilterText, setCategoryFilterText] = useState<string>('');
   const [cart, setCart] = useState<SaleItem[]>([]);
+  const [catalogPage, setCatalogPage] = useState<number>(0);
 
+  // Modales
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isSiiConfigOpen, setIsSiiConfigOpen] = useState(false);
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
-  const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
   const [isWeighableModalOpen, setIsWeighableModalOpen] = useState(false);
   const [selectedWeighableProduct, setSelectedWeighableProduct] = useState<Product | null>(null);
+  const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
 
-  const [pdfDoc, setPdfDoc] = useState<any | null>(null);
+  // Modal para Agregar Producto Comun
+  const [isCommonProductModalOpen, setIsCommonProductModalOpen] = useState(false);
+  const [commonProductName, setCommonProductName] = useState('Producto Común');
+  const [commonProductPrice, setCommonProductPrice] = useState<number>(1000);
+  const [commonProductQty, setCommonProductQty] = useState<number>(1);
+
+  // Modal para seleccion de precio oferta vs normal
+  const [priceChoiceProduct, setPriceChoiceProduct] = useState<Product | null>(null);
+  const [priceChoiceQty, setPriceChoiceQty] = useState<number>(1);
+
+  // PDF Viewer
+  const [pdfDoc, setPdfDoc] = useState<jsPDF | null>(null);
   const [pdfFilename, setPdfFilename] = useState('');
   const [pdfTitle, setPdfTitle] = useState('');
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
-  const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
-  const [isQuickConfigOpen, setIsQuickConfigOpen] = useState(false);
-  const [isQuickPickerOpen, setIsQuickPickerOpen] = useState(false);
-  const [selectedProductForOffer, setSelectedProductForOffer] = useState<Product | null>(null);
-  const [priceChoiceProduct, setPriceChoiceProduct] = useState<Product | null>(null);
-  const [priceChoiceQty, setPriceChoiceQty] = useState<number>(1);
-  const [offerPriceInput, setOfferPriceInput] = useState<number | string>('');
-  const [offerStockLimitInput, setOfferStockLimitInput] = useState<number | string>('');
-  const [offerLabelInput, setOfferLabelInput] = useState<string>('Liquidación');
-  const [customQuickProductIds, setCustomQuickProductIds] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem(`market_almacen_quick_prods_${selectedCompanyId}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Historial de Ventas
+  const [historySearch, setHistorySearch] = useState('');
 
-  // Beep auditivo para pistola lectora de código de barras
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Carga de datos reactiva
+  const loadProducts = async () => {
+    const allProds = await db.products.toArray();
+    const filtered = allProds.filter(p => {
+      if (selectedCompanyId === 'ALL') return true;
+      return !p.companyId || p.companyId === selectedCompanyId;
+    });
+    setProducts(filtered);
+  };
+
+  const loadSalesHistory = async () => {
+    const allSales = await db.sales.orderBy('date').reverse().toArray();
+    const filtered = allSales.filter(s => {
+      return selectedCompanyId === 'ALL' || s.companyId === selectedCompanyId;
+    });
+    setSalesHistory(filtered);
+  };
+
+  const loadCustomers = async () => {
+    const allCust = await db.customers.toArray();
+    setCustomers(allCust);
+  };
+
+  useEffect(() => {
+    loadProducts();
+    loadSalesHistory();
+    loadCustomers();
+    const handleUpdate = () => {
+      loadProducts();
+      loadSalesHistory();
+      loadCustomers();
+    };
+    window.addEventListener('marketalmacen-data-updated', handleUpdate);
+    return () => window.removeEventListener('marketalmacen-data-updated', handleUpdate);
+  }, [selectedCompanyId, refreshTrigger]);
+
+  // Manejo de pistola lectora de codigo de barras
   const playScannerBeep = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -188,18 +271,15 @@ export const SalesView: React.FC<SalesViewProps> = ({
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.11);
-    } catch {
-      // AudioContext ignorado si no está disponible
-    }
+    } catch {}
   };
 
-  // Manejar escaneo desde pistola lectora
   const handleBarcodeScanned = (code: string) => {
     const clean = code.trim().toLowerCase();
     if (!clean) return;
 
-    const matched = products.find(p => 
-      p.code.toLowerCase() === clean || 
+    const matched = products.find(p =>
+      p.code.toLowerCase() === clean ||
       (p.mannFilterCode && p.mannFilterCode.toLowerCase() === clean)
     );
 
@@ -208,22 +288,21 @@ export const SalesView: React.FC<SalesViewProps> = ({
       handleAddToCart(matched);
       setSearchQuery('');
     } else {
-      alert(`⚠️ Producto con código "${code}" no encontrado en el catálogo de esta empresa.`);
+      alert(`Producto con código "${code}" no encontrado en el catálogo de esta empresa.`);
     }
   };
 
-  // Listener global para lector de código de barras por pistola USB / Bluetooth / Wireless
   useEffect(() => {
     let buffer = '';
     let lastKeyTime = Date.now();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isCheckoutOpen || isSiiConfigOpen || isCashClosingOpen || isDetailsOpen || isWeighableModalOpen || isQuickConfigOpen) {
+      if (isCheckoutOpen || isCashClosingOpen || isDetailsOpen || isWeighableModalOpen || isCommonProductModalOpen || isTurnModalOpen) {
         return;
       }
 
       const target = e.target as HTMLElement;
-      if (target && target.tagName === 'INPUT' && target.id !== 'pos-search-input') {
+      if (target && target.tagName === 'INPUT' && target.id !== 'pos-barcode-search-input') {
         return;
       }
 
@@ -246,41 +325,8 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [products, isCheckoutOpen, isSiiConfigOpen, isCashClosingOpen, isDetailsOpen, isWeighableModalOpen, isQuickConfigOpen]);
-  const [historySearch, setHistorySearch] = useState('');
-  const [historyDateFilter, setHistoryDateFilter] = useState<'today' | '7days' | 'month' | 'all' | 'custom'>('all');
-  const [historyCalendarDate, setHistoryCalendarDate] = useState<string>('');
-  const [historyDteTypeFilter, setHistoryDteTypeFilter] = useState<'ALL' | 'BOLETA' | 'FACTURA' | 'INTERNA'>('ALL');
+  }, [products, isCheckoutOpen, isCashClosingOpen, isDetailsOpen, isWeighableModalOpen, isCommonProductModalOpen, isTurnModalOpen]);
 
-  const loadProducts = async () => {
-    const allProds = await db.products.toArray();
-    const filtered = allProds.filter(p => {
-      if (selectedCompanyId === 'ALL') return true;
-      return !p.companyId || p.companyId === selectedCompanyId;
-    });
-    setProducts(filtered);
-  };
-
-  const loadSalesHistory = async () => {
-    const allSales = await db.sales.orderBy('createdAt').reverse().toArray();
-    const filtered = allSales.filter(s => {
-      return selectedCompanyId === 'ALL' || s.companyId === selectedCompanyId;
-    });
-    setSalesHistory(filtered);
-  };
-
-  useEffect(() => {
-    loadProducts();
-    loadSalesHistory();
-    const handleUpdate = () => {
-      loadProducts();
-      loadSalesHistory();
-    };
-    window.addEventListener('marketalmacen-data-updated', handleUpdate);
-    return () => window.removeEventListener('marketalmacen-data-updated', handleUpdate);
-  }, [selectedCompanyId, refreshTrigger]);
-
-  // Handle scanned barcode input
   useEffect(() => {
     if (scannedBarcode && scannedBarcode.trim()) {
       const match = products.find(p => p.code.toLowerCase() === scannedBarcode.toLowerCase().trim());
@@ -290,79 +336,126 @@ export const SalesView: React.FC<SalesViewProps> = ({
     }
   }, [scannedBarcode]);
 
-  const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+  useEffect(() => {
+    onCartCountChange?.(cart.reduce((a, b) => a + b.quantity, 0));
+  }, [cart, onCartCountChange]);
 
-  // 1. Top 9 Productos más vendidos calculados desde el historial
-  const top9SoldProducts = useMemo(() => {
-    const counts: Record<number, number> = {};
-    salesHistory.forEach(s => {
-      if (s.status !== 'ANULADA') {
-        s.items.forEach(item => {
-          if (item.productId) {
-            counts[item.productId] = (counts[item.productId] || 0) + item.quantity;
-          }
+  // Lista dinamica de categorias para la barra lateral
+  const categoriesList = useMemo(() => {
+    const dbCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    const list = [...STANDARD_CATEGORIES];
+    dbCats.forEach((cat) => {
+      if (!list.some(c => c.name.toLowerCase() === cat.toLowerCase() || c.key.toLowerCase() === cat.toLowerCase())) {
+        list.push({
+          code: String(list.length).padStart(2, '0'),
+          name: cat.toUpperCase(),
+          key: cat
         });
       }
     });
 
-    const sorted = [...products].sort((a, b) => {
-      const soldA = a.id ? (counts[a.id] || 0) : 0;
-      const soldB = b.id ? (counts[b.id] || 0) : 0;
-      return soldB - soldA;
-    });
+    if (!categoryFilterText.trim()) return list;
+    const q = categoryFilterText.toLowerCase().trim();
+    return list.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q));
+  }, [products, categoryFilterText]);
 
-    return sorted.slice(0, 9);
-  }, [products, salesHistory]);
+  // Filtro de productos para la cuadricula central
+  const filteredProducts = useMemo(() => {
+    let result = products;
 
-  // 2. 9 productos rápidos (personalizados o top 9)
-  const quick9Products = useMemo(() => {
-    if (customQuickProductIds.length > 0) {
-      const customList = customQuickProductIds
-        .map(id => products.find(p => p.id === id))
-        .filter(Boolean) as Product[];
-      if (customList.length > 0) return customList.slice(0, 9);
-    }
-    return top9SoldProducts;
-  }, [customQuickProductIds, products, top9SoldProducts]);
-
-  // 3. Productos a mostrar en el punto de venta web:
-  // Muestra ÚNICAMENTE los 9 productos rápidos (favoritos / más vendidos).
-  // Para ver o buscar otros productos fuera de los 9 rápidos, se usa el buscador superior.
-  const isSearching = searchQuery.trim().length > 0;
-  const displayedProducts = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q) {
-      return products.filter(p => {
-        const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
-        const matchesQuery =
-          p.name.toLowerCase().includes(q) ||
-          p.code.toLowerCase().includes(q) ||
-          (p.brand && p.brand.toLowerCase().includes(q)) ||
-          (p.mannFilterCode && p.mannFilterCode.toLowerCase().includes(q));
-        return matchesCategory && matchesQuery;
+    if (selectedCategory && selectedCategory !== 'ALL' && selectedCategory !== 'COMMON') {
+      result = result.filter(p => {
+        const cat = (p.category || '').toLowerCase();
+        const key = selectedCategory.toLowerCase();
+        return cat.includes(key) || key.includes(cat);
       });
     }
 
-    // Sin búsqueda: mostrar estrictamente los 9 productos rápidos (top vendidos o personalizados)
-    if (quick9Products.length > 0) {
-      return quick9Products.slice(0, 9);
+    const q = searchQuery.toLowerCase().trim();
+    if (q) {
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.code.toLowerCase().includes(q) ||
+        (p.brand && p.brand.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q))
+      );
     }
-    return products.slice(0, 9);
-  }, [searchQuery, selectedCategory, products, quick9Products]);
 
-  const saveCustomQuickProducts = (ids: number[]) => {
-    setCustomQuickProductIds(ids);
-    try {
-      localStorage.setItem(`market_almacen_quick_prods_${selectedCompanyId}`, JSON.stringify(ids));
-    } catch {}
-    setIsQuickConfigOpen(false);
+    return result;
+  }, [products, selectedCategory, searchQuery]);
+
+  // Paginacion de catalogo (20 items por vista)
+  const PAGE_SIZE = 20;
+  const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE) || 1;
+  const displayedCatalogProducts = useMemo(() => {
+    const start = catalogPage * PAGE_SIZE;
+    return filteredProducts.slice(start, start + PAGE_SIZE);
+  }, [filteredProducts, catalogPage]);
+
+  // Agregar al carrito
+  const handleAddToCart = (product: Product, forceChoice?: 'NORMAL' | 'OFFER', requestedQty: number = 1) => {
+    if (isReadOnly) return;
+
+    const isWeighable = product.unit === 'Kg' || product.unit === 'Gramos' || product.category === 'Panadería y Pastelería' || product.category === 'Frutas y Verduras';
+    if (isWeighable) {
+      setSelectedWeighableProduct(product);
+      setIsWeighableModalOpen(true);
+      return;
+    }
+
+    if (product.stock <= 0) {
+      alert('Este producto no tiene stock disponible.');
+      return;
+    }
+
+    const hasOffer = Boolean(
+      product.offerPrice &&
+      product.offerPrice > 0 &&
+      (product.offerStockRemaining === undefined || product.offerStockRemaining > 0)
+    );
+
+    if (hasOffer && !forceChoice) {
+      setPriceChoiceProduct(product);
+      setPriceChoiceQty(1);
+      return;
+    }
+
+    const isTakingOffer = forceChoice === 'OFFER';
+    const regularPrice = product.price && product.price > 0 ? product.price : 1000;
+    const effectivePrice = isTakingOffer ? product.offerPrice! : regularPrice;
+    const qtyToAdd = Math.max(1, requestedQty);
+
+    setCart(prev => {
+      const existingIndex = prev.findIndex(item => item.productId === product.id && item.isOffer === isTakingOffer);
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        const updatedQty = Number((next[existingIndex].quantity + qtyToAdd).toFixed(3));
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: updatedQty,
+          subtotal: Math.round(updatedQty * next[existingIndex].unitPrice)
+        };
+        return next;
+      }
+
+      const newItem: SaleItem = {
+        productId: product.id,
+        productName: isTakingOffer && product.offerLabel ? `${product.name} (${product.offerLabel})` : product.name,
+        productCode: product.code,
+        quantity: qtyToAdd,
+        unitPrice: effectivePrice,
+        subtotal: Math.round(qtyToAdd * effectivePrice),
+        unit: product.unit || 'UN',
+        isOffer: isTakingOffer
+      };
+      return [...prev, newItem];
+    });
   };
 
   const handleAddToCartDirect = (saleItem: SaleItem) => {
     if (isReadOnly) return;
     setCart(prev => {
-      // Si el ítem ya existe por código exacto o nombre exacto
-      const existingIndex = prev.findIndex(item => item.productCode === saleItem.productCode || (item.productId && item.productId === saleItem.productId));
+      const existingIndex = prev.findIndex(item => item.productCode === saleItem.productCode);
       if (existingIndex >= 0) {
         const next = [...prev];
         const updatedQty = Number((next[existingIndex].quantity + saleItem.quantity).toFixed(3));
@@ -377,1363 +470,893 @@ export const SalesView: React.FC<SalesViewProps> = ({
     });
   };
 
-  useEffect(() => {
-    onCartCountChange?.(cart.reduce((a, b) => a + b.quantity, 0));
-  }, [cart, onCartCountChange]);
-
-  const handleAddToCart = (product: Product, forceChoice?: 'NORMAL' | 'OFFER', requestedQty: number = 1) => {
-    if (isReadOnly) return;
-
-    // Si el producto es pesable (Kg o Gramos o Panadería / Verdulería), abrir modal de pesaje
-    const isWeighable = product.unit === 'Kg' || product.unit === 'Gramos' || product.category === 'Panadería y Pastelería' || product.category === 'Frutas y Verduras';
-    if (isWeighable) {
-      setSelectedWeighableProduct(product);
-      setIsWeighableModalOpen(true);
-      return;
-    }
-
-    if (product.stock <= 0) {
-      alert('Este producto no tiene stock disponible.');
-      return;
-    }
-
-    // Verificar si el producto tiene oferta/liquidación activa por lote
-    const hasOffer = Boolean(
-      product.offerPrice && 
-      product.offerPrice > 0 && 
-      (product.offerStockRemaining === undefined || product.offerStockRemaining > 0)
+  const handleUpdateQuantity = (productId?: number, delta: number = 0, isOffer?: boolean) => {
+    setCart(prev =>
+      prev.map(item => {
+        if (item.productId === productId && item.isOffer === isOffer) {
+          const newQty = Number((item.quantity + delta).toFixed(3));
+          if (newQty <= 0) return null;
+          return {
+            ...item,
+            quantity: newQty,
+            subtotal: Math.round(newQty * item.unitPrice)
+          };
+        }
+        return item;
+      }).filter(Boolean) as SaleItem[]
     );
+  };
 
-    // Si tiene oferta activa y no se especificó cuál precio llevar, abrir modal de selección
-    if (hasOffer && !forceChoice) {
-      setPriceChoiceProduct(product);
-      setPriceChoiceQty(1);
+  const handleSetQuantity = (productId?: number, exactQty: number = 1, isOffer?: boolean) => {
+    if (exactQty <= 0) {
+      handleRemoveFromCart(productId, isOffer);
       return;
     }
-
-    const isTakingOffer = forceChoice === 'OFFER';
-    const regularPrice = product.price && product.price > 0 ? product.price : 10000;
-    const effectivePrice = isTakingOffer ? product.offerPrice! : regularPrice;
-    const maxOfferRemaining = product.offerStockRemaining !== undefined ? product.offerStockRemaining : (product.offerStockLimit || 0);
-    const qtyToAdd = Math.max(1, requestedQty);
-
-    setCart(prev => {
-      // Diferenciar en el carrito si se lleva a precio normal o de liquidación
-      const existingIndex = prev.findIndex(item => item.productId === product.id && Boolean(item.isOffer) === isTakingOffer);
-
-      // Validar stock total en tienda
-      const otherInCart = prev
-        .filter(item => item.productId === product.id && (existingIndex < 0 || prev[existingIndex] !== item))
-        .reduce((sum, item) => sum + item.quantity, 0);
-
-      const existingQty = existingIndex >= 0 ? prev[existingIndex].quantity : 0;
-      if (otherInCart + existingQty + qtyToAdd > product.stock) {
-        alert(`Stock máximo disponible en tienda: ${product.stock} ${product.unit || 'UN'}`);
-        return prev;
-      }
-
-      // Si lleva oferta, validar unidades restantes disponibles en liquidación
-      if (isTakingOffer) {
-        const offerInCart = prev
-          .filter(item => item.productId === product.id && item.isOffer && (existingIndex < 0 || prev[existingIndex] !== item))
-          .reduce((sum, item) => sum + item.quantity, 0);
-
-        if (offerInCart + existingQty + qtyToAdd > maxOfferRemaining) {
-          alert(`Solo quedan ${maxOfferRemaining} unidades disponibles a precio de liquidación. El resto debe llevarse a precio normal.`);
-          return prev;
-        }
-      }
-
-      if (existingIndex >= 0) {
-        const existing = prev[existingIndex];
-        const next = [...prev];
-        const nextQty = existing.quantity + qtyToAdd;
-        next[existingIndex] = {
-          ...existing,
-          quantity: nextQty,
-          subtotal: Math.round(nextQty * existing.unitPrice)
-        };
-        return next;
-      } else {
-        return [
-          ...prev,
-          {
-            productId: product.id,
-            productCode: product.code,
-            productName: product.name,
-            quantity: qtyToAdd,
-            unitPrice: effectivePrice,
-            originalPrice: regularPrice,
-            isOffer: isTakingOffer,
-            subtotal: Math.round(qtyToAdd * effectivePrice),
-            unit: product.unit || 'UN'
-          }
-        ];
-      }
-    });
-  };
-
-  const handleOpenOfferModal = (prod: Product, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSelectedProductForOffer(prod);
-    setOfferPriceInput(prod.offerPrice || Math.round((prod.price || 1000) * 0.8));
-    setOfferStockLimitInput(prod.offerStockRemaining || Math.min(20, prod.stock));
-    setOfferLabelInput(prod.offerLabel || 'Liquidación');
-  };
-
-  const handleSaveProductOffer = async () => {
-    if (!selectedProductForOffer || !selectedProductForOffer.id) return;
-    const priceNum = Number(offerPriceInput);
-    const qtyNum = Number(offerStockLimitInput);
-
-    if (isNaN(priceNum) || priceNum <= 0) {
-      alert('Ingrese un precio de oferta válido.');
-      return;
-    }
-    if (isNaN(qtyNum) || qtyNum <= 0) {
-      alert('Ingrese una cantidad válida de unidades para la oferta.');
-      return;
-    }
-
-    await db.products.update(selectedProductForOffer.id, {
-      offerPrice: priceNum,
-      offerStockLimit: qtyNum,
-      offerStockRemaining: qtyNum,
-      offerLabel: offerLabelInput.trim() || 'Liquidación'
-    });
-
-    await loadProducts();
-    setSelectedProductForOffer(null);
-  };
-
-  const handleRemoveProductOffer = async () => {
-    if (!selectedProductForOffer || !selectedProductForOffer.id) return;
-    await db.products.update(selectedProductForOffer.id, {
-      offerPrice: undefined,
-      offerStockLimit: undefined,
-      offerStockRemaining: undefined,
-      offerLabel: undefined
-    });
-    await loadProducts();
-    setSelectedProductForOffer(null);
-  };
-
-  const handleSetQuantity = (productId: number | undefined, rawQty: number, isOffer?: boolean, productCode?: string) => {
-    if (isNaN(rawQty) || rawQty <= 0) return;
-
-    setCart(prev => {
-      return prev.map(item => {
-        const match = ((productId && item.productId === productId) || (productCode && item.productCode === productCode)) && (isOffer === undefined || Boolean(item.isOffer) === Boolean(isOffer));
-        if (!match) return item;
-
-        let newQty = rawQty;
-        if (item.unit !== 'Kg' && item.unit !== 'Gramos') {
-          newQty = Math.max(1, Math.round(newQty));
-        }
-
-        // Validar stock total en tienda
-        if (item.productId) {
-          const prod = products.find(p => p.id === item.productId);
-          if (prod) {
-            const otherInCart = prev
-              .filter(p => p.productId === item.productId && p !== item)
-              .reduce((sum, p) => sum + p.quantity, 0);
-
-            if (otherInCart + newQty > prod.stock) {
-              alert(`Stock máximo disponible en tienda: ${prod.stock} ${prod.unit || 'UN'}`);
-              newQty = Math.max(1, prod.stock - otherInCart);
-            }
-
-            if (item.isOffer) {
-              const maxOfferRem = prod.offerStockRemaining !== undefined ? prod.offerStockRemaining : (prod.offerStockLimit || 0);
-              if (newQty > maxOfferRem) {
-                alert(`Solo quedan ${maxOfferRem} unidades disponibles a precio de liquidación.`);
-                newQty = maxOfferRem;
-              }
-            }
-          }
-        }
-
-        return {
-          ...item,
-          quantity: newQty,
-          subtotal: Math.round(newQty * item.unitPrice)
-        };
-      });
-    });
-  };
-
-  const handleUpdateQuantity = (productId?: number, delta: number = 1, isOffer?: boolean, productCode?: string) => {
-    setCart(prev => {
-      return prev
-        .map(item => {
-          const match = ((productId && item.productId === productId) || (productCode && item.productCode === productCode)) && (isOffer === undefined || Boolean(item.isOffer) === Boolean(isOffer));
-          if (match) {
-            const step = (item.unit === 'Kg' || item.unit === 'Gramos' || !Number.isInteger(item.quantity)) ? (delta > 0 ? 0.250 : -0.250) : delta;
-            const newQty = Number((item.quantity + step).toFixed(3));
-            if (newQty <= 0) return null;
-
-            // Validar stock si aumenta
-            if (delta > 0 && item.productId) {
-              const prod = products.find(p => p.id === item.productId);
-              if (prod) {
-                const totalInCart = prev
-                  .filter(p => p.productId === item.productId)
-                  .reduce((sum, p) => sum + (p === item ? newQty : p.quantity), 0);
-                if (totalInCart > prod.stock) {
-                  alert(`Stock máximo disponible: ${prod.stock} ${prod.unit || 'UN'}`);
-                  return item;
-                }
-                if (item.isOffer) {
-                  const maxOfferRem = prod.offerStockRemaining !== undefined ? prod.offerStockRemaining : (prod.offerStockLimit || 0);
-                  if (newQty > maxOfferRem) {
-                    alert(`Solo quedan ${maxOfferRem} unidades disponibles a precio de liquidación.`);
-                    return item;
-                  }
-                }
-              }
-            }
-
-            return {
-              ...item,
-              quantity: newQty,
-              subtotal: Math.round(newQty * item.unitPrice)
-            };
-          }
-          return item;
-        })
-        .filter(Boolean) as SaleItem[];
-    });
-  };
-
-  const handleRemoveFromCart = (productId: number, isOffer?: boolean) => {
-    setCart(prev => prev.filter(item => !(item.productId === productId && (isOffer === undefined || Boolean(item.isOffer) === Boolean(isOffer)))));
-  };
-
-  // Permite al vendedor alternar en el carrito si el cliente lleva a precio normal o de liquidación
-  const handleToggleCartItemPrice = (itemToToggle: SaleItem) => {
-    if (!itemToToggle.productId) return;
-    const prod = products.find(p => p.id === itemToToggle.productId);
-    if (!prod) return;
-
-    const currentlyOffer = Boolean(itemToToggle.isOffer);
-    const targetOffer = !currentlyOffer;
-
-    if (targetOffer) {
-      // Pasar a precio de liquidación
-      const hasOffer = Boolean(prod.offerPrice && prod.offerPrice > 0 && (prod.offerStockRemaining === undefined || prod.offerStockRemaining > 0));
-      if (!hasOffer) {
-        alert('Este producto ya no cuenta con unidades disponibles en liquidación.');
-        return;
-      }
-      const maxOfferRem = prod.offerStockRemaining !== undefined ? prod.offerStockRemaining : (prod.offerStockLimit || 0);
-      const otherOfferInCart = cart
-        .filter(it => it.productId === prod.id && it.isOffer && it !== itemToToggle)
-        .reduce((sum, it) => sum + it.quantity, 0);
-
-      if (otherOfferInCart + itemToToggle.quantity > maxOfferRem) {
-        alert(`Solo quedan ${maxOfferRem} unidades en liquidación (ya tienes ${otherOfferInCart} en el carrito).`);
-        return;
-      }
-
-      setCart(prev => {
-        const withoutCurrent = prev.filter(it => it !== itemToToggle);
-        const existingOfferIndex = withoutCurrent.findIndex(it => it.productId === prod.id && it.isOffer);
-        const offerUnitPrice = prod.offerPrice!;
-
-        if (existingOfferIndex >= 0) {
-          const mergedQty = withoutCurrent[existingOfferIndex].quantity + itemToToggle.quantity;
-          withoutCurrent[existingOfferIndex] = {
-            ...withoutCurrent[existingOfferIndex],
-            quantity: mergedQty,
-            subtotal: Math.round(mergedQty * offerUnitPrice)
+    setCart(prev =>
+      prev.map(item => {
+        if (item.productId === productId && item.isOffer === isOffer) {
+          return {
+            ...item,
+            quantity: exactQty,
+            subtotal: Math.round(exactQty * item.unitPrice)
           };
-          return withoutCurrent;
-        } else {
-          return [
-            ...withoutCurrent,
-            {
-              ...itemToToggle,
-              isOffer: true,
-              unitPrice: offerUnitPrice,
-              subtotal: Math.round(itemToToggle.quantity * offerUnitPrice)
-            }
-          ];
         }
-      });
-    } else {
-      // Pasar a precio normal
-      const regularPrice = prod.price && prod.price > 0 ? prod.price : (itemToToggle.originalPrice || 10000);
-      setCart(prev => {
-        const withoutCurrent = prev.filter(it => it !== itemToToggle);
-        const existingNormalIndex = withoutCurrent.findIndex(it => it.productId === prod.id && !it.isOffer);
+        return item;
+      })
+    );
+  };
 
-        if (existingNormalIndex >= 0) {
-          const mergedQty = withoutCurrent[existingNormalIndex].quantity + itemToToggle.quantity;
-          withoutCurrent[existingNormalIndex] = {
-            ...withoutCurrent[existingNormalIndex],
-            quantity: mergedQty,
-            subtotal: Math.round(mergedQty * regularPrice)
-          };
-          return withoutCurrent;
-        } else {
-          return [
-            ...withoutCurrent,
-            {
-              ...itemToToggle,
-              isOffer: false,
-              unitPrice: regularPrice,
-              subtotal: Math.round(itemToToggle.quantity * regularPrice)
-            }
-          ];
-        }
-      });
-    }
+  const handleRemoveFromCart = (productId?: number, isOffer?: boolean) => {
+    setCart(prev => prev.filter(item => !(item.productId === productId && item.isOffer === isOffer)));
   };
 
   const handleClearCart = () => {
-    if (cart.length === 0) return;
-    if (window.confirm('¿Desea vaciar todos los productos del carrito actual?')) {
-      setCart([]);
-    }
-  };
-
-  const cartSubtotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
-  const cartNeto = Math.round(cartSubtotal / 1.19);
-  const cartIva = cartSubtotal - cartNeto;
-
-  const handleSaleCompleted = (sale: Sale) => {
     setCart([]);
-    loadProducts();
-    loadSalesHistory();
-    setSelectedSaleForDetails(sale);
-    setIsDetailsOpen(true);
   };
 
-  const handleQuickPrint = async (sale: Sale, type: 'ticket' | 'invoice') => {
-    const config = await db.siiConfigs.where('companyId').equals(sale.companyId).first();
-    const doc = type === 'ticket'
-      ? generateSaleThermalTicketPDF(sale, selectedCompany, config)
-      : generateSaleInvoicePDF(sale, selectedCompany, config);
-    setPdfDoc(doc);
-    setPdfTitle(type === 'ticket' ? `Ticket POS - ${sale.folio}` : `DTE Oficial - ${sale.folio}`);
-    setPdfFilename(`${type === 'ticket' ? 'Ticket' : 'DTE'}_${sale.folio}.pdf`);
-    setIsPdfModalOpen(true);
-  };
+  const cartSubtotal = useMemo(() => {
+    return cart.reduce((acc, item) => acc + item.subtotal, 0);
+  }, [cart]);
 
-  const now = new Date();
-  const chileToday = getChileLocalDateString(now);
-  const utcToday = now.toISOString().slice(0, 10);
-  const currentChileMonth = chileToday.slice(0, 7);
-  const currentUtcMonth = utcToday.slice(0, 7);
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const totalCartUnits = useMemo(() => {
+    return cart.reduce((acc, item) => acc + item.quantity, 0);
+  }, [cart]);
 
-  const filteredSalesHistory = salesHistory.filter(s => {
-    // 1. Filtro por tipo de documento (Boleta, Factura, Venta Interna)
-    if (historyDteTypeFilter === 'BOLETA' && !s.dteType.toUpperCase().includes('BOLETA')) return false;
-    if (historyDteTypeFilter === 'FACTURA' && !s.dteType.toUpperCase().includes('FACTURA')) return false;
-    if (historyDteTypeFilter === 'INTERNA') {
-      const isInternal = s.dteType.toUpperCase().includes('INTERNA') || 
-                         s.dteType.toUpperCase().includes('TICKET') || 
-                         (!s.dteType.toUpperCase().includes('BOLETA') && !s.dteType.toUpperCase().includes('FACTURA'));
-      if (!isInternal) return false;
-    }
-
-    // 2. Buscador por cliente, número de boleta, RUT, vendedor, medio de pago, producto
-    const q = historySearch.toLowerCase().trim();
-    if (q) {
-      const matchFolio = String(s.folio || '').toLowerCase().includes(q) || `#${s.folio}`.toLowerCase().includes(q);
-      const matchCustomer = String(s.customerName || '').toLowerCase().includes(q) || String(s.customerRut || '').toLowerCase().includes(q);
-      const matchSeller = String(s.sellerName || '').toLowerCase().includes(q);
-      const matchDte = String(s.dteType || '').toLowerCase().includes(q);
-      const matchPayment = String(s.paymentMethod || '').toLowerCase().includes(q);
-      const matchItems = s.items?.some(it => 
-        (it.productName && it.productName.toLowerCase().includes(q)) || (it.productCode && it.productCode.toLowerCase().includes(q))
-      );
-      if (!matchFolio && !matchCustomer && !matchSeller && !matchDte && !matchPayment && !matchItems) {
-        return false;
-      }
-    }
-
-    // 3. Buscador tipo calendario para las fechas
-    if (historyCalendarDate) {
-      const saleDate = s.date || '';
-      const saleCreatedDate = s.createdAt ? s.createdAt.slice(0, 10) : '';
-      const saleChileDate = s.createdAt ? getChileLocalDateString(new Date(s.createdAt)) : '';
-      const matchesCalendar = saleDate === historyCalendarDate || saleCreatedDate === historyCalendarDate || saleChileDate === historyCalendarDate;
-      if (!matchesCalendar) return false;
-    } else if (historyDateFilter === 'today') {
-      const saleDate = s.date || '';
-      const saleCreatedDate = s.createdAt ? s.createdAt.slice(0, 10) : '';
-      const saleChileDate = s.createdAt ? getChileLocalDateString(new Date(s.createdAt)) : '';
-      return saleDate === chileToday || saleDate === utcToday || saleCreatedDate === utcToday || saleChileDate === chileToday;
-    } else if (historyDateFilter === '7days') {
-      const saleTime = s.createdAt ? new Date(s.createdAt).getTime() : new Date(s.date).getTime();
-      return !isNaN(saleTime) && saleTime >= sevenDaysAgo;
-    } else if (historyDateFilter === 'month') {
-      const saleDate = s.date || '';
-      const saleCreatedDate = s.createdAt ? s.createdAt.slice(0, 7) : '';
-      return saleDate.startsWith(currentChileMonth) || saleDate.startsWith(currentUtcMonth) || saleCreatedDate === currentChileMonth || saleCreatedDate === currentUtcMonth;
-    }
-
-    return true;
-  });
-
-  const totalHistoryRevenue = filteredSalesHistory
-    .filter(s => s.status !== 'ANULADA')
-    .reduce((acc, s) => acc + s.total, 0);
-
-  const totalBoletasCount = salesHistory
-    .filter(s => s.status !== 'ANULADA' && s.dteType.toUpperCase().includes('BOLETA')).length;
-
-  const totalFacturasCount = salesHistory
-    .filter(s => s.status !== 'ANULADA' && s.dteType.toUpperCase().includes('FACTURA')).length;
-
-  const totalInternasCount = salesHistory
-    .filter(s => s.status !== 'ANULADA' && !s.dteType.toUpperCase().includes('BOLETA') && !s.dteType.toUpperCase().includes('FACTURA')).length;
-
-  const totalBoletasRevenue = salesHistory
-    .filter(s => s.status !== 'ANULADA' && s.dteType.toUpperCase().includes('BOLETA'))
-    .reduce((acc, s) => acc + (s.total || 0), 0);
-
-  const totalFacturasRevenue = salesHistory
-    .filter(s => s.status !== 'ANULADA' && s.dteType.toUpperCase().includes('FACTURA'))
-    .reduce((acc, s) => acc + (s.total || 0), 0);
-
-  const totalInternasRevenue = salesHistory
-    .filter(s => s.status !== 'ANULADA' && !s.dteType.toUpperCase().includes('BOLETA') && !s.dteType.toUpperCase().includes('FACTURA'))
-    .reduce((acc, s) => acc + (s.total || 0), 0);
-
-  // Función exclusiva para SUPERADMIN: Borrar historial de ventas y reiniciar folios
-  const handleSuperadminPurgeSales = async () => {
-    const pwd = prompt('⚠️ ATENCIÓN SUPERADMIN / ADMINISTRADOR:\n\nEsta acción eliminará el historial de ventas registrado.\nIngrese la Clave de Super Administrador (Mauricio2026 o clave admin) para proceder:');
-    if (!pwd) return;
-
-    if (pwd !== 'Mauricio2026' && pwd !== 'admin' && pwd !== currentUser?.password) {
-      alert('❌ Clave incorrecta. Solo el Super Administrador puede vaciar el historial.');
+  // Generar Cotizacion en PDF
+  const handleGenerateQuotation = async () => {
+    if (cart.length === 0) {
+      alert('El carrito está vacío. Agrega productos para generar la cotización.');
       return;
     }
 
-    const resetFolios = confirm('¿Desea además REINICIAR LOS CORRELATIVOS de Boleta y Factura al número 1 para comenzar de cero?');
-
     try {
-      if (selectedCompanyId === 'ALL') {
-        await db.sales.clear();
-      } else {
-        await db.sales.where('companyId').equals(selectedCompanyId).delete();
-      }
+      const selectedCustomer = customers.find(c => String(c.id) === String(selectedCustomerId));
+      const dummySale: Sale = {
+        folio: `COT-${Date.now().toString().slice(-5)}`,
+        date: new Date().toISOString(),
+        time: new Date().toLocaleTimeString('es-CL'),
+        companyId: selectedCompanyId,
+        companyName: selectedCompany?.name || 'MARKET ALMACEN SpA',
+        sellerName: currentUser?.name || 'Vendedor',
+        customerName: selectedCustomer ? (selectedCustomer.businessName || selectedCustomer.tradeName) : 'Cliente Final',
+        customerRut: selectedCustomer ? selectedCustomer.rut : undefined,
+        customerBusiness: selectedCustomer ? selectedCustomer.industry : undefined,
+        customerAddress: selectedCustomer ? selectedCustomer.address : undefined,
+        items: cart,
+        subtotalNeto: Math.round(cartSubtotal / 1.19),
+        iva: Math.round(cartSubtotal - (cartSubtotal / 1.19)),
+        total: cartSubtotal,
+        amountPaid: cartSubtotal,
+        cashChange: 0,
+        paymentMethod: 'EFECTIVO',
+        dteType: 'TICKET_INTERNO',
+        siiStatus: 'EMITIDO',
+        status: 'COMPLETADA',
+        createdAt: new Date().toISOString()
+      };
 
-      if (resetFolios) {
-        const configs = await db.siiConfigs.toArray();
-        for (const cfg of configs) {
-          if (selectedCompanyId === 'ALL' || cfg.companyId === selectedCompanyId) {
-            await db.siiConfigs.update(cfg.id!, {
-              nextBoletaFolio: 1,
-              nextFacturaFolio: 1,
-              nextExentaFolio: 1,
-              updatedAt: new Date().toISOString()
-            });
-          }
-        }
-      }
-
-      alert('✅ Historial de ventas vaciado exitosamente' + (resetFolios ? ' y folios reiniciados al número 1.' : '.'));
-      loadSalesHistory();
-      setCart([]);
-    } catch (err) {
-      console.error('Error al purgar ventas:', err);
-      alert('Ocurrió un error al vaciar el historial de ventas.');
+      const doc = generateSaleInvoicePDF(dummySale, selectedCompany);
+      setPdfDoc(doc);
+      setPdfFilename(`Cotizacion_${Date.now()}.pdf`);
+      setPdfTitle('Cotización de Venta - Market Almacén');
+      setIsPdfModalOpen(true);
+    } catch (err: any) {
+      alert('Error al generar cotización: ' + err.message);
     }
   };
 
+  // Abrir Ultima Venta
+  const handleOpenLastSale = () => {
+    if (salesHistory.length === 0) {
+      alert('No hay ventas registradas aún en el historial.');
+      return;
+    }
+    setSelectedSaleForDetails(salesHistory[0]);
+    setIsDetailsOpen(true);
+  };
+
+  // Resumen del turno actual
+  const todaySalesSummary = useMemo(() => {
+    const todayStr = getChileLocalDateString();
+    const todaySales = salesHistory.filter(s => s.status !== 'ANULADA' && (s.date || '').startsWith(todayStr));
+    const totalRevenue = todaySales.reduce((sum, s) => sum + (s.total || 0), 0);
+    const cashRevenue = todaySales.filter(s => s.paymentMethod === 'EFECTIVO').reduce((sum, s) => sum + (s.total || 0), 0);
+    const cardRevenue = todaySales.filter(s => s.paymentMethod === 'DEBITO' || s.paymentMethod === 'CREDITO').reduce((sum, s) => sum + (s.total || 0), 0);
+    const transferRevenue = todaySales.filter(s => s.paymentMethod === 'TRANSFERENCIA').reduce((sum, s) => sum + (s.total || 0), 0);
+    return {
+      count: todaySales.length,
+      totalRevenue,
+      cashRevenue,
+      cardRevenue,
+      transferRevenue
+    };
+  }, [salesHistory]);
+
   return (
-    <div className={`h-full flex-1 flex flex-col space-y-1.5 ${activeSubTab === "history" ? "overflow-y-auto pb-28 lg:pb-6" : "overflow-y-auto lg:overflow-hidden pb-28 lg:pb-0"} animate-fadeIn`}>
-      {/* 1. Encabezado de HISTORIAL (Alineado exactamente con la columna del Menú de Ventas) */}
-      {activeSubTab === 'history' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
-          <div className="lg:col-span-7 xl:col-span-8">
-            <div className={`p-2.5 sm:p-3 rounded-2xl border ${themeClasses.card} shadow-xs flex flex-wrap items-center justify-between gap-2`}>
-              <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 ${themeClasses.accentBg}`}>
-                  <ShoppingCart className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h1 className="text-base font-black flex items-center gap-1.5 text-slate-900 dark:text-white">
-                    <span>Historial de Ventas & DTE</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${themeClasses.badge}`}>
-                      DTE
-                    </span>
-                  </h1>
-                  <p className="text-[11px] opacity-75 hidden sm:block font-bold">
-                    Boletas, Facturas y Cierres Z
-                  </p>
-                </div>
-              </div>
+    <div className="h-full flex-1 flex flex-col bg-slate-100 dark:bg-[#0b1118] text-slate-800 dark:text-slate-100 overflow-hidden select-none">
+      
+      {/* ========================================================================= */}
+      {/* 1. BARRA SUPERIOR (HEADER POS AZUL PETROLEO ESTILO MONITOR LG)             */}
+      {/* ========================================================================= */}
+      <header className="h-12 bg-[#0b3b5b] text-white flex items-center justify-between px-3 shrink-0 shadow-md z-20 border-b border-[#082a42]">
+        {/* Lado Izquierdo: Burger + Reloj en vivo + Home + Busqueda */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab(prev => prev === 'pos' ? 'history' : 'pos')}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-white transition active:scale-95 cursor-pointer"
+            title="Cambiar entre Terminal POS e Historial"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
 
-              {/* Botones de navegación en el encabezado */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <div className={`flex items-center p-0.5 rounded-2xl border ${themeClasses.cardSubtle}`}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('pos')}
-                    className="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Terminal POS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('history')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${themeClasses.accentBg} text-white shadow-md`}
-                  >
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Historial ({salesHistory.length})</span>
-                  </button>
-                </div>
+          {/* Reloj chileno en vivo */}
+          <div className="flex items-center gap-1.5 text-xs font-bold text-sky-100/90 pl-1 border-l border-white/20">
+            <span>{currentClock || 'Market Almacén POS'}</span>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsCashClosingOpen(true)}
-                  className={`px-3 py-1.5 rounded-xl border ${themeClasses.cardSubtle} text-xs font-black transition flex items-center gap-1 active:scale-95 shadow-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="hidden sm:inline">Cierre (Z)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsSiiConfigOpen(true)}
-                  className={`px-3 py-1.5 rounded-xl border ${themeClasses.cardSubtle} text-xs font-black transition flex items-center gap-1 active:scale-95 shadow-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
-                >
-                  <Settings className="w-3.5 h-3.5 text-blue-500" />
-                  <span className="hidden sm:inline">SII</span>
-                </button>
-              </div>
-            </div>
+          <div className="hidden sm:flex items-center gap-1 pl-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSubTab('pos');
+                setSelectedCategory('ALL');
+                setSearchQuery('');
+              }}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/90 transition cursor-pointer"
+              title="Inicio / Restablecer Catálogo"
+            >
+              <Home className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => barcodeInputRef.current?.focus()}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/90 transition cursor-pointer"
+              title="Foco en Búsqueda y Código de Barras"
+            >
+              <Search className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* POS Terminal: Orden y Presentación Exacta como Imagen 2 */}
+        {/* Centro: Accesos directos de Caja y Turno */}
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-black uppercase tracking-wider">
+          <button
+            type="button"
+            onClick={() => setIsTurnModalOpen(true)}
+            className="px-2.5 py-1 rounded bg-[#0e4d77] hover:bg-[#135a8b] text-sky-100 transition cursor-pointer shadow-2xs"
+          >
+            VENTA DE TURNO
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('history')}
+            className="px-2.5 py-1 rounded bg-[#0e4d77] hover:bg-[#135a8b] text-sky-100 transition cursor-pointer shadow-2xs"
+          >
+            VENTA TOTAL
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCashClosingOpen(true)}
+            className="px-2.5 py-1 rounded bg-[#082a42] hover:bg-[#051c2d] text-amber-300 font-black transition cursor-pointer shadow-2xs flex items-center gap-1"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>CIERRE DE CAJA</span>
+          </button>
+        </div>
+
+        {/* Lado Derecho: Usuario Activo + Boton Verde Categorias */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden md:flex items-center gap-1.5 text-xs font-bold text-white/90 bg-white/10 px-2.5 py-1 rounded-lg">
+            <User className="w-3.5 h-3.5 text-sky-300" />
+            <span className="truncate max-w-[130px]">{currentUser?.name || 'admin Molina'}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCategorySidebar(prev => !prev)}
+            className={`px-3 py-1 rounded-md text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+              showCategorySidebar
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-700'
+            }`}
+            title="Mostrar / Ocultar panel de Categorías"
+          >
+            <Folder className="w-3.5 h-3.5" />
+            <span>Categorías</span>
+          </button>
+        </div>
+      </header>
+
+      {/* ========================================================================= */}
+      {/* 2. AREA PRINCIPAL: TERMINAL POS (3 COLUMNAS ESTILO MONITOR LG)            */}
+      {/* ========================================================================= */}
       {activeSubTab === 'pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch flex-1 h-full min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row h-[calc(100%-3rem)] overflow-hidden">
           
-          {/* Columna Izquierda: Encabezado -> Buscador -> Categorías + 9 Favoritos en 1 sola línea -> Tarjetas */}
-          <div className={`lg:col-span-5 xl:col-span-5 ${mobilePosTab === 'catalog' ? 'flex' : 'hidden lg:flex'} flex-col justify-start space-y-1.5 h-full min-h-0 overflow-hidden pb-14 lg:pb-0`}>
+          {/* --------------------------------------------------------------------- */}
+          {/* COLUMNA 1: PANEL IZQUIERDO DE VENTA Y COBRO (~33% ANCHO)             */}
+          {/* --------------------------------------------------------------------- */}
+          <section className="w-full lg:w-[35%] xl:w-[32%] shrink-0 flex flex-col h-full bg-white dark:bg-[#0d1620] border-r border-slate-200 dark:border-slate-800 shadow-md p-2.5 sm:p-3 overflow-hidden">
             
-            {/* 1. ENCABEZADO POS */}
-            <div className={`p-2.5 sm:p-3 rounded-2xl border ${themeClasses.card} shadow-xs flex flex-wrap items-center justify-between gap-2`}>
-              <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 ${themeClasses.accentBg}`}>
-                  <ShoppingCart className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h1 className="text-base font-black flex items-center gap-1.5 text-slate-900 dark:text-white">
-                    <span>Punto de Venta & Facturación SII</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${themeClasses.badge}`}>
-                      POS
-                    </span>
-                  </h1>
-                  <p className="text-[11px] opacity-75 hidden sm:block font-bold">
-                    Ventas rápidas, Boletas/Facturas Electrónicas y Cierre de Caja
-                  </p>
-                </div>
-              </div>
-
-              {/* Botones de navegación en el encabezado */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <div className={`flex items-center p-0.5 rounded-2xl border ${themeClasses.cardSubtle}`}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('pos')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${themeClasses.accentBg} text-white shadow-md`}
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Terminal POS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubTab('history')}
-                    className="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  >
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Historial ({salesHistory.length})</span>
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsCashClosingOpen(true)}
-                  className={`px-3 py-1.5 rounded-xl border ${themeClasses.cardSubtle} text-xs font-black transition flex items-center gap-1 active:scale-95 shadow-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="hidden sm:inline">Cierre (Z)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsSiiConfigOpen(true)}
-                  className={`px-3 py-1.5 rounded-xl border ${themeClasses.cardSubtle} text-xs font-black transition flex items-center gap-1 active:scale-95 shadow-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800`}
-                >
-                  <Settings className="w-3.5 h-3.5 text-blue-500" />
-                  <span className="hidden sm:inline">SII</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 2. BARRA DE BÚSQUEDA Y VENTA POR PESO (Con botón cámara/código de barras y botón peso compacto) */}
-            <div className={`flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl border ${themeClasses.card} shadow-xs`}>
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-60 text-blue-600" />
-                <input
-                  type="text"
-                  id="pos-search-input"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      const exact = products.find(p => p.code.toLowerCase() === searchQuery.trim().toLowerCase());
-                      if (exact) {
-                        handleAddToCart(exact);
-                        setSearchQuery('');
-                      }
-                    }
-                  }}
-                  placeholder="Buscar producto..."
-                  className="w-full pl-8 sm:pl-9 pr-9 sm:pr-10 py-1.5 sm:py-2 rounded-xl bg-transparent border-none text-xs sm:text-sm font-black focus:outline-none placeholder:font-normal"
-                />
-                {/* Botón Escanear Código con la Cámara */}
-                {onOpenScanner && (
-                  <button
-                    type="button"
-                    onClick={onOpenScanner}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center active:scale-90"
-                    title="Pistolear / Escanear código de barras con la cámara"
-                  >
-                    <Barcode className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Botón Venta por Peso / Granel: Compacto en móvil para no robar espacio */}
+            {/* Botones Superiores: AGREGAR PRODUCTO COMUN | ULTIMA VENTA */}
+            <div className="grid grid-cols-2 gap-2 mb-2 shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedWeighableProduct(null);
-                  setIsWeighableModalOpen(true);
-                }}
-                className="px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-2 border-amber-500/40 text-xs sm:text-sm font-black transition flex items-center gap-1 sm:gap-2 shrink-0 shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
-                title="Venta de Pan, Papas, Frutas, Verduras y Productos por Peso o Monto"
+                onClick={() => setIsCommonProductModalOpen(true)}
+                className="bg-[#00a8e8] hover:bg-[#0092ca] active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                title="Agregar producto rápido con precio y nombre personalizado"
               >
-                <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-600 dark:text-amber-400" />
-                <span className="sm:hidden">Peso</span>
-                <span className="hidden sm:inline">Venta por Peso / Granel</span>
+                AGREGAR PRODUCTO COMÚN
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenLastSale}
+                className="bg-[#0b2b48] hover:bg-[#123b61] active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                title="Ver o reimprimir el comprobante de la última venta"
+              >
+                ÚLTIMA VENTA
               </button>
             </div>
 
-            {/* Resultados de Búsqueda Rápida en Celular (desplegable inteligente que agrega al tocar) */}
-            {searchQuery.trim().length > 0 && (
-              <div className="lg:hidden p-2 rounded-2xl border-2 border-blue-400 dark:border-blue-700 bg-white dark:bg-slate-900 shadow-2xl space-y-1.5 max-h-64 overflow-y-auto shrink-0 animate-fadeIn">
-                <div className="flex items-center justify-between px-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
-                  <span>Resultados de Búsqueda ({displayedProducts.length})</span>
-                  <span className="text-slate-400 text-[10px]">Toca para agregar al carrito</span>
-                </div>
-                {displayedProducts.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-3 text-center font-bold">No hay productos que coincidan con la búsqueda</p>
+            {/* Selector de Cliente + Boton (+) */}
+            <div className="flex items-center gap-1.5 mb-2 shrink-0">
+              <div className="relative flex-1">
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#162330] border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs rounded-lg px-2.5 py-1.5 font-bold focus:outline-hidden focus:ring-1 focus:ring-sky-500 cursor-pointer"
+                >
+                  <option value="FINAL">Cliente Final</option>
+                  <option value="GENERAL">Público General</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.businessName || c.tradeName || 'Cliente'} {c.rut ? `(${c.rut})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCustomerModalOpen(true)}
+                className="w-8 h-8 rounded-full bg-[#00a8e8] hover:bg-[#0092ca] text-white flex items-center justify-center font-black transition active:scale-95 shrink-0 shadow-xs cursor-pointer"
+                title="Crear o seleccionar cliente para factura o boleta con RUT"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Buscador de Producto y Codigo de Barras */}
+            <div className="relative mb-2 shrink-0">
+              <input
+                ref={barcodeInputRef}
+                id="pos-barcode-search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    handleBarcodeScanned(searchQuery);
+                  }
+                }}
+                placeholder="Codigo de barras, Nombre de producto..."
+                className="w-full bg-slate-50 dark:bg-[#162330] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-xs rounded-lg pl-8 pr-8 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500 shadow-2xs font-medium"
+              />
+              <Barcode className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* TABLA DE PRODUCTOS EN LA COMPRA */}
+            <div className="flex-1 flex flex-col min-h-0 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-[#101a24]">
+              {/* Encabezados de Columna */}
+              <div className="bg-slate-200/80 dark:bg-[#162330] text-slate-700 dark:text-slate-300 text-[10.5px] font-black uppercase px-2 py-1.5 flex items-center justify-between border-b border-slate-300 dark:border-slate-700 select-none">
+                <span className="w-[42%] text-left">PRODUCTO</span>
+                <span className="w-[18%] text-right">PRECIO</span>
+                <span className="w-[20%] text-center">CANTIDAD</span>
+                <span className="w-[15%] text-right">SUBTOTAL</span>
+                <span className="w-[5%] text-center">✕</span>
+              </div>
+
+              {/* Listado de items con scroll */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-200 dark:divide-slate-800/80 p-1">
+                {cart.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-4 text-center">
+                    <ShoppingCart className="w-10 h-10 stroke-[1.5] mb-2 opacity-40 text-sky-500" />
+                    <p className="text-xs font-bold">Carrito de venta vacío</p>
+                    <p className="text-[11px] opacity-75 mt-0.5">Escanea o haz clic en un producto para cargarlo</p>
+                  </div>
                 ) : (
-                  displayedProducts.slice(0, 10).map((prod) => (
-                    <button
-                      key={prod.id}
-                      type="button"
-                      onClick={() => {
-                        handleAddToCart(prod);
-                        setSearchQuery('');
-                      }}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center justify-between text-left transition cursor-pointer active:scale-98"
+                  cart.map((item, idx) => (
+                    <div
+                      key={`${item.productId || 0}-${item.productCode}-${idx}`}
+                      className="py-1.5 px-1 flex items-center justify-between gap-1 text-xs hover:bg-white dark:hover:bg-slate-800/40 transition"
                     >
-                      <div className="min-w-0 flex-1 pr-2">
-                        <p className="text-xs font-black text-slate-900 dark:text-white truncate">{prod.name}</p>
-                        <p className="text-[10px] font-mono text-slate-500">{prod.code} • Stock: {prod.stock || 0} {prod.unit || 'UN'}</p>
+                      {/* Producto con capsula azul marina */}
+                      <div className="w-[42%] min-w-0 pr-1">
+                        <span
+                          className="bg-[#0b2b48] text-white text-[11px] font-bold px-2 py-1 rounded inline-block truncate max-w-full shadow-2xs leading-tight"
+                          title={`${item.productName} (${item.productCode})`}
+                        >
+                          {item.productName} {item.productCode ? `(${item.productCode})` : ''}
+                        </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">${(prod.offerPrice || prod.price || 0).toLocaleString('es-CL')}</p>
-                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">+ Agregar</span>
+
+                      {/* Precio */}
+                      <div className="w-[18%] text-right font-mono font-bold text-slate-700 dark:text-slate-300 text-[11px]">
+                        ${item.unitPrice.toLocaleString('es-CL')}
                       </div>
-                    </button>
+
+                      {/* Control de Cantidad [-] [ qty ] [+] */}
+                      <div className="w-[20%] flex items-center justify-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
+                          className="w-5 h-5 bg-[#0b2b48] hover:bg-[#133f66] text-white rounded flex items-center justify-center active:scale-95 cursor-pointer"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <CartQuantityInput
+                          quantity={item.quantity}
+                          unit={item.unit}
+                          onCommit={(newQty) => handleSetQuantity(item.productId, newQty, item.isOffer)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
+                          className="w-5 h-5 bg-[#0b2b48] hover:bg-[#133f66] text-white rounded flex items-center justify-center active:scale-95 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Subtotal */}
+                      <div className="w-[15%] text-right font-mono font-black text-slate-900 dark:text-emerald-400 text-xs">
+                        ${item.subtotal.toLocaleString('es-CL')}
+                      </div>
+
+                      {/* Boton Eliminar */}
+                      <div className="w-[5%] text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFromCart(item.productId, item.isOffer)}
+                          className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition p-0.5 cursor-pointer"
+                          title="Quitar producto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   ))
                 )}
               </div>
-            )}
+            </div>
 
-            {/* CARRITO DE VENTAS EN CELULAR (Visible directamente en pantalla para cobrar) */}
-            <div className="lg:hidden flex-1 flex flex-col justify-between min-h-0 rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-3.5 shadow-md overflow-hidden">
-              {/* Header del Carrito Móvil con botón de 9 Rápidos al lado */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                    Carrito de Venta
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsQuickPickerOpen(true)}
-                    className="px-2 py-0.5 text-[11px] font-black rounded-lg border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 hover:bg-amber-100 flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 transition"
-                    title="Abrir 9 productos más vendidos"
-                  >
-                    <span>⭐ 9 Rápidos</span>
-                  </button>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
-                    {cart.reduce((a, b) => a + b.quantity, 0)}
-                  </span>
-                </div>
-                {cart.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearCart}
-                    className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 cursor-pointer active:scale-95 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Vaciar
-                  </button>
-                )}
+            {/* SECCION INFERIOR: RESUMEN Y TOTAL DESTACADO */}
+            <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
+              {/* Linea de Items y Descuento */}
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
+                <span>Item {cart.length} ({totalCartUnits})</span>
+                <span>Descuento ($0) $0</span>
               </div>
 
-              {/* Lista de Ítems en el Carrito Móvil */}
-              {cart.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2 opacity-60 min-h-[160px]">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <ShoppingCart className="w-7 h-7 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">Carrito de Venta Vacío</p>
-                  <p className="text-xs font-bold text-slate-500 max-w-[260px]">
-                    Pistolea un código con la cámara, usa el botón de Peso o busca un producto arriba para agregarlo al cobro.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 space-y-1.5 overflow-y-auto pr-1 my-1.5 scrollbar-thin">
-                  {cart.map((item, idx) => {
-                    return (
-                      <div
-                        key={`${item.productId || idx}_${item.isOffer ? 'offer' : 'normal'}`}
-                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-2 shadow-2xs"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-black text-xs text-slate-900 dark:text-slate-100 truncate">
-                            {item.productName}
-                          </p>
-                          <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                            ${(item.unitPrice || 0).toLocaleString('es-CL')}/{item.unit || 'UN'} • Total: <strong className="text-slate-900 dark:text-slate-100 font-black">${((item.unitPrice || 0) * item.quantity).toLocaleString('es-CL')}</strong>
-                          </p>
-                        </div>
+              {/* Recuadro Verde Claro Destacado con TOTAL: $8.450 */}
+              <div className="bg-[#dcfce7] border-2 border-emerald-400/80 rounded-lg px-3 py-2 flex items-center justify-between shadow-xs">
+                <span className="text-base sm:text-lg font-black text-emerald-950 tracking-wider">
+                  TOTAL:
+                </span>
+                <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-950 tracking-tight">
+                  ${cartSubtotal.toLocaleString('es-CL')}
+                </span>
+              </div>
 
-                        {/* Botones de Cantidad (+ / -) */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
-                            className="w-7 h-7 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 active:scale-90"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="text-xs font-black font-mono min-w-[20px] text-center">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
-                            className="w-7 h-7 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 active:scale-90"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFromCart(item.productId, item.isOffer)}
-                            className="w-7 h-7 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center justify-center transition ml-1"
-                            title="Eliminar producto"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Totales y Botón de Cobro Móvil */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs font-bold text-slate-500">Subtotal:</span>
-                  <span className="text-xs font-mono font-bold">${cartSubtotal.toLocaleString('es-CL')}</span>
-                </div>
-                <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80">
-                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">TOTAL A COBRAR:</span>
-                  <span className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    ${cartSubtotal.toLocaleString('es-CL')}
-                  </span>
-                </div>
+              {/* BARRA DE 3 BOTONES: CANCELAR | COTIZACION | $PAGAR */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cart.length > 0 && window.confirm('¿Deseas cancelar la venta actual y vaciar el carrito?')) {
+                      handleClearCart();
+                    }
+                  }}
+                  disabled={cart.length === 0}
+                  className="bg-[#ef4444] hover:bg-[#dc2626] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3 rounded-lg text-center uppercase tracking-wider shadow-xs transition active:scale-98 cursor-pointer"
+                >
+                  CANCELAR
+                </button>
 
                 <button
                   type="button"
-                  disabled={cart.length === 0 || isReadOnly}
-                  onClick={() => setIsCheckoutOpen(true)}
-                  className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black text-white ${themeClasses.accentBg} flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer active:scale-98`}
+                  onClick={handleGenerateQuotation}
+                  disabled={cart.length === 0}
+                  className="bg-[#0f4066] hover:bg-[#165688] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3 rounded-lg text-center uppercase tracking-wider shadow-xs transition active:scale-98 cursor-pointer"
                 >
-                  <DollarSign className="w-4 h-4" />
-                  <span>COBRAR / FINALIZAR VENTA (${cartSubtotal.toLocaleString('es-CL')})</span>
+                  COTIZACIÓN
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cart.length === 0) {
+                      alert('El carrito está vacío. Agrega productos antes de pagar.');
+                      return;
+                    }
+                    setIsCheckoutOpen(true);
+                  }}
+                  disabled={cart.length === 0 || isReadOnly}
+                  className="bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3 rounded-lg text-center uppercase tracking-wider shadow-md transition active:scale-98 cursor-pointer flex items-center justify-center gap-1"
+                >
+                  $PAGAR
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* --------------------------------------------------------------------- */}
+          {/* COLUMNA 2: CATALOGO CENTRAL EN CUADRICULA (~50% ANCHO)               */}
+          {/* --------------------------------------------------------------------- */}
+          <section className="flex-1 flex flex-col h-full bg-slate-100 dark:bg-[#0f1722] overflow-hidden p-2.5">
+            {/* Barra de estado / Paginacion superior */}
+            <div className="flex items-center justify-between pb-2 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
+              <div className="flex items-center gap-2">
+                <span>Mostrando {displayedCatalogProducts.length} de {filteredProducts.length} productos</span>
+                {selectedCategory !== 'ALL' && (
+                  <span className="bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                    Categoría: {selectedCategory}
+                  </span>
+                )}
+              </div>
+
+              {/* Botones de Paginacion */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCatalogPage(p => Math.max(0, p - 1))}
+                  disabled={catalogPage === 0}
+                  className="p-1 rounded bg-white dark:bg-[#162330] border border-slate-300 dark:border-slate-700 disabled:opacity-40 cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[11px] font-mono font-bold">
+                  {catalogPage + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCatalogPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={catalogPage >= totalPages - 1}
+                  className="p-1 rounded bg-white dark:bg-[#162330] border border-slate-300 dark:border-slate-700 disabled:opacity-40 cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* 3. VISTA WEB: LISTADO DE PRODUCTOS EN COMPRA (COLUMNA IZQUIERDA) */}
-            <div className="hidden lg:flex flex-col flex-1 min-h-0 rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md p-3.5 overflow-hidden">
-              {/* Encabezado del Listado de Compra */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
-                    <ShoppingCart className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <span>Productos en Compra Actual</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
-                        {cart.reduce((a, b) => a + b.quantity, 0)} unid.
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">
-                      Artículos cargados a la cuenta del cliente
-                    </p>
-                  </div>
-                </div>
+            {/* CUADRICULA DE TARJETAS DE PRODUCTOS */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 content-start">
+                {displayedCatalogProducts.map(product => {
+                  const imgUrl = getProductImage(product);
+                  const isOffer = Boolean(product.offerPrice && product.offerPrice > 0);
+                  const priceToDisplay = isOffer ? product.offerPrice! : (product.price || 1000);
 
-                {cart.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearCart}
-                    className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 px-2.5 py-1 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer active:scale-95"
-                    title="Vaciar todos los productos de la compra"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Vaciar</span>
-                  </button>
-                )}
-              </div>
+                  return (
+                    <div
+                      key={product.id || product.code}
+                      onClick={() => handleAddToCart(product)}
+                      className="bg-white dark:bg-[#131f2b] border border-slate-200 dark:border-slate-700/70 rounded-xl p-2.5 shadow-2xs hover:shadow-md hover:border-sky-400 dark:hover:border-sky-500 transition cursor-pointer flex flex-col justify-between items-center text-center group active:scale-97 select-none relative overflow-hidden min-h-[145px]"
+                    >
+                      {/* Imagen centrada */}
+                      <div className="w-full h-20 sm:h-22 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 dark:bg-[#0c141d] mb-1.5">
+                        <img
+                          src={imgUrl}
+                          alt={product.name}
+                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-200"
+                          loading="lazy"
+                        />
+                      </div>
 
-              {/* Lista interactiva de productos que el cliente está llevando */}
-              {cart.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 opacity-60 min-h-[280px]">
-                  <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-inner">
-                    <ShoppingCart className="w-8 h-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">El listado de compra está vacío</p>
-                    <p className="text-xs font-bold text-slate-500 max-w-xs mt-1">
-                      Pistolee un código con la pistola lectora, use la balanza o busque productos en la barra superior para cargarlos al cobro.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 my-3 max-h-[380px] xl:max-h-[460px] scrollbar-thin">
-                  {cart.map((item, idx) => {
-                    const prod = products.find(p => p.id === item.productId);
-                    const canOffer = prod && prod.offerPrice && prod.offerPrice > 0 && (prod.offerStockRemaining === undefined || prod.offerStockRemaining > 0);
+                      {/* Nombre del producto */}
+                      <div className="w-full text-center px-0.5">
+                        <h4 className="text-[11.5px] font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight">
+                          {product.name}
+                        </h4>
+                      </div>
 
-                    return (
-                      <div
-                        key={`${item.productId || idx}_${item.isOffer ? 'offer' : 'normal'}`}
-                        className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs ${
-                          item.isOffer
-                            ? 'bg-amber-50/90 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700'
-                            : `${themeClasses.cardSubtle} border-slate-200 dark:border-slate-800`
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              {item.productCode}
-                            </span>
-                            <p className="font-black text-xs sm:text-sm truncate text-slate-900 dark:text-slate-100">
-                              {item.productName}
-                            </p>
-                            {item.isOffer ? (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCartItemPrice(item)}
-                                className="text-[9px] font-black px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full flex items-center gap-1 cursor-pointer transition shadow-2xs active:scale-95"
-                                title="Click para cambiar a Precio Normal"
-                              >
-                                <span>🔥 Liq.</span>
-                                <span className="opacity-80 text-[8px]">⇄ Normal</span>
-                              </button>
-                            ) : canOffer ? (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCartItemPrice(item)}
-                                className="text-[9px] font-black px-2 py-0.5 bg-slate-200 hover:bg-amber-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-amber-900 rounded-full flex items-center gap-1 cursor-pointer transition shadow-2xs active:scale-95"
-                                title="Click para cambiar a Precio Liquidación"
-                              >
-                                <span>💵 Normal</span>
-                                <span className="opacity-80 text-[8px]">⇄ Liq.</span>
-                              </button>
-                            ) : null}
-                          </div>
-                          <p className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 mt-1">
-                            ${item.unitPrice.toLocaleString('es-CL')}/{item.unit || 'UN'}
-                          </p>
+                      {/* Pie de tarjeta: Stock a la izquierda | Precio Morado a la derecha */}
+                      <div className="w-full flex items-center justify-between pt-2 mt-auto border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          <ShoppingCart className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{product.stock}</span>
                         </div>
 
-                        {/* Controles de Cantidad */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
-                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 flex items-center justify-center font-bold active:scale-95 cursor-pointer"
-                            title="Restar 1"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-
-                          <div className="relative flex items-center">
-                            <CartQuantityInput
-                              quantity={item.quantity}
-                              unit={item.unit}
-                              onCommit={(newQty) => handleSetQuantity(item.productId, newQty, item.isOffer)}
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
-                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-200 dark:bg-slate-800 hover:opacity-80 text-slate-800 dark:text-slate-100 flex items-center justify-center font-bold active:scale-95 cursor-pointer"
-                            title="Sumar 1"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-
-                          <div className="min-w-[70px] sm:min-w-[80px] text-right">
-                            <span className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                              ${item.subtotal.toLocaleString('es-CL')}
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFromCart(item.productId!, item.isOffer)}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
-                            title="Quitar producto de la compra"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="font-mono font-black text-purple-700 dark:text-purple-400 text-xs sm:text-sm">
+                          ${priceToDisplay.toLocaleString('es-CL')}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Barra inferior del Listado de Compra */}
-              <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
-                <span className="font-bold text-slate-500 dark:text-slate-400">
-                  {cart.length} productos ({cart.reduce((a, b) => a + b.quantity, 0)} unid.)
-                </span>
-                <span className="font-mono font-black text-sm text-slate-900 dark:text-slate-100">
-                  Subtotal: ${cartSubtotal.toLocaleString('es-CL')}
-                </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
 
-          {/* 4. COLUMNA DERECHA: CUADRO DE COBRO DE LA IMAGEN 1 (<WebCheckoutBoard />) */}
-          <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 flex-col h-full min-h-0 overflow-hidden">
-            <WebCheckoutBoard
-              cart={cart}
-              onSaleCompleted={handleSaleCompleted}
-              onClearCart={handleClearCart}
-              isReadOnly={isReadOnly}
-            />
-          </div>
+            {/* Barra Inferior de Navegacion Rapida (Estilo Market de la foto) */}
+            <div className="pt-2 flex items-center justify-between shrink-0 gap-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('ALL')}
+                  className="px-4 py-1.5 rounded-lg bg-[#10b981] text-white font-black text-xs shadow-xs hover:bg-[#059669] transition cursor-pointer"
+                >
+                  Market
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('BEBIDAS')}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-black text-xs shadow-xs hover:bg-amber-600 transition cursor-pointer"
+                >
+                  Bebidas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('ABARROTES')}
+                  className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-black text-xs shadow-xs hover:bg-sky-700 transition cursor-pointer"
+                >
+                  Abarrotes
+                </button>
+              </div>
+
+              <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
+                {products.length} productos registrados
+              </span>
+            </div>
+          </section>
+
+          {/* --------------------------------------------------------------------- */}
+          {/* COLUMNA 3: BARRA LATERAL DERECHA DE CATEGORIAS (~17% ANCHO)           */}
+          {/* --------------------------------------------------------------------- */}
+          {showCategorySidebar && (
+            <aside className="w-56 xl:w-64 shrink-0 flex flex-col h-full bg-[#182631] text-white p-2.5 border-l border-[#0e1820] shadow-lg overflow-hidden animate-fadeIn">
+              {/* Buscador de Categorias */}
+              <div className="mb-2 shrink-0">
+                <input
+                  type="text"
+                  value={categoryFilterText}
+                  onChange={(e) => setCategoryFilterText(e.target.value)}
+                  placeholder="Escriba para filtrar..."
+                  className="w-full bg-[#243542] border border-slate-600/80 text-white placeholder-slate-400 text-xs px-2.5 py-1.5 rounded-lg focus:outline-hidden focus:border-emerald-400 font-medium"
+                />
+              </div>
+
+              {/* Listado de Categorias con scroll */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-0.5">
+                {categoriesList.map(cat => {
+                  const isActive = selectedCategory === cat.key;
+
+                  return (
+                    <button
+                      key={cat.code + cat.key}
+                      type="button"
+                      onClick={() => {
+                        if (cat.key === 'COMMON') {
+                          setIsCommonProductModalOpen(true);
+                        } else {
+                          setSelectedCategory(cat.key);
+                          setCatalogPage(0);
+                        }
+                      }}
+                      className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left transition cursor-pointer ${
+                        isActive
+                          ? 'bg-[#304555] border-2 border-emerald-400 text-white font-black shadow-md'
+                          : 'bg-[#243542] hover:bg-[#2d404f] text-slate-200 hover:text-white font-bold'
+                      }`}
+                    >
+                      {/* Icono verde */}
+                      <div className="w-7 h-7 rounded-lg bg-[#00c982]/20 border border-[#00c982]/40 text-[#00c982] flex items-center justify-center shrink-0">
+                        <Folder className="w-3.5 h-3.5" />
+                      </div>
+
+                      {/* Codigo y Nombre */}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] opacity-60 font-mono leading-none">{cat.code}</div>
+                        <div className="text-[11px] truncate uppercase mt-0.5 leading-tight">{cat.name}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+          )}
 
         </div>
       )}
 
-      {/* Vista de Historial de Ventas (Listado hacia abajo con apertura en tarjeta) */}
+      {/* ========================================================================= */}
+      {/* 3. VISTA DE HISTORIAL DE VENTAS & COMPROBANTES (DTE)                       */}
+      {/* ========================================================================= */}
       {activeSubTab === 'history' && (
-        <div className="space-y-4 flex-1 pb-24 lg:pb-6 custom-scrollbar">
-          {/* Tarjetas y Botones Interactivos de Métricas por Tipo de Comprobante */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {/* 1. Botón Métrica: Total Recaudado / Todos */}
+        <div className="flex-1 p-3 sm:p-4 overflow-y-auto custom-scrollbar space-y-3">
+          {/* Boton para regresar a la vista POS */}
+          <div className="flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setHistoryDteTypeFilter('ALL')}
-              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition cursor-pointer active:scale-98 ${
-                historyDteTypeFilter === 'ALL'
-                  ? 'border-2 border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/30'
-                  : `${themeClasses.border} ${themeClasses.card} hover:border-slate-400 dark:hover:border-slate-600`
-              } shadow-xs flex items-center gap-2.5 sm:gap-3`}
-              title="Presione para ver todos los documentos emitidos"
+              onClick={() => setActiveSubTab('pos')}
+              className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center font-black shrink-0">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">Total Recaudado</p>
-                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                    {salesHistory.filter(s => s.status !== 'ANULADA').length} cant.
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-black font-mono text-emerald-600 dark:text-emerald-400 truncate">
-                  ${totalHistoryRevenue.toLocaleString('es-CL')}
-                </p>
-                <p className="text-[9.5px] font-bold text-slate-400 truncate">Todos los documentos</p>
-              </div>
+              <ShoppingCart className="w-4 h-4" />
+              <span>← Volver al Terminal de Ventas POS</span>
             </button>
 
-            {/* 2. Botón Métrica: Boletas Emitidas */}
             <button
               type="button"
-              onClick={() => setHistoryDteTypeFilter('BOLETA')}
-              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition cursor-pointer active:scale-98 ${
-                historyDteTypeFilter === 'BOLETA'
-                  ? 'border-2 border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/40 dark:bg-blue-950/30'
-                  : `${themeClasses.border} ${themeClasses.card} hover:border-slate-400 dark:hover:border-slate-600`
-              } shadow-xs flex items-center gap-2.5 sm:gap-3`}
-              title="Presione para filtrar solo Boletas Electrónicas"
+              onClick={() => exportSalesLedgerExcel(salesHistory, selectedCompany?.name || 'Empresa')}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-black shrink-0">
-                <Receipt className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">Boletas Emitidas</p>
-                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                    {totalBoletasCount} cant.
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-black font-mono text-blue-600 dark:text-blue-400 truncate">
-                  ${totalBoletasRevenue.toLocaleString('es-CL')}
-                </p>
-                <p className="text-[9.5px] font-bold text-slate-400 truncate">Total en Boletas (39)</p>
-              </div>
-            </button>
-
-            {/* 3. Botón Métrica: Facturas Emitidas */}
-            <button
-              type="button"
-              onClick={() => setHistoryDteTypeFilter('FACTURA')}
-              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition cursor-pointer active:scale-98 ${
-                historyDteTypeFilter === 'FACTURA'
-                  ? 'border-2 border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/40 dark:bg-indigo-950/30'
-                  : `${themeClasses.border} ${themeClasses.card} hover:border-slate-400 dark:hover:border-slate-600`
-              } shadow-xs flex items-center gap-2.5 sm:gap-3`}
-              title="Presione para filtrar solo Facturas Electrónicas"
-            >
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center font-black shrink-0">
-                <Building className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">Facturas Emitidas</p>
-                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200">
-                    {totalFacturasCount} cant.
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-black font-mono text-indigo-600 dark:text-indigo-400 truncate">
-                  ${totalFacturasRevenue.toLocaleString('es-CL')}
-                </p>
-                <p className="text-[9.5px] font-bold text-slate-400 truncate">Total en Facturas (33)</p>
-              </div>
-            </button>
-
-            {/* 4. Botón Métrica: Comprobantes Internos */}
-            <button
-              type="button"
-              onClick={() => setHistoryDteTypeFilter('INTERNA')}
-              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition cursor-pointer active:scale-98 ${
-                historyDteTypeFilter === 'INTERNA'
-                  ? 'border-2 border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/40 dark:bg-amber-950/30'
-                  : `${themeClasses.border} ${themeClasses.card} hover:border-slate-400 dark:hover:border-slate-600`
-              } shadow-xs flex items-center gap-2.5 sm:gap-3`}
-              title="Presione para filtrar solo Comprobantes Internos"
-            >
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-black shrink-0">
-                <Tag className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">Comprobantes Internos</p>
-                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
-                    {totalInternasCount} cant.
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-black font-mono text-amber-600 dark:text-amber-400 truncate">
-                  ${totalInternasRevenue.toLocaleString('es-CL')}
-                </p>
-                <p className="text-[9.5px] font-bold text-slate-400 truncate">Total Venta Interna</p>
-              </div>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Exportar Excel</span>
             </button>
           </div>
 
-          {/* Barra de Filtros, Buscador por Texto y Buscador Tipo Calendario */}
-          <div className={`p-3.5 rounded-2xl border ${themeClasses.card} shadow-xs space-y-3`}>
-            
-            {/* Fila 1: Filtro por Tipo de Documento (Línea compacta horizontal sin desorden ni scroll vertical) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                <span className="text-[11px] font-black text-slate-500 mr-0.5 shrink-0">Documentos:</span>
-                {[
-                  { id: 'ALL', label: 'Todos', count: salesHistory.length },
-                  { id: 'BOLETA', label: '🧾 Boletas', count: totalBoletasCount },
-                  { id: 'FACTURA', label: '🏢 Facturas', count: totalFacturasCount },
-                  { id: 'INTERNA', label: '🎫 Tickets', count: totalInternasCount }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setHistoryDteTypeFilter(t.id as any)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                      historyDteTypeFilter === t.id
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>{t.label}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                      historyDteTypeFilter === t.id ? 'bg-blue-800 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                    }`}>
-                      {t.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="text-[11px] font-bold text-slate-500 shrink-0">
-                Mostrando <strong className="text-slate-900 dark:text-white">{filteredSalesHistory.length}</strong> documentos
-              </div>
+          {/* Tabla de historial */}
+          <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-[#131f2b] shadow-sm overflow-hidden">
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-sm font-black flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-sky-500" />
+                <span>Historial de Ventas ({salesHistory.length})</span>
+              </h3>
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Buscar por cliente, folio, RUT..."
+                className="text-xs bg-slate-50 dark:bg-[#1c2c3b] border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-lg w-64"
+              />
             </div>
 
-            {/* Fila 2: Barra de Búsqueda y Buscador Tipo Calendario */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
-              
-              {/* Barra de Búsqueda por cliente, número de boleta/factura, etc. */}
-              <div className="md:col-span-6 relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  placeholder="Buscar por cliente, RUT, N° boleta o factura (#1001), vendedor..."
-                  className={`w-full pl-9 pr-8 py-2 rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-xs font-bold focus:outline-none`}
-                />
-                {historySearch && (
-                  <button
-                    type="button"
-                    onClick={() => setHistorySearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer p-0.5"
-                    title="Limpiar búsqueda"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {/* Buscador Tipo Calendario para las Fechas */}
-              <div className="md:col-span-3">
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} shadow-2xs`}>
-                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="text-[11px] font-black text-slate-500 shrink-0">Fecha:</span>
-                  <input
-                    type="date"
-                    value={historyCalendarDate}
-                    onChange={(e) => {
-                      setHistoryCalendarDate(e.target.value);
-                      if (e.target.value) {
-                        setHistoryDateFilter('custom');
-                      }
-                    }}
-                    className="bg-transparent text-xs font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer w-full"
-                    title="Buscador tipo calendario: selecciona una fecha exacta"
-                  />
-                  {historyCalendarDate && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHistoryCalendarDate('');
-                        setHistoryDateFilter('all');
-                      }}
-                      className="text-xs font-bold text-slate-400 hover:text-red-500 cursor-pointer shrink-0 ml-1"
-                      title="Quitar filtro de fecha"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Filtros Rápidos de Periodo */}
-              <div className="md:col-span-3 flex items-center justify-end">
-                <div className={`flex items-center p-0.5 rounded-xl border ${themeClasses.cardSubtle} w-full justify-between sm:justify-end`}>
-                  {[
-                    { id: 'today', label: 'Hoy' },
-                    { id: '7days', label: '7 días' },
-                    { id: 'month', label: 'Mes' },
-                    { id: 'all', label: 'Todo' }
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => {
-                        setHistoryCalendarDate('');
-                        setHistoryDateFilter(f.id as any);
-                      }}
-                      className={`px-2.5 py-1 text-xs font-black rounded-lg transition cursor-pointer ${
-                        !historyCalendarDate && historyDateFilter === f.id
-                          ? `${themeClasses.accentBg} text-white shadow-2xs`
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* ========================================================================= */}
-          {/* LISTADO HACIA ABAJO (AL PRESIONAR SE MUESTRA LA TARJETA COMPLETA)         */}
-          {/* ========================================================================= */}
-          {filteredSalesHistory.length === 0 ? (
-            <div className={`p-10 rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} text-center space-y-3 shadow-xs`}>
-              <Receipt className="w-12 h-12 mx-auto text-slate-400 opacity-50 mb-1" />
-              <p className="font-black text-base text-slate-800 dark:text-slate-200">
-                No se encontraron documentos en el listado
-              </p>
-              <p className="font-bold text-xs text-slate-500 dark:text-slate-400">
-                {salesHistory.length > 0
-                  ? `No hay ventas que coincidan con los filtros aplicados (Fecha: ${historyCalendarDate || historyDateFilter}, Búsqueda: "${historySearch || 'Ninguna'}")`
-                  : 'Aún no se han registrado ventas en el sistema.'}
-              </p>
-              {salesHistory.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoryCalendarDate('');
-                    setHistoryDateFilter('all');
-                    setHistorySearch('');
-                    setHistoryDteTypeFilter('ALL');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95 transition inline-flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Restablecer y mostrar todos los {salesHistory.length} documentos</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            /* LISTADO HACIA ABAJO ESTRUCTURADO (TABLA / LISTA VERTICAL INTERACTIVA) */
-            <div className={`rounded-2xl border-2 ${themeClasses.border} ${themeClasses.card} overflow-hidden shadow-xs`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className={`border-b-2 ${themeClasses.border} ${themeClasses.cardSubtle} font-black text-slate-700 dark:text-slate-300 select-none`}>
-                    <tr>
-                      <th className="py-3 px-3.5 w-[16%]">FOLIO / TIPO DTE</th>
-                      <th className="py-3 px-3 w-[15%]">FECHA Y HORA</th>
-                      <th className="py-3 px-3 w-[23%]">CLIENTE / RUT</th>
-                      <th className="py-3 px-3 w-[13%]">MEDIO DE PAGO</th>
-                      <th className="py-3 px-2.5 w-[9%] text-center">ÍTEMS</th>
-                      <th className="py-3 px-3.5 w-[13%] text-right">TOTAL</th>
-                      <th className="py-3 px-3 w-[11%] text-center">ACCIÓN</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-bold">
-                    {filteredSalesHistory.map((sale) => (
-                      <tr
-                        key={sale.id}
-                        onClick={() => {
-                          setSelectedSaleForDetails(sale);
-                          setIsDetailsOpen(true);
-                        }}
-                        className="hover:bg-blue-50/80 dark:hover:bg-slate-800/60 transition cursor-pointer active:scale-[0.99] group"
-                        title="Presione para abrir la tarjeta del documento con todas sus opciones"
-                      >
-                        {/* Folio y Tipo DTE */}
-                        <td className="py-2.5 px-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-black text-sm text-blue-600 dark:text-blue-400">
-                              {sale.folio ? `#${sale.folio}` : 'S/F'}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                              sale.dteType.toUpperCase().includes('FACTURA')
-                                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
-                                : sale.dteType.toUpperCase().includes('BOLETA')
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                                : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                            }`}>
-                              {getDteLabel(sale.dteType)}
-                            </span>
-                          </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 dark:bg-[#1a2735] text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="p-3">FOLIO</th>
+                    <th className="p-3">FECHA</th>
+                    <th className="p-3">CLIENTE</th>
+                    <th className="p-3">MEDIO PAGO</th>
+                    <th className="p-3 text-right">TOTAL</th>
+                    <th className="p-3 text-center">ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {salesHistory
+                    .filter(s => {
+                      if (!historySearch.trim()) return true;
+                      const q = historySearch.toLowerCase();
+                      return String(s.folio).includes(q) || (s.customerName || '').toLowerCase().includes(q);
+                    })
+                    .slice(0, 50)
+                    .map(sale => (
+                      <tr key={sale.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="p-3 font-mono font-bold">#{sale.folio}</td>
+                        <td className="p-3 text-slate-500">{new Date(sale.date).toLocaleString('es-CL')}</td>
+                        <td className="p-3 font-bold">{sale.customerName || 'Público General'}</td>
+                        <td className="p-3">{sale.paymentMethod}</td>
+                        <td className="p-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                          ${sale.total.toLocaleString('es-CL')}
                         </td>
-
-                        {/* Fecha y Hora */}
-                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                          {sale.date} {sale.time}
-                        </td>
-
-                        {/* Cliente y RUT */}
-                        <td className="py-2.5 px-3">
-                          <p className="truncate max-w-[200px] font-black text-slate-900 dark:text-slate-100 text-xs">
-                            {sale.customerName || 'Público General'}
-                          </p>
-                          {sale.customerRut && (
-                            <p className="text-[10px] font-mono text-slate-500 font-bold">
-                              RUT: {formatRut(sale.customerRut)}
-                            </p>
-                          )}
-                        </td>
-
-                        {/* Medio de Pago */}
-                        <td className="py-2.5 px-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            {getPaymentMethodLabel(sale.paymentMethod)}
-                          </span>
-                        </td>
-
-                        {/* Ítems */}
-                        <td className="py-2.5 px-2.5 text-center font-mono text-[11px] text-slate-500 font-bold">
-                          {sale.items.length} {sale.items.length === 1 ? 'ítem' : 'ítems'}
-                        </td>
-
-                        {/* Total Pagado */}
-                        <td className="py-2.5 px-3.5 text-right font-mono font-black text-sm text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                          {formatCLP(sale.total)}
-                        </td>
-
-                        {/* Botón de Acción para Ver Tarjeta */}
-                        <td className="py-2.5 px-3 text-center">
+                        <td className="p-3 text-center">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               setSelectedSaleForDetails(sale);
                               setIsDetailsOpen(true);
                             }}
-                            className="px-2.5 py-1 rounded-xl bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white dark:bg-blue-950/60 dark:text-blue-300 dark:group-hover:bg-blue-600 dark:group-hover:text-white text-[11px] font-black transition flex items-center justify-center gap-1 mx-auto cursor-pointer shadow-2xs active:scale-95"
-                            title="Presione para ver la tarjeta del documento con opciones de Ticket, DTE y Anulación"
+                            className="px-2 py-1 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-bold hover:underline cursor-pointer"
                           >
-                            <span>Ver Tarjeta</span>
-                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                            Ver Detalle
                           </button>
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. MODALES INTEGRADOS                                                     */}
+      {/* ========================================================================= */}
+
+      {/* Modal de Cobro Completo (Boleta, Factura, Efectivo, Tarjeta, Vuelto) */}
+      {isCheckoutOpen && (
+        <SaleCheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+          cartItems={cart}
+          onSaleCompleted={() => {
+            setIsCheckoutOpen(false);
+            setCart([]);
+            loadSalesHistory();
+            loadProducts();
+          }}
+        />
+      )}
+
+      {/* Modal Agregar Producto Comun Rapido */}
+      {isCommonProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-[#131f2b] rounded-2xl border-2 border-sky-400 shadow-2xl max-w-sm w-full p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="font-black text-sm text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                <span>Agregar Producto Común</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCommonProductModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nombre o Descripción</label>
+                <input
+                  type="text"
+                  value={commonProductName}
+                  onChange={(e) => setCommonProductName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#1a2938] border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Precio Unitario ($)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={commonProductPrice}
+                  onChange={(e) => setCommonProductPrice(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="w-full bg-slate-50 dark:bg-[#1a2938] border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono font-bold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Cantidad</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={commonProductQty}
+                  onChange={(e) => setCommonProductQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-slate-50 dark:bg-[#1a2938] border border-slate-300 dark:border-slate-700 rounded-lg p-2 font-mono font-bold text-sm"
+                />
               </div>
             </div>
-          )}
 
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsCommonProductModalOpen(false)}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const commonItem: SaleItem = {
+                    productId: 0,
+                    productName: commonProductName.trim() || 'Producto Común',
+                    productCode: 'COMUN-' + Date.now().toString().slice(-4),
+                    quantity: commonProductQty > 0 ? commonProductQty : 1,
+                    unitPrice: commonProductPrice > 0 ? commonProductPrice : 1000,
+                    subtotal: Math.round((commonProductPrice > 0 ? commonProductPrice : 1000) * (commonProductQty > 0 ? commonProductQty : 1)),
+                    unit: 'UN'
+                  };
+                  handleAddToCartDirect(commonItem);
+                  setIsCommonProductModalOpen(false);
+                }}
+                className="px-4 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-black shadow-xs"
+              >
+                Agregar a Venta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Resumen Venta de Turno */}
+      {isTurnModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-[#131f2b] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-sm w-full p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Receipt className="w-4 h-4 text-emerald-500" />
+                <span>Resumen de Venta de Turno</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsTurnModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1a2938]">
+                <span className="text-slate-500">Cajero / Vendedor:</span>
+                <span className="font-bold">{currentUser?.name || 'admin Molina'}</span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1a2938]">
+                <span className="text-slate-500">Ventas Registradas Hoy:</span>
+                <span className="font-black font-mono">{todaySalesSummary.count}</span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1a2938]">
+                <span className="text-slate-500">Efectivo en Caja:</span>
+                <span className="font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  ${todaySalesSummary.cashRevenue.toLocaleString('es-CL')}
+                </span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1a2938]">
+                <span className="text-slate-500">Tarjetas (Débito/Crédito):</span>
+                <span className="font-black font-mono text-sky-600 dark:text-sky-400">
+                  ${todaySalesSummary.cardRevenue.toLocaleString('es-CL')}
+                </span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1a2938]">
+                <span className="text-slate-500">Transferencias:</span>
+                <span className="font-black font-mono">
+                  ${todaySalesSummary.transferRevenue.toLocaleString('es-CL')}
+                </span>
+              </div>
+              <div className="flex justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800">
+                <span className="font-black text-emerald-900 dark:text-emerald-200">TOTAL RECAUDADO TURNO:</span>
+                <span className="font-black font-mono text-base text-emerald-700 dark:text-emerald-300">
+                  ${todaySalesSummary.totalRevenue.toLocaleString('es-CL')}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setIsTurnModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg bg-[#0b3b5b] text-white text-xs font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1753,253 +1376,21 @@ export const SalesView: React.FC<SalesViewProps> = ({
         />
       )}
 
-      {/* Modal de Selección de Precio al Vender (Normal vs Liquidación) */}
-      {priceChoiceProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-2xl max-w-md w-full p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-lg">🏷️</span>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900 dark:text-white">Seleccionar Precio de Venta</h3>
-                  <p className="text-xs text-slate-500 font-mono">{priceChoiceProduct.code}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPriceChoiceProduct(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div>
-              <h4 className="font-black text-base text-slate-900 dark:text-white leading-tight">
-                {priceChoiceProduct.name}
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                Este producto tiene unidades asignadas a precio de liquidación y unidades a precio normal. Elija la cantidad y cuál precio llevará el cliente:
-              </p>
-            </div>
-
-            {/* Selector interactivo de cantidad solicitada por el cliente */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-              <div className="text-left">
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200 block">
-                  Cantidad solicitada:
-                </span>
-                <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium">
-                  Anota el número de unidades que pide el cliente
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPriceChoiceQty(q => Math.max(1, q - 1))}
-                  className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 hover:opacity-80 active:scale-95 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold"
-                  title="Restar 1"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  value={priceChoiceQty}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setPriceChoiceQty(isNaN(val) || val <= 0 ? 1 : val);
-                  }}
-                  onFocus={(e) => e.target.select()}
-                  className="w-16 h-8 text-center font-mono font-black text-sm bg-white dark:bg-slate-900 border-2 border-blue-500 text-blue-950 dark:text-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-2xs"
-                  title="Escribe la cantidad que el cliente solicita"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPriceChoiceQty(q => q + 1)}
-                  className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 hover:opacity-80 active:scale-95 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold"
-                  title="Sumar 1"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2.5">
-              {/* Opción 1: Liquidación */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleAddToCart(priceChoiceProduct, 'OFFER', priceChoiceQty);
-                  setPriceChoiceProduct(null);
-                }}
-                className="w-full p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-50/90 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition text-left flex items-center justify-between group cursor-pointer shadow-xs"
-              >
-                <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-white">
-                    🔥 Precio Liquidación
-                  </span>
-                  <div className="text-2xl font-black font-mono text-amber-700 dark:text-amber-300 mt-1">
-                    ${(priceChoiceProduct.offerPrice || 0).toLocaleString('es-CL')}
-                  </div>
-                  <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300/90 mt-0.5">
-                    Quedan {priceChoiceProduct.offerStockRemaining !== undefined ? priceChoiceProduct.offerStockRemaining : (priceChoiceProduct.offerStockLimit || 0)} unidades a este precio
-                  </p>
-                </div>
-                <div className="px-3.5 py-2 rounded-xl bg-amber-500 text-white font-black text-xs group-hover:scale-105 transition shadow-xs">
-                  Llevar Oferta ➔
-                </div>
-              </button>
-
-              {/* Opción 2: Normal */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleAddToCart(priceChoiceProduct, 'NORMAL', priceChoiceQty);
-                  setPriceChoiceProduct(null);
-                }}
-                className="w-full p-3.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left flex items-center justify-between group cursor-pointer shadow-xs"
-              >
-                <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-600 text-white">
-                    💵 Precio Normal
-                  </span>
-                  <div className="text-2xl font-black font-mono text-slate-800 dark:text-slate-200 mt-1">
-                    ${(priceChoiceProduct.price || 10000).toLocaleString('es-CL')}
-                  </div>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                    Stock total en local: {priceChoiceProduct.stock} {priceChoiceProduct.unit || 'UN'}
-                  </p>
-                </div>
-                <div className="px-3.5 py-2 rounded-xl bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 font-black text-xs group-hover:scale-105 transition shadow-xs">
-                  Llevar Normal ➔
-                </div>
-              </button>
-            </div>
-
-            <div className="pt-2 text-center">
-              <p className="text-[11px] text-slate-400 font-medium">
-                💡 Al acabarse las unidades en liquidación, el producto continuará vendiéndose automáticamente al precio normal.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Finalización de Venta (Checkout) */}
-      {isCheckoutOpen && (
-        <SaleCheckoutModal
-          isOpen={isCheckoutOpen}
-          onClose={() => setIsCheckoutOpen(false)}
-          cartItems={cart}
-          onSaleCompleted={handleSaleCompleted}
+      {/* Modal de Pesaje */}
+      {isWeighableModalOpen && selectedWeighableProduct && (
+        <WeighableProductModal
+          isOpen={isWeighableModalOpen}
+          onClose={() => {
+            setIsWeighableModalOpen(false);
+            setSelectedWeighableProduct(null);
+          }}
+          selectedProduct={selectedWeighableProduct}
+          onAddToCart={(cartItem) => {
+            handleAddToCartDirect(cartItem);
+            setIsWeighableModalOpen(false);
+            setSelectedWeighableProduct(null);
+          }}
         />
-      )}
-
-      {/* Modal de Configuración SII */}
-      {isSiiConfigOpen && (
-        <SiiConfigModal
-          isOpen={isSiiConfigOpen}
-          onClose={() => setIsSiiConfigOpen(false)}
-        />
-      )}
-
-
-      {/* Modal de Servicios del Local */}
-      {isServicesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Servicios del Local — {selectedCompany?.name || 'Comercio'}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-bold">
-                    Opciones de servicio autorizadas por administración
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsServicesModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-              {activeServices.map((srv) => {
-                const currentVal = servicePriceInput[srv.id] ?? srv.price ?? 3000;
-                return (
-                  <div
-                    key={srv.id}
-                    className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-3 shadow-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-2xl">{srv.icon || '✨'}</span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-black text-slate-900 dark:text-white truncate">{srv.name}</p>
-                        {srv.description && (
-                          <p className="text-[11px] text-slate-500 truncate">{srv.description}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="relative w-24">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">$</span>
-                        <input
-                          type="number"
-                          value={currentVal}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setServicePriceInput({ ...servicePriceInput, [srv.id]: val });
-                          }}
-                          className="w-full pl-5 pr-2 py-1 text-xs font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-right"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const item: SaleItem = {
-                            productId: 0,
-                            productCode: 'SRV-' + srv.id.slice(-4).toUpperCase(),
-                            productName: `${srv.icon || '✨'} [Servicio] ${srv.name}`,
-                            unitPrice: currentVal,
-                            quantity: 1,
-                            subtotal: currentVal,
-                            category: 'Servicios del Local',
-                            unit: 'Servicio'
-                          };
-                          setCart(prev => [...prev, item]);
-                          setIsServicesModalOpen(false);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition cursor-pointer shadow-xs active:scale-95"
-                      >
-                        + Cobrar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsServicesModalOpen(false)}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Modal de Cierre de Caja (Z) */}
@@ -2010,20 +1401,18 @@ export const SalesView: React.FC<SalesViewProps> = ({
         />
       )}
 
-      {/* Modal de Venta por Peso y Balanza */}
-      {isWeighableModalOpen && (
-        <WeighableProductModal
-          isOpen={isWeighableModalOpen}
+      {/* Modal de Clientes */}
+      {isCustomerModalOpen && (
+        <CustomerManagerModal
+          isOpen={isCustomerModalOpen}
           onClose={() => {
-            setIsWeighableModalOpen(false);
-            setSelectedWeighableProduct(null);
+            setIsCustomerModalOpen(false);
+            loadCustomers();
           }}
-          onAddToCart={handleAddToCartDirect}
-          selectedProduct={selectedWeighableProduct}
         />
       )}
 
-      {/* Modal de Visualización PDF */}
+      {/* Modal de Visor de PDF */}
       {isPdfModalOpen && pdfDoc && (
         <PDFViewerModal
           isOpen={isPdfModalOpen}
@@ -2033,8 +1422,64 @@ export const SalesView: React.FC<SalesViewProps> = ({
           title={pdfTitle}
         />
       )}
+
+      {/* Modal de Seleccion de Precio Oferta vs Normal */}
+      {priceChoiceProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-amber-400 shadow-2xl max-w-md w-full p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="font-black text-sm text-slate-900 dark:text-white">Seleccionar Precio de Venta</h3>
+              <button
+                type="button"
+                onClick={() => setPriceChoiceProduct(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <h4 className="font-black text-sm">{priceChoiceProduct.name}</h4>
+              <p className="text-xs text-slate-500 mt-0.5">Elige el precio a cobrar:</p>
+            </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleAddToCart(priceChoiceProduct, 'OFFER', priceChoiceQty);
+                  setPriceChoiceProduct(null);
+                }}
+                className="w-full p-3 rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-left flex justify-between items-center"
+              >
+                <div>
+                  <span className="text-[10px] font-black uppercase bg-amber-500 text-white px-1.5 py-0.5 rounded">OFERTA</span>
+                  <div className="text-lg font-black font-mono text-amber-700 dark:text-amber-300 mt-1">
+                    ${(priceChoiceProduct.offerPrice || 0).toLocaleString('es-CL')}
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Llevar Oferta →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleAddToCart(priceChoiceProduct, 'NORMAL', priceChoiceQty);
+                  setPriceChoiceProduct(null);
+                }}
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-left flex justify-between items-center"
+              >
+                <div>
+                  <span className="text-[10px] font-black uppercase bg-slate-600 text-white px-1.5 py-0.5 rounded">NORMAL</span>
+                  <div className="text-lg font-black font-mono mt-1">
+                    ${(priceChoiceProduct.price || 1000).toLocaleString('es-CL')}
+                  </div>
+                </div>
+                <span className="text-xs font-bold">Llevar Normal →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
-

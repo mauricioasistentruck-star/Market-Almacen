@@ -17,6 +17,7 @@ import { WeighableProductModal } from './WeighableProductModal';
 import { ProductConsultantModal } from '../inventory/ProductConsultantModal';
 import type jsPDF from 'jspdf';
 import {
+  Package,
   X,
   ShoppingCart,
   Receipt,
@@ -88,44 +89,6 @@ const CartQuantityInput: React.FC<{
       className="w-10 sm:w-12 h-7 text-center font-black font-mono text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded focus:outline-hidden focus:ring-1 focus:ring-sky-500 shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
     />
   );
-};
-
-// Generador de fotos e ilustraciones representativas de productos de almacén
-const getProductImage = (product: Product): string => {
-  if (product.imageUrl && product.imageUrl.trim().length > 5) {
-    return product.imageUrl;
-  }
-  const name = product.name.toLowerCase();
-  const cat = (product.category || '').toLowerCase();
-
-  if (name.includes('coca') || name.includes('pepsi') || name.includes('bebida') || cat.includes('bebida')) {
-    return 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('corona') || name.includes('cerveza') || name.includes('escudo') || cat.includes('cerveza') || cat.includes('licor')) {
-    return 'https://images.unsplash.com/photo-1608270195514-6d9154f89d36?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('pan') || name.includes('hallulla') || name.includes('marraqueta') || cat.includes('panad')) {
-    return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('gansito') || name.includes('snack') || name.includes('takis') || name.includes('dorito') || name.includes('galleta') || cat.includes('snack')) {
-    return 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('limon') || name.includes('platano') || name.includes('palta') || name.includes('tomate') || cat.includes('fruta') || cat.includes('verdur')) {
-    return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('leche') || name.includes('queso') || name.includes('yogurt') || cat.includes('lact')) {
-    return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('ketchup') || name.includes('mayo') || name.includes('aceite') || name.includes('arroz') || cat.includes('abarrot')) {
-    return 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('desodorante') || name.includes('jabon') || name.includes('shampoo') || cat.includes('aseo personal')) {
-    return 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=260&auto=format&fit=crop&q=70';
-  }
-  if (name.includes('cloro') || name.includes('detergente') || name.includes('limp') || cat.includes('limpieza')) {
-    return 'https://images.unsplash.com/photo-1585670210693-e7fdd16b142e?w=260&auto=format&fit=crop&q=70';
-  }
-  return 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=260&auto=format&fit=crop&q=70';
 };
 
 const STANDARD_CATEGORIES = [
@@ -596,22 +559,22 @@ export const SalesView: React.FC<SalesViewProps> = ({
     <div className="h-full flex-1 flex flex-col bg-slate-100 dark:bg-[#0b1118] text-slate-800 dark:text-slate-100 overflow-hidden select-none">
       
       {/* ========================================================================= */}
-      {/* 1. BARRA SUPERIOR (HEADER POS AZUL PETROLEO ESTILO MONITOR LG)             */}
+      {/* 1. BARRA SUPERIOR (HEADER POS TEMA CLARO MARKET ALMACÉN)                   */}
       {/* ========================================================================= */}
-      <header className="h-12 bg-[#0b3b5b] text-white flex items-center justify-between px-3 shrink-0 shadow-md z-20 border-b border-[#082a42]">
+      <header className="h-12 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex items-center justify-between px-3 shrink-0 shadow-xs z-20 border-b border-slate-200 dark:border-slate-800">
         {/* Lado Izquierdo: Burger + Reloj en vivo + Home + Busqueda */}
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setActiveSubTab(prev => prev === 'pos' ? 'history' : 'pos')}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-white transition active:scale-95 cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition active:scale-95 cursor-pointer"
             title="Cambiar entre Terminal POS e Historial"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           {/* Reloj chileno en vivo */}
-          <div className="flex items-center gap-1.5 text-xs font-bold text-sky-100/90 pl-1 border-l border-white/20">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 pl-1 border-l border-slate-200 dark:border-slate-700">
             <span>{currentClock || 'Market Almacén POS'}</span>
           </div>
 
@@ -623,7 +586,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                 setSelectedCategory('ALL');
                 setSearchQuery('');
               }}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-white/90 transition cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition cursor-pointer"
               title="Inicio / Restablecer Catálogo"
             >
               <Home className="w-4 h-4" />
@@ -631,7 +594,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             <button
               type="button"
               onClick={() => barcodeInputRef.current?.focus()}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-white/90 transition cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition cursor-pointer"
               title="Foco en Búsqueda y Código de Barras"
             >
               <Search className="w-4 h-4" />
@@ -640,25 +603,25 @@ export const SalesView: React.FC<SalesViewProps> = ({
         </div>
 
         {/* Centro: Accesos directos de Caja y Turno */}
-        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-black uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
           <button
             type="button"
             onClick={() => setIsTurnModalOpen(true)}
-            className="px-2.5 py-1 rounded bg-[#0e4d77] hover:bg-[#135a8b] text-sky-100 transition cursor-pointer shadow-2xs"
+            className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer shadow-2xs"
           >
             VENTA DE TURNO
           </button>
           <button
             type="button"
             onClick={() => setActiveSubTab('history')}
-            className="px-2.5 py-1 rounded bg-[#0e4d77] hover:bg-[#135a8b] text-sky-100 transition cursor-pointer shadow-2xs"
+            className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer shadow-2xs"
           >
             VENTA TOTAL
           </button>
           <button
             type="button"
             onClick={() => setIsCashClosingOpen(true)}
-            className="px-2.5 py-1 rounded bg-[#082a42] hover:bg-[#051c2d] text-amber-300 font-black transition cursor-pointer shadow-2xs flex items-center gap-1"
+            className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-bold transition cursor-pointer shadow-2xs flex items-center gap-1"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>CIERRE DE CAJA</span>
@@ -667,18 +630,18 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
         {/* Lado Derecho: Usuario Activo + Boton Verde Categorias */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden md:flex items-center gap-1.5 text-xs font-bold text-white/90 bg-white/10 px-2.5 py-1 rounded-lg">
-            <User className="w-3.5 h-3.5 text-sky-300" />
-            <span className="truncate max-w-[130px]">{currentUser?.name || 'admin Molina'}</span>
+          <div className="hidden md:flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg">
+            <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+            <span className="truncate max-w-[130px]">{currentUser?.name || 'Administrador Inicial'}</span>
           </div>
 
           <button
             type="button"
             onClick={() => setShowCategorySidebar(prev => !prev)}
-            className={`px-3 py-1 rounded-md text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+            className={`px-3 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer ${
               showCategorySidebar
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-700'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
             }`}
             title="Mostrar / Ocultar panel de Categorías"
           >
@@ -713,7 +676,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
               <button
                 type="button"
                 onClick={handleOpenLastSale}
-                className="bg-[#0b2b48] hover:bg-[#123b61] active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                className="bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
                 title="Ver o reimprimir el comprobante de la última venta"
               >
                 ÚLTIMA VENTA
@@ -804,7 +767,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       {/* Producto con capsula azul marina */}
                       <div className="w-[42%] min-w-0 pr-1">
                         <span
-                          className="bg-[#0b2b48] text-white text-[11px] font-bold px-2 py-1 rounded inline-block truncate max-w-full shadow-2xs leading-tight"
+                          className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-[11px] font-bold px-2 py-1 rounded inline-block truncate max-w-full shadow-2xs leading-tight"
                           title={`${item.productName} (${item.productCode})`}
                         >
                           {item.productName} {item.productCode ? `(${item.productCode})` : ''}
@@ -821,7 +784,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.productId, -1, item.isOffer)}
-                          className="w-5 h-5 bg-[#0b2b48] hover:bg-[#133f66] text-white rounded flex items-center justify-center active:scale-95 cursor-pointer"
+                          className="w-5 h-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded flex items-center justify-center active:scale-95 cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -833,7 +796,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.productId, 1, item.isOffer)}
-                          className="w-5 h-5 bg-[#0b2b48] hover:bg-[#133f66] text-white rounded flex items-center justify-center active:scale-95 cursor-pointer"
+                          className="w-5 h-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded flex items-center justify-center active:scale-95 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -898,7 +861,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   type="button"
                   onClick={handleGenerateQuotation}
                   disabled={cart.length === 0}
-                  className="bg-[#0f4066] hover:bg-[#165688] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3 rounded-lg text-center uppercase tracking-wider shadow-xs transition active:scale-98 cursor-pointer"
+                  className="bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3 rounded-lg text-center uppercase tracking-wider shadow-xs transition active:scale-98 cursor-pointer"
                 >
                   COTIZACIÓN
                 </button>
@@ -964,7 +927,11 @@ export const SalesView: React.FC<SalesViewProps> = ({
             <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 content-start">
                 {displayedCatalogProducts.map(product => {
-                  const imgUrl = getProductImage(product);
+                  const hasUploadedImage = Boolean(
+                    product.imageUrl &&
+                    product.imageUrl.trim().length > 5 &&
+                    !product.imageUrl.includes('unsplash.com')
+                  );
                   const isOffer = Boolean(product.offerPrice && product.offerPrice > 0);
                   const priceToDisplay = isOffer ? product.offerPrice! : (product.price || 1000);
 
@@ -974,15 +941,22 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       onClick={() => handleAddToCart(product)}
                       className="bg-white dark:bg-[#131f2b] border border-slate-200 dark:border-slate-700/70 rounded-xl p-2.5 shadow-2xs hover:shadow-md hover:border-sky-400 dark:hover:border-sky-500 transition cursor-pointer flex flex-col justify-between items-center text-center group active:scale-97 select-none relative overflow-hidden min-h-[145px]"
                     >
-                      {/* Imagen centrada */}
-                      <div className="w-full h-20 sm:h-22 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 dark:bg-[#0c141d] mb-1.5">
-                        <img
-                          src={imgUrl}
-                          alt={product.name}
-                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-200"
-                          loading="lazy"
-                        />
-                      </div>
+                      {/* Foto solo si el usuario la subió; de lo contrario caja limpia sin foto */}
+                      {hasUploadedImage ? (
+                        <div className="w-full h-20 sm:h-22 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 dark:bg-[#0c141d] mb-1.5">
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-200"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-20 sm:h-22 flex flex-col items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-dashed border-slate-200 dark:border-slate-700 mb-1.5 text-slate-400 dark:text-slate-500 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition">
+                          <Package className="w-6 h-6 stroke-[1.5]" />
+                          <span className="text-[9px] font-semibold mt-1">Sin foto</span>
+                        </div>
+                      )}
 
                       {/* Nombre del producto */}
                       <div className="w-full text-center px-0.5">
@@ -1044,7 +1018,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
           {/* COLUMNA 3: BARRA LATERAL DERECHA DE CATEGORIAS (~17% ANCHO)           */}
           {/* --------------------------------------------------------------------- */}
           {showCategorySidebar && (
-            <aside className="w-56 xl:w-64 shrink-0 flex flex-col h-full bg-[#182631] text-white p-2.5 border-l border-[#0e1820] shadow-lg overflow-hidden animate-fadeIn">
+            <aside className="w-56 xl:w-64 shrink-0 flex flex-col h-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-2.5 border-l border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fadeIn">
               {/* Buscador de Categorias */}
               <div className="mb-2 shrink-0">
                 <input
@@ -1052,7 +1026,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   value={categoryFilterText}
                   onChange={(e) => setCategoryFilterText(e.target.value)}
                   placeholder="Escriba para filtrar..."
-                  className="w-full bg-[#243542] border border-slate-600/80 text-white placeholder-slate-400 text-xs px-2.5 py-1.5 rounded-lg focus:outline-hidden focus:border-emerald-400 font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 text-xs px-2.5 py-1.5 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
                 />
               </div>
 
@@ -1075,19 +1049,23 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       }}
                       className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left transition cursor-pointer ${
                         isActive
-                          ? 'bg-[#304555] border-2 border-emerald-400 text-white font-black shadow-md'
-                          : 'bg-[#243542] hover:bg-[#2d404f] text-slate-200 hover:text-white font-bold'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-medium'
                       }`}
                     >
-                      {/* Icono verde */}
-                      <div className="w-7 h-7 rounded-lg bg-[#00c982]/20 border border-[#00c982]/40 text-[#00c982] flex items-center justify-center shrink-0">
+                      {/* Icono carpeta */}
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        isActive
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      }`}>
                         <Folder className="w-3.5 h-3.5" />
                       </div>
 
                       {/* Codigo y Nombre */}
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] opacity-60 font-mono leading-none">{cat.code}</div>
-                        <div className="text-[11px] truncate uppercase mt-0.5 leading-tight">{cat.name}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono leading-none">{cat.code}</div>
+                        <div className="text-[11px] truncate uppercase mt-0.5 leading-tight font-bold">{cat.name}</div>
                       </div>
                     </button>
                   );
@@ -1351,7 +1329,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsTurnModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg bg-[#0b3b5b] text-white text-xs font-bold"
+                className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold"
               >
                 Cerrar
               </button>

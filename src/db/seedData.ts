@@ -77,23 +77,6 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
   },
   {
     companyId: 'market-almacen',
-    code: 'QUESO-GAUDA-KG',
-    name: 'Queso Gauda Laminado Calo',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Calo',
-    stock: 18,
-    minStock: 5,
-    unit: 'Kg',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Vitrina Fiambrería',
-    costPrice: 5800,
-    price: 8490,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
     code: '7801890003412',
     name: 'Aceite Vegetal Chef 900 ml',
     category: 'Abarrotes',
@@ -106,170 +89,6 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     location: 'Pasillo 2 - Estante B',
     costPrice: 1350,
     price: 1990,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: '7801234005678',
-    name: 'Arroz Grado 1 Tucapel 1 Kg',
-    category: 'Abarrotes',
-    brand: 'Tucapel',
-    stock: 55,
-    minStock: 15,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Pasillo 2 - Estante A',
-    costPrice: 1150,
-    price: 1690,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: 'JAMON-PRAGA-KG',
-    name: 'Jamón Colonial Praga Artesanal',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Llanquihue',
-    stock: 14,
-    minStock: 4,
-    unit: 'Kg',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Vitrina Fiambrería',
-    costPrice: 6900,
-    price: 9990,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: 'VERD-TOMATE-KG',
-    name: 'Tomates Larga Vida Granel Selección',
-    category: 'Verduras',
-    brand: 'Agrícola San Pedro',
-    stock: 42,
-    minStock: 10,
-    unit: 'Kg',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Isla Frutas y Verduras',
-    costPrice: 850,
-    price: 1490,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: '7805678001234',
-    name: 'Detergente Líquido Omo Matic 1 Litro',
-    category: 'Limpieza y Aseo',
-    brand: 'Omo',
-    stock: 32,
-    minStock: 8,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Pasillo 4 - Estante C',
-    costPrice: 2800,
-    price: 3990,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  // --- PRODUCTOS VENCIDOS DE EJEMPLO (ALERTA ROJA) ---
-  {
-    companyId: 'market-almacen',
-    code: '7802900008812',
-    name: 'Yogurt Batido Colun Frutilla 120g',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Colun',
-    stock: 8,
-    minStock: 10,
-    unit: 'Unidades',
-    condition: 'BUENO',
-    completeness: 'COMPLETO',
-    location: 'Cámara Lácteos - Bandeja 1',
-    costPrice: 260,
-    price: 450,
-    expiryDate: getRelativeDateStr(-3), // Venció hace 3 días
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: 'PAN-MOLDE-INT',
-    name: 'Pan de Molde Artesanal Integral 500g',
-    category: 'Panadería y Pastelería',
-    brand: 'Panadería Central',
-    stock: 5,
-    minStock: 6,
-    unit: 'Unidades',
-    condition: 'BUENO',
-    completeness: 'COMPLETO',
-    location: 'Mesón Panadería',
-    costPrice: 1200,
-    price: 2190,
-    expiryDate: getRelativeDateStr(-1), // Venció ayer
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  // --- PRODUCTOS POR VENCER DE EJEMPLO (ALERTA AMARILLA) ---
-  {
-    companyId: 'market-almacen',
-    code: '7802900009945',
-    name: 'Quesillo Fresco Artesanal Colun 320g',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Colun',
-    stock: 12,
-    minStock: 6,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Cámara Frío Lácteos',
-    costPrice: 1450,
-    price: 2490,
-    expiryDate: getRelativeDateStr(4), // Vence en 4 días
-    offerPrice: 1890,
-    offerStockLimit: 12,
-    offerStockRemaining: 12,
-    offerLabel: 'Liquidación Próximo a Vencer',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: '7801620005541',
-    name: 'Crema de Leche Nestlé 200 ml',
-    category: 'Lácteos y Fiambrería',
-    brand: 'Nestlé',
-    stock: 16,
-    minStock: 8,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Pasillo 3 - Estante A',
-    costPrice: 790,
-    price: 1290,
-    expiryDate: getRelativeDateStr(12), // Vence en 12 días
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    companyId: 'market-almacen',
-    code: '7803500002123',
-    name: 'Vienesas Tradicionales San Jorge Pack 5',
-    category: 'Lácteos y Fiambrería',
-    brand: 'San Jorge',
-    stock: 10,
-    minStock: 5,
-    unit: 'Unidades',
-    condition: 'NUEVO',
-    completeness: 'COMPLETO',
-    location: 'Vitrina Cecinas',
-    costPrice: 950,
-    price: 1650,
-    expiryDate: getRelativeDateStr(18), // Vence en 18 días
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -305,6 +124,29 @@ export async function initDatabaseIfEmpty() {
     .toArray();
   for (const prod of legacyCatProds) {
     await db.products.update(prod.id!, { category: 'Abarrotes' });
+  }
+
+  // Limpieza de productos demo extra: se mantienen solo los 4 productos de prueba pedidos
+  const extraDemoCodes = [
+    'QUESO-GAUDA-KG',
+    '7801234005678',
+    'JAMON-PRAGA-KG',
+    'VERD-TOMATE-KG',
+    '7805678001234',
+    '7802900008812',
+    'PAN-MOLDE-INT',
+    '7802900009945',
+    '7801620005541',
+    '7803500002123'
+  ];
+  await db.products.where('code').anyOf(extraDemoCodes).delete();
+
+  // Asegurar que ningun producto conserve imagenes no subidas por el usuario (Unsplash)
+  const allCurrentProds = await db.products.toArray();
+  for (const prod of allCurrentProds) {
+    if (prod.imageUrl && (prod.imageUrl.includes('unsplash.com') || prod.imageUrl.trim() === '')) {
+      await db.products.update(prod.id!, { imageUrl: undefined });
+    }
   }
 
   const countProducts = await db.products.count();

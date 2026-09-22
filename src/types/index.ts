@@ -177,6 +177,8 @@ export interface Product {
   stock: number;
   minStock: number;
   unit: string;
+  isBulk?: boolean; // Señaliza si se vende a granel / por peso en balanza
+  isWeighable?: boolean;
   price?: number;
   costPrice?: number;
   lastPurchaseCost?: number;

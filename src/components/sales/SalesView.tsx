@@ -344,12 +344,22 @@ export const SalesView: React.FC<SalesViewProps> = ({
              w.name.toLowerCase() === selectedCategory.toLowerCase()
       );
 
-      if (activeWeighable) {
+            if (activeWeighable) {
         result = result.filter(p => {
+          // EXCLUSIÓN ESTRICTA DE PRODUCTOS CERRADOS / ENVASADOS (Leches, quesos en sobre, paquetes)
+          // Solo se admiten productos señalizados explícitamente para venta a granel / por peso
+          const isClosedUnit = ['unidades', 'litros', 'pack', 'caja', 'bolsa', 'botella', 'lata'].includes((p.unit || '').toLowerCase());
+          if (p.isBulk === false) return false;
+          if (isClosedUnit && p.isBulk !== true) return false;
+
+          const isBulkProduct = p.isBulk === true || p.isWeighable === true ||
+            ((p.unit === 'Kg' || p.unit === 'Gramos') && !isClosedUnit);
+          if (!isBulkProduct) return false;
+
           const pCat = (p.category || '').toLowerCase();
           const pName = (p.name || '').toLowerCase();
 
-          // 1. Pestaña Panadería / Panes: SOLO TIPOS DE PANES
+          // 1. Pestaña Panadería: SOLO panes a granel
           if (activeWeighable.id.includes('pan')) {
             const isOther = ['jamon', 'jamón', 'cecina', 'queso', 'tomate', 'palta', 'verdura', 'nuez', 'almendra', 'mani'].some(k => pName.includes(k) || pCat.includes(k));
             if (isOther) return false;
@@ -357,15 +367,18 @@ export const SalesView: React.FC<SalesViewProps> = ({
                    pName.includes('pan ') || pName.includes('hallulla') || pName.includes('marraqueta') || pName.includes('coliza') || pName.includes('dobladita') || pName.includes('baguette') || pName.includes('molde') || pName.includes('amasado') || pName.includes('pan');
           }
 
-          // 2. Pestaña Fiambrería: SOLO Cecinas, Quesos y Fiambrería
+          // 2. Pestaña Fiambrería: SOLO Cecinas y Quesos AL CORTE / A GRANEL (NUNCA leches, yogur ni sobres cerrados)
           if (activeWeighable.id.includes('fiambr') || activeWeighable.id.includes('cecina') || activeWeighable.id.includes('queso')) {
+            const isClosedDairy = ['leche', 'yogur', 'yogurt', 'sobre', 'crema de leche', 'mantequilla', 'postre'].some(k => pName.includes(k));
+            if (isClosedDairy && p.isBulk !== true) return false;
+
             const isBreadOrVeg = ['pan ', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra'].some(k => pName.includes(k) || pCat.includes(k));
             if (isBreadOrVeg) return false;
             return pCat === 'fiambrería' || pCat === 'fiambreria' || pCat.includes('fiambr') || pCat.includes('cecina') ||
                    pName.includes('jamón') || pName.includes('jamon') || pName.includes('queso') || pName.includes('cecina') || pName.includes('salame') || pName.includes('mortadela');
           }
 
-          // 3. Pestaña Verdulería: SOLO Frutas y Verduras
+          // 3. Pestaña Verdulería: SOLO Frutas y Verduras A GRANEL
           if (activeWeighable.id.includes('verdur') || activeWeighable.id.includes('fruta')) {
             const isBreadOrMeat = ['pan ', 'hallulla', 'marraqueta', 'jamon', 'queso', 'cecina', 'nuez'].some(k => pName.includes(k) || pCat.includes(k));
             if (isBreadOrMeat) return false;
@@ -373,7 +386,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                    pName.includes('tomate') || pName.includes('palta') || pName.includes('papa') || pName.includes('cebolla') || pName.includes('limon') || pName.includes('limón') || pName.includes('platano');
           }
 
-          // 4. Pestaña Frutos Secos: SOLO Frutos Secos y Semillas
+          // 4. Pestaña Frutos Secos: SOLO Frutos Secos y Semillas A GRANEL
           if (activeWeighable.id.includes('fruto')) {
             const isBreadOrMeat = ['pan ', 'hallulla', 'marraqueta', 'jamon', 'queso', 'cecina', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
             if (isBreadOrMeat) return false;
@@ -381,7 +394,6 @@ export const SalesView: React.FC<SalesViewProps> = ({
                    pName.includes('nuez') || pName.includes('nueces') || pName.includes('almendra') || pName.includes('mani') || pName.includes('maní') || pName.includes('frutos secos') || pName.includes('pasas');
           }
 
-          // Para otros rubros (Ferretería, Mascotas, etc.)
           return activeWeighable.keywords.some(k => pCat.includes(k) || pName.includes(k));
         });
       } else {
@@ -421,7 +433,9 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const handleAddToCart = (product: Product, forceChoice?: 'NORMAL' | 'OFFER', requestedQty: number = 1) => {
     if (isReadOnly) return;
 
-    const isWeighable = product.unit === 'Kg' || product.unit === 'Gramos' || product.category === 'Panadería' || product.category === 'Panadería y Pastelería' || product.category === 'Verdulería' || product.category === 'Frutas y Verduras' || product.category === 'Fiambrería' || product.category === 'Lácteos y Fiambrería' || product.category === 'Frutos Secos' || weighableTabs.some(w => (product.category || '').toLowerCase().includes(w.name.toLowerCase()));
+    const isClosedUnit = ['unidades', 'litros', 'pack', 'caja', 'bolsa', 'botella', 'lata'].includes((product.unit || '').toLowerCase());
+    const isWeighable = (product.isBulk === true || product.isWeighable === true) ||
+      (product.isBulk !== false && (product.unit === 'Kg' || product.unit === 'Gramos') && !isClosedUnit);
     if (isWeighable) {
       setSelectedWeighableProduct(product);
       setIsWeighableModalOpen(true);

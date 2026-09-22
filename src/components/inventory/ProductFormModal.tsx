@@ -9,6 +9,7 @@ import { db } from '../../db/database';
 import { generateProductBarcode } from '../../utils/barcodeGenerator';
 import { triggerCloudSync, notifyLocalMutation } from '../../utils/cloudSync';
 import {
+  Scale,
   X,
   ScanLine,
   Sparkles,
@@ -123,6 +124,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [stock, setStock] = useState<number | string>('');
   const [minStock, setMinStock] = useState<number | string>(5);
   const [unit, setUnit] = useState('Unidades');
+  const [isBulk, setIsBulk] = useState<boolean>(false);
   const [costPrice, setCostPrice] = useState<number | string>('');
   const [lastPurchaseCost, setLastPurchaseCost] = useState<number | string>('');
   const [averageCost, setAverageCost] = useState<number | string>('');
@@ -146,6 +148,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setStock(productToEdit.stock ?? '');
       setMinStock(productToEdit.minStock ?? 5);
       setUnit(productToEdit.unit || 'Unidades');
+      const isBulkInitial = Boolean(
+        productToEdit.isBulk !== undefined
+          ? productToEdit.isBulk
+          : (productToEdit.unit === 'Kg' || productToEdit.unit === 'Gramos') &&
+            !['Unidades', 'Litros', 'Pack', 'Caja', 'Bolsa', 'Botella', 'Lata'].includes(productToEdit.unit)
+      );
+      setIsBulk(isBulkInitial);
       setCostPrice(productToEdit.costPrice ?? '');
       setLastPurchaseCost(productToEdit.lastPurchaseCost ?? '');
       setAverageCost(productToEdit.averageCost ?? '');
@@ -166,6 +175,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setStock('');
       setMinStock(5);
       setUnit('Unidades');
+      setIsBulk(false);
       setCostPrice('');
       setLastPurchaseCost('');
       setAverageCost('');
@@ -231,6 +241,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           stock: finalStock,
           minStock: finalMinStock,
           unit,
+          isBulk: Boolean(isBulk),
+          isWeighable: Boolean(isBulk),
           costPrice: finalCostPrice,
           lastPurchaseCost: finalLastPurchaseCost,
           averageCost: finalAverageCost,
@@ -256,6 +268,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           stock: finalStock,
           minStock: finalMinStock,
           unit,
+          isBulk: Boolean(isBulk),
+          isWeighable: Boolean(isBulk),
           costPrice: finalCostPrice,
           lastPurchaseCost: finalLastPurchaseCost,
           averageCost: finalAverageCost,
@@ -437,44 +451,91 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
           </div>
 
-          {/* Selector de Departamento Pesable / Pestaña Rápida de POS del Rubro */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                <span>⚖️ Asignar a Pestaña de Venta POS (Productos Pesables / Granel):</span>
-              </label>
-              <span className="text-[10px] text-slate-500 font-bold hidden sm:inline">
-                Ajusta automáticamente la categoría y unidad por kilo
-              </span>
+          {/* Señalización de Venta a Granel vs Producto Cerrado / Envasado */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-amber-500" />
+                  <span>Modalidad de Venta: ¿Se vende a Granel / Pesable o Cerrado?</span>
+                </label>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Los productos cerrados (leches, quesos en sobre, paquetes) se venden por unidad y no se pesan en balanza.
+                </p>
+              </div>
+
+              {/* Botones Switch */}
+              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-700 p-1 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBulk(false);
+                    if (unit === 'Kg' || unit === 'Gramos') setUnit('Unidades');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    !isBulk
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  📦 Cerrado / Envasado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBulk(true);
+                    setUnit('Kg');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    isBulk
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  ⚖️ Venta a Granel / Pesable
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {weighableTabs.map(tab => {
-                const isSelected = category.toLowerCase() === tab.key.toLowerCase() || category.toLowerCase() === tab.name.toLowerCase();
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setCategory(tab.name);
-                      setUnit('Kg');
-                    }}
-                    className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>{tab.icon}</span>
-                    <span>{tab.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* Si es Venta a Granel: señalar departamento pesable de venta */}
+            {isBulk ? (
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700/70 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    Señale a qué departamento de venta a granel pertenece (Pestaña POS):
+                  </span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    ✓ Se pesará en Balanza por {unit}
+                  </span>
+                </div>
 
-            {weighableTabs.some(t => t.name.toLowerCase() === category.toLowerCase() || t.key.toLowerCase() === category.toLowerCase()) && (
-              <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 pt-0.5">
-                <span>✓ Este producto se mostrará en la pestaña de POS: <strong>{category}</strong> (Venta por peso en {unit})</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {weighableTabs.map(tab => {
+                    const isSelected = category.toLowerCase() === tab.key.toLowerCase() || category.toLowerCase() === tab.name.toLowerCase();
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setCategory(tab.name);
+                          setUnit('Kg');
+                        }}
+                        className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{tab.icon}</span>
+                        <span>{tab.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 italic pt-1">
+                ℹ️ Producto empaquetado/cerrado (ej: Leche, Queso laminado en sobre, Bebidas). Se venderá por unidad o envase y NO aparecerá en las pestañas de balanza ni granel.
               </p>
             )}
           </div>

@@ -170,6 +170,15 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     const deptId = currentDepartment.id.toLowerCase();
 
     return allProducts.filter(p => {
+      // Exclusión estricta de productos cerrados / envasados
+      const isClosedUnit = ['unidades', 'litros', 'pack', 'caja', 'bolsa', 'botella', 'lata'].includes((p.unit || '').toLowerCase());
+      if (p.isBulk === false) return false;
+      if (isClosedUnit && p.isBulk !== true) return false;
+
+      const isBulkProduct = p.isBulk === true || p.isWeighable === true ||
+        ((p.unit === 'Kg' || p.unit === 'Gramos') && !isClosedUnit);
+      if (!isBulkProduct) return false;
+
       const pName = (p.name || '').toLowerCase();
       const pCat = (p.category || '').toLowerCase();
 
@@ -181,8 +190,11 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                ['pan', 'hallulla', 'marraqueta', 'coliza', 'dobladita', 'baguette', 'molde', 'amasado', 'croissant'].some(k => pName.includes(k) || pCat.includes(k));
       }
 
-      // Fiambrería: ÚNICAMENTE cecinas, jamones y quesos
+      // Fiambrería: ÚNICAMENTE cecinas, jamones y quesos al corte / granel
       if (deptId.includes('fiambr') || deptId.includes('cecina') || deptId.includes('queso')) {
+        const isClosedDairy = ['leche', 'yogur', 'yogurt', 'sobre', 'crema de leche', 'mantequilla', 'postre'].some(k => pName.includes(k));
+        if (isClosedDairy && p.isBulk !== true) return false;
+
         const isBreadOrVeg = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra', 'lechuga', 'fruta'].some(k => pName.includes(k) || pCat.includes(k));
         if (isBreadOrVeg) return false;
         return pCat.includes('fiambr') || pCat.includes('cecina') || pCat.includes('lácteo') || pCat.includes('lacteo') ||

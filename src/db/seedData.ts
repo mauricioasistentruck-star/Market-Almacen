@@ -33,6 +33,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 35,
     minStock: 10,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Mesón Panadería',
@@ -50,6 +52,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 28,
     minStock: 8,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Mesón Panadería',
@@ -67,6 +71,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 14,
     minStock: 4,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Vitrina Fiambrería',
@@ -84,6 +90,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 18,
     minStock: 5,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Vitrina Fiambrería',
@@ -101,6 +109,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 42,
     minStock: 10,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Isla Frutas y Verduras',
@@ -118,6 +128,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 25,
     minStock: 5,
     unit: 'Kg',
+    isBulk: true,
+    isWeighable: true,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Estante Frutos Secos',
@@ -135,6 +147,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 48,
     minStock: 12,
     unit: 'Unidades',
+    isBulk: false,
+    isWeighable: false,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Pasillo 1 - Estante A',
@@ -152,6 +166,8 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     stock: 40,
     minStock: 10,
     unit: 'Unidades',
+    isBulk: false,
+    isWeighable: false,
     condition: 'NUEVO',
     completeness: 'COMPLETO',
     location: 'Pasillo 2 - Estante B',
@@ -215,14 +231,23 @@ export async function initDatabaseIfEmpty() {
       await db.products.update(prod.id!, { imageUrl: undefined });
     }
     const name = (prod.name || '').toLowerCase();
-    if (name.includes('jamón') || name.includes('jamon') || name.includes('queso gauda') || name.includes('cecina')) {
-      await db.products.update(prod.id!, { category: 'Fiambrería', unit: 'Kg' });
-    } else if (name.includes('hallulla') || name.includes('pan ')) {
-      await db.products.update(prod.id!, { category: 'Panadería', unit: 'Kg' });
-    } else if (name.includes('tomate') || name.includes('palta') || name.includes('verdura')) {
-      await db.products.update(prod.id!, { category: 'Verdulería', unit: 'Kg' });
-    } else if (name.includes('frutos secos') || name.includes('nuez') || name.includes('almendra')) {
-      await db.products.update(prod.id!, { category: 'Frutos Secos', unit: 'Kg' });
+    const isClosedUnit = ['unidades', 'litros', 'pack', 'caja', 'bolsa', 'botella', 'lata'].includes((prod.unit || '').toLowerCase());
+    const isClosedDairy = ['leche', 'yogur', 'yogurt', 'sobre', 'crema de leche', 'mantequilla'].some(k => name.includes(k));
+
+    if (isClosedUnit || isClosedDairy) {
+      await db.products.update(prod.id!, { isBulk: false, isWeighable: false });
+    } else if (prod.unit === 'Kg' || prod.unit === 'Gramos') {
+      await db.products.update(prod.id!, { isBulk: true, isWeighable: true });
+    }
+
+    if (!isClosedDairy && (name.includes('jamón') || name.includes('jamon') || name.includes('queso gauda') || name.includes('cecina')) && !isClosedUnit) {
+      await db.products.update(prod.id!, { category: 'Fiambrería', unit: 'Kg', isBulk: true, isWeighable: true });
+    } else if (name.includes('hallulla') || (name.includes('pan ') && !isClosedUnit)) {
+      await db.products.update(prod.id!, { category: 'Panadería', unit: 'Kg', isBulk: true, isWeighable: true });
+    } else if ((name.includes('tomate') || name.includes('palta') || name.includes('verdura')) && !isClosedUnit) {
+      await db.products.update(prod.id!, { category: 'Verdulería', unit: 'Kg', isBulk: true, isWeighable: true });
+    } else if ((name.includes('frutos secos') || name.includes('nuez') || name.includes('almendra')) && !isClosedUnit) {
+      await db.products.update(prod.id!, { category: 'Frutos Secos', unit: 'Kg', isBulk: true, isWeighable: true });
     }
   }
 

@@ -421,7 +421,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const handleAddToCart = (product: Product, forceChoice?: 'NORMAL' | 'OFFER', requestedQty: number = 1) => {
     if (isReadOnly) return;
 
-    const isWeighable = product.unit === 'Kg' || product.unit === 'Gramos' || product.category === 'Panadería y Pastelería' || product.category === 'Frutas y Verduras';
+    const isWeighable = product.unit === 'Kg' || product.unit === 'Gramos' || product.category === 'Panadería' || product.category === 'Panadería y Pastelería' || product.category === 'Verdulería' || product.category === 'Frutas y Verduras' || product.category === 'Fiambrería' || product.category === 'Lácteos y Fiambrería' || product.category === 'Frutos Secos' || weighableTabs.some(w => (product.category || '').toLowerCase().includes(w.name.toLowerCase()));
     if (isWeighable) {
       setSelectedWeighableProduct(product);
       setIsWeighableModalOpen(true);
@@ -1414,6 +1414,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             setSelectedWeighableProduct(null);
           }}
           selectedProduct={selectedWeighableProduct}
+          activeDepartmentKey={selectedCategory}
           onAddToCart={(cartItem) => {
             handleAddToCartDirect(cartItem);
             setIsWeighableModalOpen(false);

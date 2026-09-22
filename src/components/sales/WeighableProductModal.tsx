@@ -4,12 +4,15 @@ import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { db } from '../../db/database';
 import { formatCLP } from '../../utils/salesPdfGenerator';
+import { getWeighableCategoriesForRubro, type RubroWeighableCategory } from '../../utils/rubroPresets';
 import type { Product, SaleItem } from '../../types';
 import {
   X,
   Scale,
   ShoppingCart,
-  Boxes
+  Boxes,
+  Check,
+  RotateCcw
 } from 'lucide-react';
 
 interface WeighableProductModalProps {
@@ -17,49 +20,25 @@ interface WeighableProductModalProps {
   onClose: () => void;
   onAddToCart: (item: SaleItem) => void;
   selectedProduct?: Product | null;
+  activeDepartmentKey?: string;
 }
-
-
-const CATEGORY_PRESETS_MOBILE = [
-  { id: 'cecinas', name: 'Cecinas', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
-  { id: 'quesos', name: 'Quesos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
-  { id: 'panaderia', name: 'Panadería', icon: '🥖', defaultPrice: 1990, keywords: ['pan', 'marraqueta', 'hallulla', 'baguette', 'coliza', 'dobladita', 'panaderia', 'panadería'] },
-  { id: 'verduras', name: 'Verduras', icon: '🥬', defaultPrice: 1500, keywords: ['verdura', 'lechuga', 'espinaca', 'acelga', 'zapallo', 'zanahoria', 'apio', 'pepino', 'cilantro', 'perejil', 'cebolla', 'papa', 'camote', 'betarraga', 'tomate', 'pimenton', 'pimentón'] },
-  { id: 'frutas', name: 'Frutas', icon: '🍎', defaultPrice: 1490, keywords: ['manzana', 'platano', 'plátano', 'naranja', 'pera', 'uva', 'fruta', 'limon', 'limón', 'sandia', 'sandía', 'melon', 'melón', 'frutilla', 'durazno', 'palta'] },
-  { id: 'carnes', name: 'Carnes', icon: '🍗', defaultPrice: 6990, keywords: ['carne', 'pollo', 'vacuno', 'cerdo', 'posta', 'molida', 'pechuga', 'trutro', 'costillar', 'lomo', 'sobrecostilla', 'asado', 'carniceria', 'carnicería', 'alitas'] },
-  { id: 'frutos', name: 'Frutos', icon: '🥜', defaultPrice: 9900, keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'castaña', 'avellana', 'pasas', 'pistacho', 'datil', 'dátil', 'chia', 'chía', 'linaza', 'granola', 'semilla'] },
-  { id: 'legumbres', name: 'Legumbres', icon: '🌾', defaultPrice: 2490, keywords: ['poroto', 'lenteja', 'garbanzo', 'arveja', 'haba', 'legumbre'] }
-];
-
-const CATEGORY_PRESETS = [
-  { id: 'cecinas', name: 'Cecinas', icon: '🥩', defaultPrice: 8990, keywords: ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'arrollado', 'paté', 'pate', 'vienesas', 'tocino', 'fiambreria'] },
-  { id: 'quesos', name: 'Quesos', icon: '🧀', defaultPrice: 7990, keywords: ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso', 'ricotta', 'parmesano', 'lacteo', 'lácteo'] },
-  { id: 'panaderia', name: 'Panadería', icon: '🥖', defaultPrice: 1990, keywords: ['pan', 'marraqueta', 'hallulla', 'baguette', 'coliza', 'dobladita', 'panaderia', 'panadería'] },
-  { id: 'verduras', name: 'Verduras', icon: '🥬', defaultPrice: 1500, keywords: ['verdura', 'lechuga', 'espinaca', 'acelga', 'zapallo', 'zanahoria', 'apio', 'pepino', 'cilantro', 'perejil', 'cebolla'] },
-  { id: 'papas', name: 'Papas', icon: '🥔', defaultPrice: 1200, keywords: ['papa', 'camote', 'betarraga', 'tuberculo', 'tubérculo'] },
-  { id: 'tomates', name: 'Tomates', icon: '🍅', defaultPrice: 1690, keywords: ['tomate', 'pimenton', 'pimentón', 'morron', 'morrón', 'aji', 'ají', 'hortaliza'] },
-  { id: 'frutas', name: 'Frutas', icon: '🍎', defaultPrice: 1490, keywords: ['manzana', 'platano', 'plátano', 'naranja', 'pera', 'uva', 'fruta', 'limon', 'limón', 'sandia', 'sandía', 'melon', 'melón', 'frutilla', 'durazno', 'palta'] },
-  { id: 'carnes', name: 'Carnes', icon: '🍗', defaultPrice: 6990, keywords: ['carne', 'pollo', 'vacuno', 'cerdo', 'posta', 'molida', 'pechuga', 'trutro', 'costillar', 'lomo', 'sobrecostilla', 'asado', 'carniceria', 'carnicería', 'alitas'] },
-  { id: 'frutos', name: 'Frutos', icon: '🥜', defaultPrice: 9900, keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'castaña', 'avellana', 'pasas', 'pistacho', 'datil', 'dátil', 'chia', 'chía', 'linaza', 'granola', 'semilla'] },
-  { id: 'legumbres', name: 'Legumbres', icon: '🌾', defaultPrice: 2490, keywords: ['poroto', 'lenteja', 'garbanzo', 'arveja', 'haba', 'legumbre'] }
-];
 
 export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
   isOpen,
   onClose,
   onAddToCart,
-  selectedProduct: propSelectedProduct
+  selectedProduct: propSelectedProduct,
+  activeDepartmentKey
 }) => {
   useBodyScrollLock(Boolean(isOpen));
   const { themeClasses } = useTheme();
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId, selectedCompany } = useCompany();
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('cecinas');
   const [selectedStockProduct, setSelectedStockProduct] = useState<Product | null>(null);
 
   const [productName, setProductName] = useState('');
-  const [pricePerKg, setPricePerKg] = useState<number | string>(8990);
+  const [pricePerKg, setPricePerKg] = useState<number | string>(1990);
   const [weightKg, setWeightKg] = useState<number | string>('');
   const [weightGrams, setWeightGrams] = useState<number | string>('');
   const [unit, setUnit] = useState('Kg');
@@ -78,124 +57,194 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     loadStock();
   }, [isOpen, selectedCompanyId]);
 
-  // Helper para detectar la categoría adecuada para un producto
-  const findMatchingCategoryPreset = (prod: Product) => {
-    const pName = (prod.name || '').toLowerCase();
-    const pCat = (prod.category || '').toLowerCase();
+  // Lista de departamentos pesables del rubro actual (Almacén, Panadería, Ferretería, Mascotas, etc.)
+  const weighableTabs = useMemo(() => {
+    return getWeighableCategoriesForRubro(selectedCompany?.rubroKey);
+  }, [selectedCompany?.rubroKey]);
 
-    // El producto tomate pertenece exclusivamente a Verduras / Tomates, nunca a Frutas
-    if (pName.includes('tomate')) {
-      const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 640;
-      if (isMobileScreen) {
-        return CATEGORY_PRESETS_MOBILE.find(p => p.id === 'verduras') || CATEGORY_PRESETS[0];
-      }
-      return CATEGORY_PRESETS.find(p => p.id === 'tomates') || CATEGORY_PRESETS.find(p => p.id === 'verduras') || CATEGORY_PRESETS[0];
+  // Detectar el departamento exacto al que pertenece el producto o la vista actual
+  const currentDepartment = useMemo<RubroWeighableCategory | null>(() => {
+    // 1. Si viene una pestaña activa en el POS (ej: 'Panadería', 'Verdulería', 'Fiambrería', etc.)
+    if (activeDepartmentKey && activeDepartmentKey !== 'ALL' && activeDepartmentKey !== 'COMMON') {
+      const match = weighableTabs.find(
+        t => t.key.toLowerCase() === activeDepartmentKey.toLowerCase() ||
+             t.id.toLowerCase() === activeDepartmentKey.toLowerCase() ||
+             t.name.toLowerCase() === activeDepartmentKey.toLowerCase()
+      );
+      if (match) return match;
     }
 
-    for (const preset of CATEGORY_PRESETS) {
-      if (preset.id === 'frutos') {
-        const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isMeatOrPoultry) continue;
-      }
-      const matches = preset.keywords.some(k => pName.includes(k) || pCat.includes(k));
-      if (matches) return preset;
-    }
-    return CATEGORY_PRESETS[0];
-  };
+    // 2. Si hay un producto seleccionado, detectar según su nombre y categoría
+    if (propSelectedProduct) {
+      const pName = (propSelectedProduct.name || '').toLowerCase();
+      const pCat = (propSelectedProduct.category || '').toLowerCase();
 
-  // Inicializar al abrir
+      // Panadería
+      if (
+        pCat === 'panadería' || pCat === 'panaderia' || pCat.includes('panad') ||
+        ['pan', 'hallulla', 'marraqueta', 'coliza', 'dobladita', 'baguette', 'molde', 'amasado'].some(k => pName.includes(k))
+      ) {
+        const found = weighableTabs.find(t => t.id.includes('pan'));
+        if (found) return found;
+        return {
+          id: 'panaderia',
+          name: 'Panadería',
+          key: 'Panadería',
+          icon: '🥖',
+          badgeColor: '',
+          activeColor: '',
+          keywords: ['pan']
+        };
+      }
+
+      // Verdulería / Frutas
+      if (
+        pCat === 'verdulería' || pCat === 'verduleria' || pCat.includes('verdul') || pCat.includes('fruta') ||
+        ['tomate', 'palta', 'papa', 'cebolla', 'lechuga', 'limon', 'platano', 'manzana', 'naranja', 'zanahoria'].some(k => pName.includes(k))
+      ) {
+        const found = weighableTabs.find(t => t.id.includes('verdul') || t.id.includes('fruta'));
+        if (found) return found;
+        return {
+          id: 'verduleria',
+          name: 'Verdulería y Frutería',
+          key: 'Verdulería',
+          icon: '🥬',
+          badgeColor: '',
+          activeColor: '',
+          keywords: ['verdura', 'fruta']
+        };
+      }
+
+      // Fiambrería / Cecinas y Quesos
+      if (
+        pCat === 'fiambrería' || pCat === 'fiambreria' || pCat.includes('fiambr') || pCat.includes('cecina') || pCat.includes('lácteo') || pCat.includes('lacteo') ||
+        ['cecina', 'jamon', 'jamón', 'queso', 'salame', 'mortadela', 'vienesas'].some(k => pName.includes(k))
+      ) {
+        const found = weighableTabs.find(t => t.id.includes('fiambr') || t.id.includes('cecina'));
+        if (found) return found;
+        return {
+          id: 'fiambreria',
+          name: 'Fiambrería y Quesos',
+          key: 'Fiambrería',
+          icon: '🥪',
+          badgeColor: '',
+          activeColor: '',
+          keywords: ['fiambreria', 'cecina', 'queso']
+        };
+      }
+
+      // Frutos Secos
+      if (
+        pCat === 'frutos secos' || pCat.includes('fruto') ||
+        ['nuez', 'nueces', 'almendra', 'mani', 'maní', 'semilla'].some(k => pName.includes(k))
+      ) {
+        const found = weighableTabs.find(t => t.id.includes('fruto'));
+        if (found) return found;
+        return {
+          id: 'frutos_secos',
+          name: 'Frutos Secos y Granel',
+          key: 'Frutos Secos',
+          icon: '🥜',
+          badgeColor: '',
+          activeColor: '',
+          keywords: ['frutos secos']
+        };
+      }
+
+      // Probar si coincide con alguna otra pestaña del rubro activo
+      for (const tab of weighableTabs) {
+        if (tab.keywords.some(k => pName.includes(k) || pCat.includes(k))) {
+          return tab;
+        }
+      }
+    }
+
+    return null;
+  }, [activeDepartmentKey, propSelectedProduct, weighableTabs]);
+
+  // Filtrar de manera ESTRICTA solo los productos de este departamento específico
+  const matchingStockProducts = useMemo(() => {
+    if (!currentDepartment) {
+      // Si no pertenece a un departamento específico, mostrar únicamente el producto seleccionado o productos de su misma categoría
+      if (propSelectedProduct) {
+        return allProducts.filter(p => p.category === propSelectedProduct.category || p.id === propSelectedProduct.id);
+      }
+      return allProducts.filter(p => p.unit === 'Kg' || p.unit === 'Gramos');
+    }
+
+    const deptId = currentDepartment.id.toLowerCase();
+
+    return allProducts.filter(p => {
+      const pName = (p.name || '').toLowerCase();
+      const pCat = (p.category || '').toLowerCase();
+
+      // 1. Panadería: ÚNICAMENTE panes y masas de panadería (descarta cecinas, quesos, verduras, frutas)
+      if (deptId.includes('pan')) {
+        const isOther = ['jamon', 'jamón', 'cecina', 'queso', 'tomate', 'palta', 'verdura', 'fruta', 'nuez', 'almendra', 'mani', 'carne'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isOther) return false;
+        return pCat === 'panadería' || pCat === 'panaderia' || pCat.includes('panad') ||
+               ['pan', 'hallulla', 'marraqueta', 'coliza', 'dobladita', 'baguette', 'molde', 'amasado', 'croissant'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // 2. Fiambrería: ÚNICAMENTE cecinas, jamones y quesos (descarta pan y verduras)
+      if (deptId.includes('fiambr') || deptId.includes('cecina') || deptId.includes('queso')) {
+        const isBreadOrVeg = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra', 'lechuga', 'fruta'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isBreadOrVeg) return false;
+        return pCat.includes('fiambr') || pCat.includes('cecina') || pCat.includes('lácteo') || pCat.includes('lacteo') ||
+               ['cecina', 'jamon', 'jamón', 'queso', 'salame', 'mortadela', 'vienesas', 'arrollado', 'tocino'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // 3. Verdulería: ÚNICAMENTE verduras, hortalizas y frutas (descarta pan y cecinas)
+      if (deptId.includes('verdul') || deptId.includes('fruta') || deptId.includes('vegetal')) {
+        const isBreadOrMeat = ['pan', 'hallulla', 'marraqueta', 'cecina', 'jamon', 'jamón', 'queso', 'nuez', 'almendra'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isBreadOrMeat) return false;
+        return pCat.includes('verdul') || pCat.includes('fruta') || pCat.includes('vegetal') ||
+               ['tomate', 'palta', 'papa', 'cebolla', 'lechuga', 'limon', 'limón', 'platano', 'plátano', 'manzana', 'naranja', 'zanahoria', 'pepino', 'fruta', 'verdura'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // 4. Frutos Secos: ÚNICAMENTE frutos secos y semillas a granel (descarta carnes y pan)
+      if (deptId.includes('fruto') || deptId.includes('granel')) {
+        const isMeatOrBread = ['carne', 'pollo', 'cecina', 'jamon', 'jamón', 'pan', 'hallulla', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isMeatOrBread) return false;
+        return pCat.includes('fruto') ||
+               ['fruto seco', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'semilla', 'pasas', 'castaña', 'avellana', 'pistacho'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // Coincidencias de palabras clave de la pestaña
+      return currentDepartment.keywords.some(k => pName.includes(k) || pCat.includes(k));
+    });
+  }, [currentDepartment, allProducts, propSelectedProduct]);
+
+  // Inicializar producto seleccionado al abrir
   useEffect(() => {
     if (!isOpen) return;
 
     if (propSelectedProduct) {
-      const matchedPreset = findMatchingCategoryPreset(propSelectedProduct);
-      setActiveCategory(matchedPreset.id);
       setSelectedStockProduct(propSelectedProduct);
       setProductName(propSelectedProduct.name);
-      setPricePerKg(propSelectedProduct.price || matchedPreset.defaultPrice);
+      setPricePerKg(propSelectedProduct.price || 1990);
       setUnit(propSelectedProduct.unit || 'Kg');
       setWeightKg('');
       setWeightGrams('');
-    } else {
-      const initialPreset = CATEGORY_PRESETS[0];
-      setActiveCategory(initialPreset.id);
-      applyCategoryFilter(initialPreset, allProducts);
-      setWeightKg('');
-      setWeightGrams('');
-    }
-  }, [propSelectedProduct, isOpen, allProducts.length]);
-
-  // Filtrar productos de inventario estrictamente coincidentes con la categoría
-  const getMatchingStockProducts = (categoryPreset: typeof CATEGORY_PRESETS[0], list: Product[]) => {
-    return list.filter(p => {
-      const pName = (p.name || '').toLowerCase();
-      const pCat = (p.category || '').toLowerCase();
-
-      // Panadería: ESTRICTAMENTE tipos de panes y masas de panadería (descartar cecinas, quesos, verduras)
-      if (categoryPreset.id === 'pan' || categoryPreset.id === 'panaderia') {
-        const isOther = ['jamon', 'jamón', 'cecina', 'queso', 'tomate', 'palta', 'nuez', 'almendra', 'carne'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isOther) return false;
-        return ['pan', 'hallulla', 'marraqueta', 'baguette', 'coliza', 'dobladita', 'molde', 'amasado'].some(k => pName.includes(k) || pCat.includes(k));
-      }
-
-      // Cecinas: ESTRICTAMENTE cecinas y jamón
-      if (categoryPreset.id === 'cecinas') {
-        const isBreadOrVeg = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isBreadOrVeg) return false;
-        return ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'vienesas', 'tocino'].some(k => pName.includes(k) || pCat.includes(k));
-      }
-
-      // Quesos: ESTRICTAMENTE quesos
-      if (categoryPreset.id === 'quesos') {
-        const isBreadOrMeat = ['pan', 'hallulla', 'marraqueta', 'jamon', 'cecina', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isBreadOrMeat) return false;
-        return ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso'].some(k => pName.includes(k) || pCat.includes(k));
-      }
-
-      if (categoryPreset.id === 'frutos') {
-        const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isMeatOrPoultry) return false;
-      }
-
-      if (categoryPreset.id === 'carnes') {
-        const isMeat = categoryPreset.keywords.some(k => pName.includes(k) || pCat.includes(k));
-        return isMeat;
-      }
-
-      // Eliminar estrictamente tomates de la categoría frutas
-      if (categoryPreset.id === 'frutas') {
-        if (pName.includes('tomate') || pName.includes('morron') || pName.includes('morrón') || pName.includes('aji') || pName.includes('ají') || pName.includes('papa')) {
-          return false;
-        }
-      }
-
-      const matchesKeyword = categoryPreset.keywords.some(k => pName.includes(k) || pCat.includes(k));
-      const matchesUnit = p.unit === 'Kg' || p.unit === 'Gramos' || p.unit === 'UN' || !p.unit;
-      return matchesKeyword && matchesUnit;
-    });
-  };
-
-  const applyCategoryFilter = (preset: typeof CATEGORY_PRESETS[0], list: Product[]) => {
-    const matching = getMatchingStockProducts(preset, list);
-    if (matching.length > 0) {
-      const first = matching[0];
+    } else if (matchingStockProducts.length > 0) {
+      const first = matchingStockProducts[0];
       setSelectedStockProduct(first);
       setProductName(first.name);
-      setPricePerKg(first.price || preset.defaultPrice);
+      setPricePerKg(first.price || 1990);
       setUnit(first.unit || 'Kg');
+      setWeightKg('');
+      setWeightGrams('');
     } else {
       setSelectedStockProduct(null);
       setProductName('');
-      setPricePerKg(preset.defaultPrice);
+      setPricePerKg(1990);
       setUnit('Kg');
+      setWeightKg('');
+      setWeightGrams('');
     }
-  };
+  }, [propSelectedProduct, isOpen, matchingStockProducts]);
 
-  const handleSelectCategory = (preset: typeof CATEGORY_PRESETS[0]) => {
-    setActiveCategory(preset.id);
-    applyCategoryFilter(preset, allProducts);
-  };
-
+  // Al hacer clic en una tecla del teclado de balanza (como el teclado de supermercado de la foto 3)
   const handleSelectStockItem = (prod: Product) => {
     setSelectedStockProduct(prod);
     setProductName(prod.name);
@@ -226,6 +275,24 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     }
   };
 
+  // Botones de peso rápido en balanza (+100g, +250g, +500g, +1000g)
+  const handleAddQuickGrams = (gramsToAdd: number) => {
+    const currentG = parseFloat(String(weightGrams)) || 0;
+    const newG = currentG + gramsToAdd;
+    setWeightGrams(String(newG));
+    setWeightKg((newG / 1000).toFixed(3));
+  };
+
+  const handleSetExactGrams = (exactGrams: number) => {
+    setWeightGrams(String(exactGrams));
+    setWeightKg((exactGrams / 1000).toFixed(3));
+  };
+
+  const handleClearWeight = () => {
+    setWeightKg('');
+    setWeightGrams('');
+  };
+
   const finalQuantityKg = parseFloat(String(weightKg)) || 0;
   const finalSubtotal = currentPricePerKg > 0 && finalQuantityKg > 0
     ? Math.round(finalQuantityKg * currentPricePerKg)
@@ -235,7 +302,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     e.preventDefault();
 
     if (!productName.trim()) {
-      alert('Por favor ingrese el nombre del producto.');
+      alert('Por favor seleccione o ingrese el nombre del producto.');
       return;
     }
 
@@ -251,7 +318,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
 
     const item: SaleItem = {
       productId: selectedStockProduct?.id,
-      productCode: selectedStockProduct?.code || `PESO-${Date.now().toString().slice(-4)}`,
+      productCode: selectedStockProduct?.code || 'PESO-' + Date.now().toString().slice(-4),
       productName: productName.trim(),
       quantity: finalQuantityKg,
       unitPrice: currentPricePerKg,
@@ -263,28 +330,34 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
     onClose();
   };
 
-  const currentPreset = CATEGORY_PRESETS.find(c => c.id === activeCategory) || CATEGORY_PRESETS[0];
-  const matchingStockList = getMatchingStockProducts(currentPreset, allProducts);
-
   if (!isOpen) return null;
+
+  // Título e ícono según el departamento
+  const deptTitle = currentDepartment ? currentDepartment.name : 'Venta por Balanza y Peso';
+  const deptIcon = currentDepartment ? currentDepartment.icon : '⚖️';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       {/* Modal Principal Web: Espacioso, cómodo, 100% visible sin scroll de ventana */}
-      <div className={`w-full max-w-xl sm:max-w-2xl lg:max-w-3xl rounded-3xl border ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto`}>
+      <div className={'w-full max-w-xl sm:max-w-2xl lg:max-w-3xl rounded-3xl border ' + themeClasses.border + ' ' + themeClasses.card + ' shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto'}>
         
-        {/* Header Elegante y Proporcionado */}
+        {/* Header Elegante y Específico del Departamento */}
         <div className="flex items-center justify-between px-5 py-3 sm:py-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
-              <Scale className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
+              <span>{deptIcon}</span>
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
-                Venta por Balanza y Peso
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
+                  Balanza de {deptTitle}
+                </h3>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+                  Pesaje Directo
+                </span>
+              </div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Seleccione variedad, ingrese gramos/kilos y cobre al instante
+                Seleccione la variedad registrada, ingrese el peso de balanza y agregue al cobro
               </p>
             </div>
           </div>
@@ -299,123 +372,100 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
         </div>
 
         {/* Formulario Web - Sin scroll general, cómodo y amplio */}
-        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3 flex flex-col">
+        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3.5 flex flex-col">
           
-          {/* 1. Categoría de Producto a Pesar */}
+          {/* TECLADO DE BALANZA (Inspirado en balanza de supermercado: teclas táctiles numeradas) */}
           <div>
-            <label className="block text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-1.5 tracking-wider">
-              1. CATEGORÍA DE PRODUCTO A PESAR
-            </label>
-            {/* Versión Celular / APK: 8 categorías intactas */}
-            <div className="grid grid-cols-4 gap-1.5 sm:hidden">
-              {CATEGORY_PRESETS_MOBILE.map((preset) => {
-                const isSelected = activeCategory === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleSelectCategory(preset)}
-                    className={`py-1.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center cursor-pointer min-h-[42px] ${
-                      isSelected
-                        ? 'bg-orange-100 dark:bg-orange-950/50 border-2 border-orange-500 text-orange-950 dark:text-orange-200 font-black shadow-xs'
-                        : 'bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold'
-                    }`}
-                  >
-                    <span className="text-base leading-none mb-0.5">{preset.icon}</span>
-                    <span className="text-[10px] leading-tight font-black truncate max-w-full px-0.5">{preset.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Versión Web / Escritorio: 10 categorías en 5 columnas x 2 filas, cómodas */}
-            <div className="hidden sm:grid grid-cols-5 gap-2">
-              {CATEGORY_PRESETS.map((preset) => {
-                const isSelected = activeCategory === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleSelectCategory(preset)}
-                    className={`py-2 px-1.5 rounded-xl border text-center transition flex flex-col items-center justify-center cursor-pointer min-h-[48px] ${
-                      isSelected
-                        ? 'bg-orange-50 dark:bg-orange-950/50 border-2 border-orange-500 text-orange-950 dark:text-orange-200 font-black shadow-xs ring-2 ring-orange-400/20'
-                        : 'bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold'
-                    }`}
-                  >
-                    <span className="text-lg leading-none mb-0.5">{preset.icon}</span>
-                    <span className="text-[11px] leading-tight font-black truncate max-w-full px-0.5">{preset.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 2. Variedades en Inventario (4 productos cargan sin scroll, a partir de 5 scroll solo interno) */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
-                <Boxes className="w-3.5 h-3.5 text-blue-500" />
-                <span>2. Variedades en Stock ({matchingStockList.length})</span>
-              </label>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
+                  <Boxes className="w-4 h-4 text-blue-500" />
+                  <span>Variedades Registradas a la Venta ({matchingStockProducts.length})</span>
+                </span>
+              </div>
               {selectedStockProduct && (
-                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-300">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
                   Stock: {selectedStockProduct.stock} {selectedStockProduct.unit || 'Kg'}
                 </span>
               )}
             </div>
 
-            {/* Contenedor exacto: 4 productos en 2 filas caben 100% sin scroll (114px); desde 5 productos genera scroll solo dentro del cuadro */}
-            <div className="max-h-[114px] overflow-y-auto pr-1 scrollbar-thin">
-              {matchingStockList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {matchingStockList.map((prod) => {
-                    const isSelected = selectedStockProduct?.id === prod.id;
+            {/* Cuadrícula de Teclas Táctiles (Teclado estilo balanza de supermercado con número amarillo) */}
+            <div className="max-h-[175px] overflow-y-auto pr-1 scrollbar-thin">
+              {matchingStockProducts.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {matchingStockProducts.map((prod, index) => {
+                    const isSelected = selectedStockProduct?.id === prod.id || productName.toLowerCase() === prod.name.toLowerCase();
+                    const keyNumber = index + 1;
                     return (
                       <button
-                        key={prod.id}
+                        key={prod.id || prod.code}
                         type="button"
                         onClick={() => handleSelectStockItem(prod)}
-                        className={`p-2 px-3 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer h-[50px] ${
+                        className={'relative p-2.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between cursor-pointer min-h-[76px] select-none group ' + (
                           isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-black'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-900 dark:text-slate-100'
-                        }`}
+                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-600 shadow-md ring-2 ring-blue-500/20'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
+                        )}
                       >
-                        <div className="truncate flex-1 min-w-0">
-                          <p className="text-xs font-black truncate leading-tight">{prod.name}</p>
-                          <p className={`text-[10px] font-bold mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                            Stock: {prod.stock} {prod.unit || 'Kg'}
-                          </p>
+                        {/* Cabecera de la tecla: Número en cuadro amarillo (estilo balanza Cencosud/Santa Isabel) y stock */}
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-black bg-[#ffd600] text-slate-950 shadow-2xs">
+                            {keyNumber}
+                          </span>
+                          <span className={'text-[10px] font-bold ' + (isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-400')}>
+                            {prod.stock} {prod.unit || 'Kg'}
+                          </span>
                         </div>
-                        <span className={`text-xs font-black font-mono shrink-0 ${isSelected ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                          ${(prod.price || currentPreset.defaultPrice).toLocaleString('es-CL')}/Kg
-                        </span>
+
+                        {/* Nombre del producto */}
+                        <p className={'text-xs font-black line-clamp-2 leading-snug my-0.5 ' + (
+                          isSelected ? 'text-blue-950 dark:text-blue-100' : 'text-slate-800 dark:text-slate-200'
+                        )}>
+                          {prod.name}
+                        </p>
+
+                        {/* Precio por Kilo */}
+                        <div className="flex items-center justify-between w-full mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                          <span className="text-[9px] font-bold uppercase text-slate-400">Precio/Kg</span>
+                          <span className={'text-xs font-black font-mono ' + (
+                            isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400'
+                          )}>
+                            {formatCLP(prod.price || 0)}
+                          </span>
+                        </div>
+
+                        {/* Indicador de seleccionado */}
+                        {isSelected && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-xs">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="h-[48px] flex items-center justify-center text-center text-xs font-bold text-slate-500 p-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                  <span>No hay productos inventariados en esta categoría. Ingrese nombre y precio abajo.</span>
+                <div className="p-4 text-center text-xs font-bold text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <span>No hay otras variedades de este rubro registradas en el inventario. Ingrese el nombre y precio abajo.</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 3. Nombre y Precio por Kilo */}
+          {/* Nombre y Precio por Kilo seleccionado */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div className="sm:col-span-2">
               <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
-                Producto a Descontar *
+                Producto Seleccionado *
               </label>
               <input
                 type="text"
                 required
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                placeholder="Ej: Trutro Pollo Granel..."
-                className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                placeholder="Nombre del producto..."
+                className={'w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'}
               />
             </div>
 
@@ -429,13 +479,13 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                 min="1"
                 value={pricePerKg}
                 onChange={(e) => setPricePerKg(e.target.value)}
-                className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-black font-mono rounded-xl border ${themeClasses.inputBorder} ${themeClasses.inputBg} text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={'w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-black font-mono rounded-xl border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'}
               />
             </div>
           </div>
 
-          {/* 4. Ingreso de Peso en Balanza */}
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+          {/* Ingreso de Peso en Balanza con Botones de Acceso Rápido */}
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label className="block text-xs font-black text-amber-950 dark:text-amber-300 mb-1">
@@ -477,17 +527,62 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Atajos Rápidos de Peso Frecuente */}
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto">
+              <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-400 shrink-0">
+                Atajos:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSetExactGrams(250)}
+                className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 text-xs font-bold text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+              >
+                1/4 Kg (250g)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetExactGrams(500)}
+                className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 text-xs font-bold text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+              >
+                1/2 Kg (500g)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetExactGrams(1000)}
+                className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 text-xs font-bold text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+              >
+                1 Kg (1.000g)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddQuickGrams(100)}
+                className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 text-xs font-bold text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+              >
+                +100g
+              </button>
+              {finalQuantityKg > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearWeight}
+                  className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition cursor-pointer ml-auto flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Borrar</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* 5. Resumen del Monto a Cobrar */}
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-inner">
+          {/* Resumen del Monto a Cobrar */}
+          <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-inner">
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                 TOTAL A COBRAR
               </p>
               <p className="text-xs text-slate-300 mt-0.5">
                 {finalQuantityKg > 0
-                  ? `${finalQuantityKg} Kg × ${formatCLP(currentPricePerKg)}/Kg`
+                  ? finalQuantityKg + ' Kg × ' + formatCLP(currentPricePerKg) + '/Kg'
                   : 'Ingrese el peso en balanza'}
               </p>
             </div>

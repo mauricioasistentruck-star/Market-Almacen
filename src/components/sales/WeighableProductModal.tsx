@@ -349,7 +349,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       {/* Ventana Ampliada: max-w-4xl a max-w-6xl para que entren muchas variedades */}
-      <div className={'w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-3xl border ' + themeClasses.border + ' ' + themeClasses.card + ' shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto max-h-[95vh]'}>
+      <div className={'w-[95vw] max-w-5xl xl:max-w-6xl h-[85vh] min-h-[580px] max-h-[720px] rounded-3xl border ' + themeClasses.border + ' ' + themeClasses.card + ' shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto'}>
         
         {/* Header Compacto y Elegante */}
         <div className="flex items-center justify-between px-5 py-2.5 sm:py-3 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
@@ -385,7 +385,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
         <form onSubmit={handleAdd} className="flex-1 flex flex-col overflow-hidden">
           
           {/* ÁREA DE VARIEDADES: Amplia, para que caigan muchas láminas/productos */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 scrollbar-thin min-h-[160px] max-h-[380px] lg:max-h-[440px]">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 scrollbar-thin min-h-0">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
                 <Boxes className="w-4 h-4 text-blue-500" />
@@ -409,7 +409,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                       key={prod.id || prod.code}
                       type="button"
                       onClick={() => handleSelectStockItem(prod)}
-                      className={'relative w-full aspect-square min-h-[86px] max-h-[105px] p-1.5 rounded-xl border-2 transition-all flex flex-col justify-between items-center text-center cursor-pointer select-none group ' + (
+                      className={'relative w-full aspect-square min-h-[94px] max-h-[118px] p-1.5 rounded-xl border-2 transition-all flex flex-col justify-between items-center text-center cursor-pointer select-none group ' + (
                         isSelected
                           ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-600 shadow-md ring-2 ring-blue-500/20'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400 hover:shadow-xs hover:bg-slate-50 dark:hover:bg-slate-850'

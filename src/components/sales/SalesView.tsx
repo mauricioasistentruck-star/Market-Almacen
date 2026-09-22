@@ -160,6 +160,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
   const [isWeighableModalOpen, setIsWeighableModalOpen] = useState(false);
   const [selectedWeighableProduct, setSelectedWeighableProduct] = useState<Product | null>(null);
+  const [activeWeighableDepartment, setActiveWeighableDepartment] = useState<string | null>(null);
   const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
 
   // Modal para Agregar Producto Comun
@@ -489,6 +490,15 @@ export const SalesView: React.FC<SalesViewProps> = ({
       };
       return [...prev, newItem];
     });
+  };
+
+  const handleOpenWeighableDepartment = (tabKey: string) => {
+    if (selectedCategory !== 'ALL' && selectedCategory !== 'COMMON') {
+      setSelectedCategory('ALL');
+    }
+    setActiveWeighableDepartment(tabKey);
+    setSelectedWeighableProduct(null);
+    setIsWeighableModalOpen(true);
   };
 
   const handleAddToCartDirect = (saleItem: SaleItem) => {
@@ -1053,18 +1063,15 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   Todos
                 </button>
 
-                {/* Botones de Artículos Pesables / Granel según el Rubro */}
+                {/* Botones de Artículos Pesables / Granel según el Rubro - Abren directamente la ventana modal de productos */}
                 {weighableTabs.map(tab => {
-                  const isActive = selectedCategory === tab.key;
                   return (
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setSelectedCategory(isActive ? 'ALL' : tab.key)}
-                      className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5 ${
-                        isActive ? tab.activeColor : tab.badgeColor
-                      }`}
-                      title={`Filtrar únicamente ${tab.name}`}
+                      onClick={() => handleOpenWeighableDepartment(tab.key)}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5 hover:opacity-90 active:scale-95 border border-transparent hover:border-slate-300 dark:hover:border-slate-600 ${tab.badgeColor}`}
+                      title={`Abrir balanza y productos de ${tab.name}`}
                     >
                       <span>{tab.icon}</span>
                       <span>{tab.name}</span>
@@ -1420,19 +1427,21 @@ export const SalesView: React.FC<SalesViewProps> = ({
       )}
 
       {/* Modal de Pesaje */}
-      {isWeighableModalOpen && selectedWeighableProduct && (
+      {isWeighableModalOpen && (
         <WeighableProductModal
           isOpen={isWeighableModalOpen}
           onClose={() => {
             setIsWeighableModalOpen(false);
             setSelectedWeighableProduct(null);
+            setActiveWeighableDepartment(null);
           }}
           selectedProduct={selectedWeighableProduct}
-          activeDepartmentKey={selectedCategory}
+          activeDepartmentKey={activeWeighableDepartment || selectedCategory}
           onAddToCart={(cartItem) => {
             handleAddToCartDirect(cartItem);
             setIsWeighableModalOpen(false);
             setSelectedWeighableProduct(null);
+            setActiveWeighableDepartment(null);
           }}
         />
       )}

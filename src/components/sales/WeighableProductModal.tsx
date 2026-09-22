@@ -335,14 +335,14 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
   const deptIcon = currentDepartment ? currentDepartment.icon : '⚖️';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      {/* Modal Principal Web: Espacioso, cómodo, 100% visible sin scroll de ventana */}
-      <div className={'w-full max-w-xl sm:max-w-2xl lg:max-w-3xl rounded-3xl border ' + themeClasses.border + ' ' + themeClasses.card + ' shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto'}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      {/* Ventana Ampliada: max-w-4xl a max-w-6xl para que entren muchas variedades */}
+      <div className={'w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-3xl border ' + themeClasses.border + ' ' + themeClasses.card + ' shadow-2xl flex flex-col overflow-hidden animate-scaleIn my-auto max-h-[95vh]'}>
         
-        {/* Header Elegante y Específico del Departamento */}
-        <div className="flex items-center justify-between px-5 py-3 sm:py-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
+        {/* Header Compacto y Elegante */}
+        <div className="flex items-center justify-between px-5 py-2.5 sm:py-3 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-lg text-white bg-gradient-to-tr from-amber-600 to-orange-500 shadow-md shrink-0">
               <span>{deptIcon}</span>
             </div>
             <div>
@@ -369,11 +369,11 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
           </button>
         </div>
 
-        {/* Formulario Web */}
-        <form onSubmit={handleAdd} className="p-4 sm:p-5 space-y-3.5 flex flex-col">
+        {/* Formulario Web: El área superior de variedades toma la mayor parte del espacio */}
+        <form onSubmit={handleAdd} className="flex-1 flex flex-col overflow-hidden">
           
-          {/* LÁMINAS CUADRADAS DE VARIEDADES (Estilo tecla/lámina cuadrada de balanza de supermercado) */}
-          <div>
+          {/* ÁREA DE VARIEDADES: Amplia, para que caigan muchas láminas/productos */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 scrollbar-thin min-h-[160px] max-h-[380px] lg:max-h-[440px]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider flex items-center gap-1.5">
                 <Boxes className="w-4 h-4 text-blue-500" />
@@ -386,111 +386,110 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
               )}
             </div>
 
-            {/* Cuadrícula de Láminas Cuadradas y Compactas */}
-            <div className="max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
-              {matchingStockProducts.length > 0 ? (
-                <div className="flex flex-wrap gap-2.5">
-                  {matchingStockProducts.map((prod, index) => {
-                    const isSelected = selectedStockProduct?.id === prod.id || productName.toLowerCase() === prod.name.toLowerCase();
-                    const keyNumber = index + 1;
-                    return (
-                      <button
-                        key={prod.id || prod.code}
-                        type="button"
-                        onClick={() => handleSelectStockItem(prod)}
-                        className={'relative w-[112px] h-[108px] sm:w-[124px] sm:h-[114px] p-2 rounded-2xl border-2 transition-all flex flex-col justify-between items-center text-center cursor-pointer select-none shrink-0 group ' + (
-                          isSelected
-                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-600 shadow-md ring-2 ring-blue-500/20'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400 hover:shadow-xs hover:bg-slate-50 dark:hover:bg-slate-850'
-                        )}
-                        title={prod.name}
-                      >
-                        {/* Cabecera de la lámina: Número amarillo y stock */}
-                        <div className="flex items-center justify-between w-full">
-                          <span className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-black bg-[#ffd600] text-slate-950 shadow-2xs">
-                            {keyNumber}
-                          </span>
-                          <span className={'text-[9px] font-bold ' + (isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-400')}>
-                            {prod.stock} {prod.unit || 'Kg'}
-                          </span>
-                        </div>
-
-                        {/* Ícono de lámina */}
-                        <div className="text-xl sm:text-2xl leading-none my-0.5 group-hover:scale-110 transition duration-150">
-                          {deptIcon}
-                        </div>
-
-                        {/* Nombre del producto */}
-                        <p className={'text-[11px] font-black line-clamp-2 leading-tight px-0.5 ' + (
-                          isSelected ? 'text-blue-950 dark:text-blue-100' : 'text-slate-800 dark:text-slate-200'
-                        )}>
-                          {prod.name}
-                        </p>
-
-                        {/* Precio por Kilo */}
-                        <span className={'text-[10px] font-black font-mono leading-none ' + (
-                          isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400'
-                        )}>
-                          {formatCLP(prod.price || 0)}/Kg
+            {/* Cuadrícula amplia de láminas compactas: caben de 6 a 8 por fila, múltiples filas */}
+            {matchingStockProducts.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 sm:gap-2.5">
+                {matchingStockProducts.map((prod, index) => {
+                  const isSelected = selectedStockProduct?.id === prod.id || productName.toLowerCase() === prod.name.toLowerCase();
+                  const keyNumber = index + 1;
+                  return (
+                    <button
+                      key={prod.id || prod.code}
+                      type="button"
+                      onClick={() => handleSelectStockItem(prod)}
+                      className={'relative w-full aspect-square min-h-[86px] max-h-[105px] p-1.5 rounded-xl border-2 transition-all flex flex-col justify-between items-center text-center cursor-pointer select-none group ' + (
+                        isSelected
+                          ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-600 shadow-md ring-2 ring-blue-500/20'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400 hover:shadow-xs hover:bg-slate-50 dark:hover:bg-slate-850'
+                      )}
+                      title={prod.name}
+                    >
+                      {/* Cabecera de la lámina: Número amarillo y stock */}
+                      <div className="flex items-center justify-between w-full">
+                        <span className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-black bg-[#ffd600] text-slate-950 shadow-2xs">
+                          {keyNumber}
                         </span>
+                        <span className={'text-[8.5px] font-bold truncate max-w-[50px] ' + (isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-400')}>
+                          {prod.stock} {prod.unit || 'Kg'}
+                        </span>
+                      </div>
 
-                        {/* Indicador de seleccionado */}
-                        {isSelected && (
-                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-xs">
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-xs font-bold text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                  <span>No hay otras variedades de este rubro registradas en el inventario. Ingrese el nombre y precio abajo.</span>
-                </div>
-              )}
-            </div>
+                      {/* Ícono representativo */}
+                      <div className="text-lg sm:text-xl leading-none my-0.5 group-hover:scale-110 transition duration-150">
+                        {deptIcon}
+                      </div>
+
+                      {/* Nombre del producto */}
+                      <p className={'text-[10px] sm:text-[10.5px] font-black line-clamp-2 leading-tight px-0.5 ' + (
+                        isSelected ? 'text-blue-950 dark:text-blue-100' : 'text-slate-800 dark:text-slate-200'
+                      )}>
+                        {prod.name}
+                      </p>
+
+                      {/* Precio por Kilo */}
+                      <span className={'text-[9.5px] sm:text-[10px] font-black font-mono leading-none ' + (
+                        isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400'
+                      )}>
+                        {formatCLP(prod.price || 0)}/Kg
+                      </span>
+
+                      {/* Indicador de seleccionado */}
+                      {isSelected && (
+                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-xs">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs font-bold text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <span>No hay otras variedades registradas en este rubro. Puede ingresar el nombre y precio abajo.</span>
+              </div>
+            )}
           </div>
 
-          {/* Nombre y Precio por Kilo seleccionado */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
-                Producto Seleccionado *
-              </label>
-              <input
-                type="text"
-                required
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                placeholder="Nombre del producto..."
-                className={'w-full px-3 py-2 text-xs sm:text-sm font-bold rounded-xl border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'}
-              />
-            </div>
+          {/* ÁREA INFERIOR COMPACTA (Imagen 2 reducida): Ocupa poco espacio para dar prioridad a los productos */}
+          <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 px-4 sm:px-6 py-2.5 space-y-2 shrink-0">
+            
+            {/* Fila compacta con los 4 campos alineados */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+              {/* 1. Producto Seleccionado (4 cols) */}
+              <div className="sm:col-span-4">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  Producto Seleccionado *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="Nombre del producto..."
+                  className={'w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500'}
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
-                Precio por Kg ($) *
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={pricePerKg}
-                onChange={(e) => handlePriceChange(e.target.value)}
-                className={'w-full px-3 py-2 text-xs sm:text-sm font-black font-mono rounded-xl border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'}
-              />
-            </div>
-          </div>
+              {/* 2. Precio por Kg (2 cols) */}
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                  Precio/Kg ($) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={pricePerKg}
+                  onChange={(e) => handlePriceChange(e.target.value)}
+                  className={'w-full px-2.5 py-1.5 text-xs font-black font-mono rounded-lg border ' + themeClasses.inputBorder + ' ' + themeClasses.inputBg + ' text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500'}
+                />
+              </div>
 
-          {/* Ingreso de Gramos O Precio Directo de Balanza (Sin atajos, sin kilos) */}
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Campo 1: Solo Peso en Gramos */}
-              <div>
-                <label className="block text-xs font-black text-amber-950 dark:text-amber-300 mb-1 flex items-center justify-between">
+              {/* 3. Peso en Gramos (3 cols) */}
+              <div className="sm:col-span-3">
+                <label className="block text-[11px] font-bold text-amber-900 dark:text-amber-300 mb-0.5 flex justify-between">
                   <span>Peso en Gramos (g)</span>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Gramos de la pesa</span>
+                  <span className="text-[9px] text-amber-700 dark:text-amber-400">Pesa</span>
                 </label>
                 <div className="relative">
                   <input
@@ -500,19 +499,19 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                     placeholder="Ej: 350"
                     value={weightGrams}
                     onChange={(e) => handleWeightGramsChange(e.target.value)}
-                    className="w-full px-3.5 py-2.5 pr-10 text-base sm:text-lg font-black font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                    className="w-full px-2.5 py-1.5 pr-7 text-xs sm:text-sm font-black font-mono rounded-lg border border-amber-300 dark:border-amber-700/70 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
                   />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">
                     g
                   </span>
                 </div>
               </div>
 
-              {/* Campo 2: O Precio / Valor directo si la balanza ya dio el valor */}
-              <div>
-                <label className="block text-xs font-black text-amber-950 dark:text-amber-300 mb-1 flex items-center justify-between">
-                  <span>O Precio Total Balanza ($)</span>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Si la pesa ya dio el valor</span>
+              {/* 4. O Precio Total Balanza (3 cols) */}
+              <div className="sm:col-span-3">
+                <label className="block text-[11px] font-bold text-amber-900 dark:text-amber-300 mb-0.5 flex justify-between">
+                  <span>O Total Balanza ($)</span>
+                  <span className="text-[9px] text-amber-700 dark:text-amber-400">Si dio precio</span>
                 </label>
                 <div className="relative">
                   <input
@@ -522,51 +521,54 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                     placeholder="Ej: 660"
                     value={directAmount}
                     onChange={(e) => handleDirectAmountChange(e.target.value)}
-                    className="w-full px-3.5 py-2.5 pr-10 text-base sm:text-lg font-black font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                    className="w-full px-2.5 py-1.5 pr-7 text-xs sm:text-sm font-black font-mono rounded-lg border border-amber-300 dark:border-amber-700/70 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
                   />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">
                     $
                   </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Resumen del Monto a Cobrar */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-inner">
-            <div>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                TOTAL A COBRAR
-              </p>
-              <p className="text-xs text-slate-300 mt-0.5">
-                {finalGrams > 0
-                  ? finalGrams + ' g (' + (finalGrams / 1000).toFixed(3) + ' Kg) × ' + formatCLP(currentPricePerKg) + '/Kg'
-                  : 'Ingrese los gramos o el precio de la balanza'}
-              </p>
+            {/* Fila con Resumen del Total y Botones de Acción */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-xl bg-slate-900 text-white flex items-center gap-2 shadow-inner">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    TOTAL:
+                  </span>
+                  <span className="text-base sm:text-lg font-black font-mono text-emerald-400">
+                    {formatCLP(finalSubtotal)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline font-medium">
+                  {finalGrams > 0
+                    ? finalGrams + ' g (' + (finalGrams / 1000).toFixed(3) + ' Kg) × ' + formatCLP(currentPricePerKg) + '/Kg'
+                    : 'Ingrese los gramos o el valor de la balanza'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer border border-slate-300 dark:border-slate-700"
+                >
+                  ✕ Cerrar
+                </button>
+                <button
+                  type="submit"
+                  disabled={finalSubtotal <= 0}
+                  className="px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Agregar al Carrito ({formatCLP(finalSubtotal)})</span>
+                </button>
+              </div>
             </div>
-            <p className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
-              {formatCLP(finalSubtotal)}
-            </p>
+
           </div>
 
-          {/* Botones de Acción */}
-          <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-200 dark:border-slate-800 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer border border-slate-300 dark:border-slate-700"
-            >
-              ✕ Cerrar
-            </button>
-            <button
-              type="submit"
-              disabled={finalSubtotal <= 0}
-              className="px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Agregar al Carrito ({formatCLP(finalSubtotal)})</span>
-            </button>
-          </div>
         </form>
 
       </div>

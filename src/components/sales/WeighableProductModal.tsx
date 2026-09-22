@@ -131,6 +131,27 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
       const pName = (p.name || '').toLowerCase();
       const pCat = (p.category || '').toLowerCase();
 
+      // Panadería: ESTRICTAMENTE tipos de panes y masas de panadería (descartar cecinas, quesos, verduras)
+      if (categoryPreset.id === 'pan' || categoryPreset.id === 'panaderia') {
+        const isOther = ['jamon', 'jamón', 'cecina', 'queso', 'tomate', 'palta', 'nuez', 'almendra', 'carne'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isOther) return false;
+        return ['pan', 'hallulla', 'marraqueta', 'baguette', 'coliza', 'dobladita', 'molde', 'amasado'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // Cecinas: ESTRICTAMENTE cecinas y jamón
+      if (categoryPreset.id === 'cecinas') {
+        const isBreadOrVeg = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isBreadOrVeg) return false;
+        return ['cecina', 'jamon', 'jamón', 'salchicha', 'mortadela', 'salame', 'vienesas', 'tocino'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // Quesos: ESTRICTAMENTE quesos
+      if (categoryPreset.id === 'quesos') {
+        const isBreadOrMeat = ['pan', 'hallulla', 'marraqueta', 'jamon', 'cecina', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isBreadOrMeat) return false;
+        return ['queso', 'gauda', 'chanco', 'mozzarella', 'mantecoso'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
       if (categoryPreset.id === 'frutos') {
         const isMeatOrPoultry = ['carne', 'pollo', 'cerdo', 'vacuno', 'trutro', 'pechuga', 'costillar', 'cecina', 'jamon', 'jamón'].some(k => pName.includes(k) || pCat.includes(k));
         if (isMeatOrPoultry) return false;

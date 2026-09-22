@@ -43,6 +43,23 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
   },
   {
     companyId: 'market-almacen',
+    code: 'PAN-MARRAQ-01',
+    name: 'Pan Marraqueta Crujiente Batido',
+    category: 'Panadería',
+    brand: 'Panadería Central',
+    stock: 28,
+    minStock: 8,
+    unit: 'Kg',
+    condition: 'NUEVO',
+    completeness: 'COMPLETO',
+    location: 'Mesón Panadería',
+    costPrice: 1100,
+    price: 1890,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    companyId: 'market-almacen',
     code: 'JAMON-PRAGA-KG',
     name: 'Jamón Colonial Praga Artesanal',
     category: 'Fiambrería',
@@ -55,6 +72,23 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     location: 'Vitrina Fiambrería',
     costPrice: 6900,
     price: 9990,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    companyId: 'market-almacen',
+    code: 'QUESO-GAUDA-KG',
+    name: 'Queso Gauda Laminado Calo',
+    category: 'Fiambrería',
+    brand: 'Calo',
+    stock: 18,
+    minStock: 5,
+    unit: 'Kg',
+    condition: 'NUEVO',
+    completeness: 'COMPLETO',
+    location: 'Vitrina Fiambrería',
+    costPrice: 5800,
+    price: 8490,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -89,6 +123,40 @@ export const INITIAL_DEMO_PRODUCTS: Omit<Product, 'id'>[] = [
     location: 'Estante Frutos Secos',
     costPrice: 3200,
     price: 4990,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    companyId: 'market-almacen',
+    code: '7801610001234',
+    name: 'Bebida Coca-Cola Original 1.5 L',
+    category: 'Bebidas y Licores',
+    brand: 'Coca-Cola',
+    stock: 48,
+    minStock: 12,
+    unit: 'Unidades',
+    condition: 'NUEVO',
+    completeness: 'COMPLETO',
+    location: 'Pasillo 1 - Estante A',
+    costPrice: 1250,
+    price: 1990,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    companyId: 'market-almacen',
+    code: '7801890003412',
+    name: 'Aceite Vegetal Chef 900 ml',
+    category: 'Abarrotes',
+    brand: 'Chef',
+    stock: 40,
+    minStock: 10,
+    unit: 'Unidades',
+    condition: 'NUEVO',
+    completeness: 'COMPLETO',
+    location: 'Pasillo 2 - Estante B',
+    costPrice: 1350,
+    price: 1990,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -171,6 +239,24 @@ export async function initDatabaseIfEmpty() {
   }
   if (!hasFrutosSecos) {
     await db.products.add(INITIAL_DEMO_PRODUCTS[3] as any);
+  }
+
+    // Asegurar que Pan Marraqueta este presente para demostracion de panes
+  const marraquetaExists = await db.products.where('code').equals('PAN-MARRAQ-01').first();
+  if (!marraquetaExists) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[1] as any);
+  }
+  const quesoExists = await db.products.where('code').equals('QUESO-GAUDA-KG').first();
+  if (!quesoExists) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[3] as any);
+  }
+  const cocaExists = await db.products.where('code').equals('7801610001234').first();
+  if (!cocaExists) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[6] as any);
+  }
+  const aceiteExists = await db.products.where('code').equals('7801890003412').first();
+  if (!aceiteExists) {
+    await db.products.add(INITIAL_DEMO_PRODUCTS[7] as any);
   }
 
   const countProducts = await db.products.count();

@@ -1,4 +1,4 @@
-import { getRubroPreset } from '../../utils/rubroPresets';
+import { getRubroPreset, getWeighableCategoriesForRubro } from '../../utils/rubroPresets';
 import { useBodyScrollLock } from '../../utils/scrollLock';
 import React, { useState, useEffect, useRef } from 'react';
 import type { Product, ItemCondition, ItemCompleteness } from '../../types';
@@ -97,6 +97,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
     return selectedCompany;
   }, [companyId, companies, selectedCompany]);
+
+  const weighableTabs = React.useMemo(() => {
+    return getWeighableCategoriesForRubro(activeCompany?.rubroKey);
+  }, [activeCompany?.rubroKey]);
 
   const activeRubro = React.useMemo(() => {
     return getRubroPreset(activeCompany?.rubroKey);
@@ -433,80 +437,42 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
           </div>
 
-          {/* Selector de Departamento Pesable / Pestaña Rápida de POS */}
+          {/* Selector de Departamento Pesable / Pestaña Rápida de POS del Rubro */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                 <span>⚖️ Asignar a Pestaña de Venta POS (Productos Pesables / Granel):</span>
               </label>
               <span className="text-[10px] text-slate-500 font-bold hidden sm:inline">
-                Ajusta automáticamente categoría y unidad por kilo
+                Ajusta automáticamente la categoría y unidad por kilo
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory('Fiambrería');
-                  setUnit('Kg');
-                }}
-                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                  category === 'Fiambrería'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-sm ring-2 ring-rose-400/40'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                }`}
-              >
-                <span>🥪 Fiambrería</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory('Panadería');
-                  setUnit('Kg');
-                }}
-                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                  category === 'Panadería'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                }`}
-              >
-                <span>🥖 Panadería</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory('Verdulería');
-                  setUnit('Kg');
-                }}
-                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                  category === 'Verdulería'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
-                }`}
-              >
-                <span>🥬 Verdulería</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory('Frutos Secos');
-                  setUnit('Kg');
-                }}
-                className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                  category === 'Frutos Secos'
-                    ? 'bg-orange-600 text-white border-orange-600 shadow-sm ring-2 ring-orange-400/40'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                }`}
-              >
-                <span>🥜 Frutos Secos</span>
-              </button>
+              {weighableTabs.map(tab => {
+                const isSelected = category.toLowerCase() === tab.key.toLowerCase() || category.toLowerCase() === tab.name.toLowerCase();
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setCategory(tab.name);
+                      setUnit('Kg');
+                    }}
+                    className={`py-2 px-2.5 rounded-xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {['Fiambrería', 'Panadería', 'Verdulería', 'Frutos Secos'].includes(category) && (
+            {weighableTabs.some(t => t.name.toLowerCase() === category.toLowerCase() || t.key.toLowerCase() === category.toLowerCase()) && (
               <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 pt-0.5">
                 <span>✓ Este producto se mostrará en la pestaña de POS: <strong>{category}</strong> (Venta por peso en {unit})</span>
               </p>

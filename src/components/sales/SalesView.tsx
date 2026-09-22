@@ -6,6 +6,7 @@ import { db } from '../../db/database';
 import type { Product, Sale, SaleItem, Customer } from '../../types';
 import { getChileLocalDateString } from '../../utils/chileanCurrencyAndDates';
 import { formatCLP, generateSaleInvoicePDF } from '../../utils/salesPdfGenerator';
+import { getWeighableCategoriesForRubro, type RubroWeighableCategory } from '../../utils/rubroPresets';
 import { exportSalesLedgerExcel } from '../../utils/salesExcelExporter';
 import { PDFViewerModal } from '../PDFViewerModal';
 import { SiiConfigModal } from './SiiConfigModal';
@@ -93,16 +94,13 @@ const CartQuantityInput: React.FC<{
 
 const STANDARD_CATEGORIES = [
   { code: '00', name: 'Producto Común', key: 'COMMON' },
-  { code: '01', name: 'FIAMBRERÍA', key: 'Fiambrería' },
-  { code: '02', name: 'PANADERÍA', key: 'Panadería' },
-  { code: '03', name: 'VERDULERÍA', key: 'Verdulería' },
-  { code: '04', name: 'FRUTOS SECOS', key: 'Frutos Secos' },
-  { code: '05', name: 'ABARROTES', key: 'Abarrotes' },
-  { code: '06', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
-  { code: '07', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
-  { code: '08', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
-  { code: '09', name: 'CUIDADO PERSONAL', key: 'Cuidado Personal' },
-  { code: '10', name: 'ADICIONAL', key: 'ADICIONAL' }
+  { code: '01', name: 'ABARROTES', key: 'Abarrotes' },
+  { code: '02', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
+  { code: '03', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
+  { code: '04', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
+  { code: '05', name: 'CUIDADO PERSONAL', key: 'Cuidado Personal' },
+  { code: '06', name: 'SNACKS Y GOLOSINAS', key: 'Snacks y Golosinas' },
+  { code: '07', name: 'ADICIONAL', key: 'ADICIONAL' }
 ];
 
 export const SalesView: React.FC<SalesViewProps> = ({
@@ -113,6 +111,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   onCartCountChange
 }) => {
   const { selectedCompanyId, selectedCompany } = useCompany();
+  const weighableTabs = useMemo(() => getWeighableCategoriesForRubro(selectedCompany?.rubroKey), [selectedCompany?.rubroKey]);
   const { isReadOnly, currentUser } = useAuth();
 
   const [activeSubTab, setActiveSubTab] = useState<'pos' | 'history'>('pos');
@@ -307,9 +306,16 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const categoriesList = useMemo(() => {
     const dbCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
     const list = [...STANDARD_CATEGORIES];
+
+    // Lista de palabras de los botones de abajo para EXCLUIR de la orilla
+    const weighableKeywords = weighableTabs.flatMap(w => [w.name.toLowerCase(), w.key.toLowerCase(), ...w.keywords]);
+
     dbCats.forEach((cat) => {
       const lower = cat.toLowerCase();
-      // Cervezas, vinos, bebidas van dentro de Bebidas y Licores
+      // NO listar en la orilla si es un artículo pesable / granel de abajo
+      const isWeighable = weighableKeywords.some(k => lower === k || lower.includes(k) || k.includes(lower));
+      if (isWeighable) return;
+
       if (lower.includes('cerveza') || lower.includes('vino') || lower.includes('bebida') || lower.includes('licor')) {
         return;
       }
@@ -325,50 +331,73 @@ export const SalesView: React.FC<SalesViewProps> = ({
     if (!categoryFilterText.trim()) return list;
     const q = categoryFilterText.toLowerCase().trim();
     return list.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q));
-  }, [products, categoryFilterText]);
+  }, [products, categoryFilterText, weighableTabs]);
 
   // Filtro de productos para la cuadricula central
   const filteredProducts = useMemo(() => {
     let result = products;
 
     if (selectedCategory && selectedCategory !== 'ALL' && selectedCategory !== 'COMMON') {
-      result = result.filter(p => {
-        const cat = (p.category || '').toLowerCase();
-        const name = (p.name || '').toLowerCase();
-        const key = selectedCategory.toLowerCase();
+      const activeWeighable = weighableTabs.find(
+        w => w.key.toLowerCase() === selectedCategory.toLowerCase() || 
+             w.id.toLowerCase() === selectedCategory.toLowerCase() || 
+             w.name.toLowerCase() === selectedCategory.toLowerCase()
+      );
 
-        // 1. Pestaña Fiambrería
-        if (key.includes('fiambr') || key === 'fiambrería') {
-          return cat.includes('fiambr') || cat.includes('cecina') || cat.includes('jamon') || cat.includes('queso') ||
-                 name.includes('jamón') || name.includes('jamon') || name.includes('queso') || name.includes('cecina') || name.includes('salame');
-        }
+      if (activeWeighable) {
+        result = result.filter(p => {
+          const pCat = (p.category || '').toLowerCase();
+          const pName = (p.name || '').toLowerCase();
 
-        // 2. Pestaña Panadería
-        if (key.includes('panad') || key === 'panadería') {
-          return cat.includes('panad') || cat.includes('pastel') ||
-                 name.includes('pan ') || name.includes('hallulla') || name.includes('marraqueta') || name.includes('molde') || name.includes('baguette') || name.includes('coliza');
-        }
+          // 1. Pestaña Panadería / Panes: SOLO TIPOS DE PANES
+          if (activeWeighable.id.includes('pan')) {
+            const isOther = ['jamon', 'jamón', 'cecina', 'queso', 'tomate', 'palta', 'verdura', 'nuez', 'almendra', 'mani'].some(k => pName.includes(k) || pCat.includes(k));
+            if (isOther) return false;
+            return pCat === 'panadería' || pCat === 'panaderia' || pCat.includes('panad') ||
+                   pName.includes('pan ') || pName.includes('hallulla') || pName.includes('marraqueta') || pName.includes('coliza') || pName.includes('dobladita') || pName.includes('baguette') || pName.includes('molde') || pName.includes('amasado') || pName.includes('pan');
+          }
 
-        // 3. Pestaña Verdulería
-        if (key.includes('verdur') || key.includes('fruta') || key === 'verdulería') {
-          return cat.includes('verdur') || cat.includes('fruta') || cat.includes('hortaliza') ||
-                 name.includes('tomate') || name.includes('palta') || name.includes('limon') || name.includes('limón') || name.includes('platano') || name.includes('plátano') || name.includes('papa');
-        }
+          // 2. Pestaña Fiambrería: SOLO Cecinas, Quesos y Fiambrería
+          if (activeWeighable.id.includes('fiambr') || activeWeighable.id.includes('cecina') || activeWeighable.id.includes('queso')) {
+            const isBreadOrVeg = ['pan ', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra'].some(k => pName.includes(k) || pCat.includes(k));
+            if (isBreadOrVeg) return false;
+            return pCat === 'fiambrería' || pCat === 'fiambreria' || pCat.includes('fiambr') || pCat.includes('cecina') ||
+                   pName.includes('jamón') || pName.includes('jamon') || pName.includes('queso') || pName.includes('cecina') || pName.includes('salame') || pName.includes('mortadela');
+          }
 
-        // 4. Pestaña Frutos Secos
-        if (key.includes('fruto') || key.includes('seco') || key === 'frutos secos') {
-          return cat.includes('fruto') || cat.includes('seco') || cat.includes('nuez') || cat.includes('almendra') || cat.includes('mani') || cat.includes('maní') ||
-                 name.includes('nuez') || name.includes('nueces') || name.includes('almendra') || name.includes('maní') || name.includes('mani') || name.includes('frutos secos') || name.includes('pasas');
-        }
+          // 3. Pestaña Verdulería: SOLO Frutas y Verduras
+          if (activeWeighable.id.includes('verdur') || activeWeighable.id.includes('fruta')) {
+            const isBreadOrMeat = ['pan ', 'hallulla', 'marraqueta', 'jamon', 'queso', 'cecina', 'nuez'].some(k => pName.includes(k) || pCat.includes(k));
+            if (isBreadOrMeat) return false;
+            return pCat === 'verdulería' || pCat === 'verduleria' || pCat.includes('verdur') || pCat.includes('fruta') ||
+                   pName.includes('tomate') || pName.includes('palta') || pName.includes('papa') || pName.includes('cebolla') || pName.includes('limon') || pName.includes('limón') || pName.includes('platano');
+          }
 
-        // 5. Bebidas y Licores
-        if (key.includes('bebida') || key.includes('licor')) {
-          return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');
-        }
+          // 4. Pestaña Frutos Secos: SOLO Frutos Secos y Semillas
+          if (activeWeighable.id.includes('fruto')) {
+            const isBreadOrMeat = ['pan ', 'hallulla', 'marraqueta', 'jamon', 'queso', 'cecina', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
+            if (isBreadOrMeat) return false;
+            return pCat === 'frutos secos' || pCat.includes('fruto') ||
+                   pName.includes('nuez') || pName.includes('nueces') || pName.includes('almendra') || pName.includes('mani') || pName.includes('maní') || pName.includes('frutos secos') || pName.includes('pasas');
+          }
 
-        return cat.includes(key) || key.includes(cat);
-      });
-    }const q = searchQuery.toLowerCase().trim();
+          // Para otros rubros (Ferretería, Mascotas, etc.)
+          return activeWeighable.keywords.some(k => pCat.includes(k) || pName.includes(k));
+        });
+      } else {
+        // Categoría de la orilla (No pesables: Abarrotes, Bebidas, etc.)
+        result = result.filter(p => {
+          const cat = (p.category || '').toLowerCase();
+          const key = selectedCategory.toLowerCase();
+          if (key.includes('bebida') || key.includes('licor')) {
+            return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');
+          }
+          return cat.includes(key) || key.includes(cat);
+        });
+      }
+    }
+
+    const q = searchQuery.toLowerCase().trim();
     if (q) {
       result = result.filter(p =>
         p.name.toLowerCase().includes(q) ||
@@ -379,9 +408,8 @@ export const SalesView: React.FC<SalesViewProps> = ({
     }
 
     return result;
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, weighableTabs]);
 
-  // Paginacion de catalogo (20 items por vista)
   const PAGE_SIZE = 20;
   const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE) || 1;
   const displayedCatalogProducts = useMemo(() => {
@@ -995,14 +1023,14 @@ export const SalesView: React.FC<SalesViewProps> = ({
               </div>
             </div>
 
-            {/* Barra Inferior de Pestañas Pesables: Fiambrería, Panadería, Verdulería, Frutos Secos */}
+            {/* Barra Inferior de Pestañas Pesables / Granel del Rubro */}
             <div className="pt-2 flex items-center justify-between shrink-0 gap-2">
               <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5">
                 {/* Botón Todos para regresar a ver el catálogo completo */}
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('ALL')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs ${
+                  className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs ${
                     selectedCategory === 'ALL'
                       ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 font-black'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
@@ -1011,61 +1039,24 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   Todos
                 </button>
 
-                {/* 1. Pestaña Fiambrería */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(selectedCategory === 'Fiambrería' ? 'ALL' : 'Fiambrería')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
-                    selectedCategory === 'Fiambrería'
-                      ? 'bg-rose-600 text-white font-black shadow-xs ring-2 ring-rose-400/50'
-                      : 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
-                  }`}
-                  title="Filtrar solo cecinas, quesos y fiambrería pesable"
-                >
-                  <span>Fiambrería</span>
-                </button>
-
-                {/* 2. Pestaña Panadería */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(selectedCategory === 'Panadería' ? 'ALL' : 'Panadería')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
-                    selectedCategory === 'Panadería'
-                      ? 'bg-amber-600 text-white font-black shadow-xs ring-2 ring-amber-400/50'
-                      : 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
-                  }`}
-                  title="Filtrar solo panadería y masas pesables"
-                >
-                  <span>Panadería</span>
-                </button>
-
-                {/* 3. Pestaña Verdulería */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(selectedCategory === 'Verdulería' ? 'ALL' : 'Verdulería')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
-                    selectedCategory === 'Verdulería'
-                      ? 'bg-emerald-600 text-white font-black shadow-xs ring-2 ring-emerald-400/50'
-                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                  }`}
-                  title="Filtrar solo frutas y verduras a granel"
-                >
-                  <span>Verdulería</span>
-                </button>
-
-                {/* 4. Pestaña Frutos Secos */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(selectedCategory === 'Frutos Secos' ? 'ALL' : 'Frutos Secos')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1 ${
-                    selectedCategory === 'Frutos Secos'
-                      ? 'bg-orange-600 text-white font-black shadow-xs ring-2 ring-orange-400/50'
-                      : 'bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60'
-                  }`}
-                  title="Filtrar solo frutos secos y granel"
-                >
-                  <span>Frutos Secos</span>
-                </button>
+                {/* Botones de Artículos Pesables / Granel según el Rubro */}
+                {weighableTabs.map(tab => {
+                  const isActive = selectedCategory === tab.key;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(isActive ? 'ALL' : tab.key)}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                        isActive ? tab.activeColor : tab.badgeColor
+                      }`}
+                      title={`Filtrar únicamente ${tab.name}`}
+                    >
+                      <span>{tab.icon}</span>
+                      <span>{tab.name}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">

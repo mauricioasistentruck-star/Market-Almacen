@@ -448,3 +448,49 @@ export function getRubroPreset(key?: string): RubroDefinition {
 export function getAllRubros(): RubroDefinition[] {
   return Object.values(RUBROS_CATALOG);
 }
+
+export interface RubroWeighableCategory {
+  id: string;
+  name: string;
+  key: string;
+  icon: string;
+  badgeColor: string;
+  activeColor: string;
+  keywords: string[];
+}
+
+export function getWeighableCategoriesForRubro(rubroKey?: string): RubroWeighableCategory[] {
+  const key = (rubroKey || 'almacen').toLowerCase();
+
+  if (key === 'panaderia') {
+    return [
+      { id: 'pan_tradicional', name: 'Pan Tradicional', key: 'Pan Tradicional', icon: '🥖', badgeColor: 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60', activeColor: 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-400/50', keywords: ['hallulla', 'marraqueta', 'pan corriente', 'pan tradicional', 'pan'] },
+      { id: 'panes_especiales', name: 'Panes Especiales', key: 'Panes Especiales', icon: '🥐', badgeColor: 'bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60', activeColor: 'bg-orange-600 text-white shadow-xs ring-2 ring-orange-400/50', keywords: ['coliza', 'dobladita', 'baguette', 'molde', 'integral', 'amasado'] },
+      { id: 'pasteleria', name: 'Pastelería / Kilo', key: 'Pastelería', icon: '🍰', badgeColor: 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60', activeColor: 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/50', keywords: ['galleta', 'queque', 'empanada', 'masa', 'torta', 'pastel'] }
+    ];
+  }
+
+  if (key === 'ferreteria') {
+    return [
+      { id: 'tornillos_clavos', name: 'Clavos y Tornillos', key: 'Clavos y Tornillos', icon: '🔩', badgeColor: 'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700', activeColor: 'bg-slate-700 text-white shadow-xs ring-2 ring-slate-500/50', keywords: ['clavo', 'tornillo', 'golilla', 'perno', 'tuerca'] },
+      { id: 'aridos_cemento', name: 'Áridos y Cemento', key: 'Áridos y Cemento', icon: '🧱', badgeColor: 'bg-stone-100 hover:bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700', activeColor: 'bg-stone-700 text-white shadow-xs ring-2 ring-stone-500/50', keywords: ['arena', 'ripio', 'gravilla', 'cemento', 'cal', 'mortero'] },
+      { id: 'cables_alambres', name: 'Cables y Alambres', key: 'Cables y Alambres', icon: '⚡', badgeColor: 'bg-blue-50 hover:bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60', activeColor: 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/50', keywords: ['alambre', 'cable', 'cordon', 'cordón', 'piola', 'cadena'] }
+    ];
+  }
+
+  if (key === 'mascotas') {
+    return [
+      { id: 'alimento_kilo', name: 'Alimento por Kilo', key: 'Alimento por Kilo', icon: '🦴', badgeColor: 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60', activeColor: 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-400/50', keywords: ['alimento', 'comida', 'croqueta', 'pellet', 'perro', 'gato'] },
+      { id: 'arena_granel', name: 'Arena a Granel', key: 'Arena a Granel', icon: '📦', badgeColor: 'bg-teal-50 hover:bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60', activeColor: 'bg-teal-600 text-white shadow-xs ring-2 ring-teal-400/50', keywords: ['arena', 'sanitaria', 'piedra'] },
+      { id: 'semillas_aves', name: 'Semillas para Aves', key: 'Semillas para Aves', icon: '🌾', badgeColor: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/60', activeColor: 'bg-yellow-600 text-white shadow-xs ring-2 ring-yellow-400/50', keywords: ['alpiste', 'mijo', 'semilla', 'maravilla'] }
+    ];
+  }
+
+  // Predeterminado Almacén, Minimarket y Botillería:
+  return [
+    { id: 'fiambreria', name: 'Fiambrería', key: 'Fiambrería', icon: '🥪', badgeColor: 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60', activeColor: 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/50', keywords: ['fiambreria', 'fiambrería', 'cecina', 'cecinas', 'jamon', 'jamón', 'queso', 'quesos', 'salame', 'mortadela', 'vienesas'] },
+    { id: 'panaderia', name: 'Panadería', key: 'Panadería', icon: '🥖', badgeColor: 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60', activeColor: 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-400/50', keywords: ['panaderia', 'panadería', 'pan', 'panes', 'hallulla', 'marraqueta', 'coliza', 'dobladita', 'baguette', 'molde', 'amasado'] },
+    { id: 'verduleria', name: 'Verdulería', key: 'Verdulería', icon: '🥬', badgeColor: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60', activeColor: 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/50', keywords: ['verduleria', 'verdulería', 'verdura', 'verduras', 'fruta', 'frutas', 'tomate', 'tomates', 'palta', 'paltas', 'papa', 'papas', 'cebolla', 'limon', 'limón', 'platano', 'plátano'] },
+    { id: 'frutos_secos', name: 'Frutos Secos', key: 'Frutos Secos', icon: '🥜', badgeColor: 'bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60', activeColor: 'bg-orange-600 text-white shadow-xs ring-2 ring-orange-400/50', keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'almendras', 'mani', 'maní', 'semilla', 'semillas', 'legumbre', 'legumbres', 'pasas', 'castaña'] }
+  ];
+}

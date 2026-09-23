@@ -284,6 +284,71 @@ export async function initDatabaseIfEmpty() {
     await db.products.add(INITIAL_DEMO_PRODUCTS[7] as any);
   }
 
+  const carneExists = await db.products.where('code').equals('CARNE-POSTA-KG').first();
+  if (!carneExists) {
+    await db.products.add({
+      companyId: 'market-almacen',
+      code: 'CARNE-POSTA-KG',
+      name: 'Posta Palomita Vacuno Granel',
+      category: 'Carnicería',
+      brand: 'Carnes del Sur',
+      stock: 24,
+      minStock: 5,
+      unit: 'Kg',
+      isBulk: true,
+      isWeighable: true,
+      condition: 'NUEVO',
+      completeness: 'COMPLETO',
+      location: 'Vitrina Carnicería',
+      costPrice: 6200,
+      price: 8990,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as any);
+    await db.products.add({
+      companyId: 'market-almacen',
+      code: 'CARNE-PECHUGA-KG',
+      name: 'Pechuga de Pollo Deshuesada Granel',
+      category: 'Carnicería',
+      brand: 'Super Pollo',
+      stock: 30,
+      minStock: 8,
+      unit: 'Kg',
+      isBulk: true,
+      isWeighable: true,
+      condition: 'NUEVO',
+      completeness: 'COMPLETO',
+      location: 'Vitrina Carnicería',
+      costPrice: 3100,
+      price: 4990,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as any);
+  }
+
+  const hamburguesaExists = await db.products.where('code').equals('7801234005678').first();
+  if (!hamburguesaExists) {
+    await db.products.add({
+      companyId: 'market-almacen',
+      code: '7801234005678',
+      name: 'Hamburguesas Vacuno Clásicas 4 Unidades (Sellada)',
+      category: 'Congelados',
+      brand: 'La Crianza',
+      stock: 20,
+      minStock: 5,
+      unit: 'Unidades',
+      isBulk: false,
+      isWeighable: false,
+      condition: 'NUEVO',
+      completeness: 'COMPLETO',
+      location: 'Congelador 1',
+      costPrice: 1800,
+      price: 2990,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as any);
+  }
+
   const countProducts = await db.products.count();
   if (countProducts === 0) {
     await db.products.bulkAdd(INITIAL_DEMO_PRODUCTS as any);

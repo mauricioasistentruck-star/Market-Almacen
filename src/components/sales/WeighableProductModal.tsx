@@ -148,6 +148,24 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
         };
       }
 
+      // Carnicería / Carne a Granel
+      if (
+        pCat === 'carnicería' || pCat === 'carniceria' || pCat.includes('carne') ||
+        ['carne', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco'].some(k => pName.includes(k))
+      ) {
+        const found = weighableTabs.find(t => t.id.includes('carne') || t.id.includes('carnic'));
+        if (found) return found;
+        return {
+          id: 'carnes_granel',
+          name: 'Carne a Granel',
+          key: 'Carnicería',
+          icon: '🥩',
+          badgeColor: '',
+          activeColor: '',
+          keywords: ['carne', 'carnes', 'pollo', 'vacuno', 'cerdo']
+        };
+      }
+
       for (const tab of weighableTabs) {
         if (tab.keywords.some(k => pName.includes(k) || pCat.includes(k))) {
           return tab;
@@ -215,6 +233,15 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
         if (isMeatOrBread) return false;
         return pCat.includes('fruto') ||
                ['fruto seco', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'semilla', 'pasas', 'castaña', 'avellana', 'pistacho'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      
+      // Carne a Granel: ÚNICAMENTE carnes al corte y a granel (vacuno, pollo, cerdo)
+      if (deptId.includes('carne') || deptId.includes('carnic')) {
+        const isBreadOrDairy = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'leche', 'yogur'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isBreadOrDairy) return false;
+        return pCat.includes('carne') || pCat.includes('carnic') ||
+               ['carne', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco', 'pulpa', 'sobrecostilla', 'abastero', 'huachalomo', 'choclillo', 'plateada', 'alitas', 'pavo', 'cordero'].some(k => pName.includes(k) || pCat.includes(k));
       }
 
       return currentDepartment.keywords.some(k => pName.includes(k) || pCat.includes(k));

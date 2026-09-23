@@ -98,7 +98,7 @@ const STANDARD_CATEGORIES = [
   { code: '00', name: 'Producto Común', key: 'COMMON' },
   { code: '01', name: 'ABARROTES', key: 'Abarrotes' },
   { code: '02', name: 'BEBIDAS Y LICORES', key: 'Bebidas y Licores' },
-  { code: '03', name: 'CARNES Y CONGELADOS', key: 'Carnes y Congelados' },
+  { code: '03', name: 'CONGELADOS', key: 'Congelados' },
   { code: '04', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
   { code: '05', name: 'CUIDADO PERSONAL', key: 'Cuidado Personal' },
   { code: '06', name: 'SNACKS Y GOLOSINAS', key: 'Snacks y Golosinas' },
@@ -332,6 +332,9 @@ export const SalesView: React.FC<SalesViewProps> = ({
       if (lower.includes('cerveza') || lower.includes('vino') || lower.includes('bebida') || lower.includes('licor')) {
         return;
       }
+      if (lower.includes('congelad') || lower === 'carnes y congelados') {
+        return;
+      }
       if (!list.some(c => c.name.toLowerCase() === lower || c.key.toLowerCase() === lower)) {
         list.push({
           code: String(list.length).padStart(2, '0'),
@@ -407,6 +410,14 @@ export const SalesView: React.FC<SalesViewProps> = ({
                    pName.includes('nuez') || pName.includes('nueces') || pName.includes('almendra') || pName.includes('mani') || pName.includes('maní') || pName.includes('frutos secos') || pName.includes('pasas');
           }
 
+          // 5. Pestaña Carne a Granel: SOLO Carnes al corte / pesables (NO congelados envasados con código)
+          if (activeWeighable.id.includes('carne') || activeWeighable.id.includes('carnic')) {
+            const isBreadOrDairy = ['pan ', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'leche', 'yogur'].some(k => pName.includes(k) || pCat.includes(k));
+            if (isBreadOrDairy) return false;
+            return pCat.includes('carne') || pCat.includes('carnic') ||
+                   ['carne', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco', 'pulpa', 'sobrecostilla', 'abastero'].some(k => pName.includes(k) || pCat.includes(k));
+          }
+
           return activeWeighable.keywords.some(k => pCat.includes(k) || pName.includes(k));
         });
       } else {
@@ -414,6 +425,10 @@ export const SalesView: React.FC<SalesViewProps> = ({
         result = result.filter(p => {
           const cat = (p.category || '').toLowerCase();
           const key = selectedCategory.toLowerCase();
+          if (key === 'congelados' || key === 'congelado' || key.includes('congelad')) {
+            // En Congelados: alimentos congelados y carnes selladas/pesadas previamente con etiqueta (isBulk !== true)
+            return (cat.includes('congelad') || cat.includes('carne')) && p.isBulk !== true;
+          }
           if (key.includes('bebida') || key.includes('licor')) {
             return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');
           }

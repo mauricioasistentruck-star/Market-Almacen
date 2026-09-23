@@ -49,7 +49,8 @@ export const RUBROS_CATALOG: Record<string, RubroDefinition> = {
       'Lácteos y Fiambrería',
       'Panadería y Pastelería',
       'Frutas y Verduras',
-      'Carnes y Congelados',
+      'Congelados',
+      'Carnicería',
       'Limpieza y Aseo',
       'Snacks y Golosinas',
       'Cuidado Personal',
@@ -486,11 +487,12 @@ export function getWeighableCategoriesForRubro(rubroKey?: string): RubroWeighabl
     ];
   }
 
-  // Predeterminado Almacén, Minimarket y Botillería:
+    // Predeterminado Almacén, Minimarket y Botillería:
   return [
-    { id: 'fiambreria', name: 'Fiambrería', key: 'Fiambrería', icon: '🥪', badgeColor: 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60', activeColor: 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/50', keywords: ['fiambreria', 'fiambrería', 'cecina', 'cecinas', 'jamon', 'jamón', 'queso', 'quesos', 'salame', 'mortadela', 'vienesas'] },
+    { id: 'fiambreria', name: 'Fiambrería', key: 'Fiambrería', icon: '🥓', badgeColor: 'bg-rose-50 hover:bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60', activeColor: 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/50', keywords: ['fiambreria', 'fiambrería', 'cecina', 'cecinas', 'jamon', 'jamón', 'queso', 'quesos', 'salame', 'mortadela', 'vienesas'] },
     { id: 'panaderia', name: 'Panadería', key: 'Panadería', icon: '🥖', badgeColor: 'bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60', activeColor: 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-400/50', keywords: ['panaderia', 'panadería', 'pan', 'panes', 'hallulla', 'marraqueta', 'coliza', 'dobladita', 'baguette', 'molde', 'amasado'] },
     { id: 'verduleria', name: 'Verdulería', key: 'Verdulería', icon: '🥬', badgeColor: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60', activeColor: 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/50', keywords: ['verduleria', 'verdulería', 'verdura', 'verduras', 'fruta', 'frutas', 'tomate', 'tomates', 'palta', 'paltas', 'papa', 'papas', 'cebolla', 'limon', 'limón', 'platano', 'plátano'] },
+    { id: 'carnes_granel', name: 'Carne a Granel', key: 'Carnicería', icon: '🥩', badgeColor: 'bg-red-50 hover:bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-800/60', activeColor: 'bg-red-600 text-white shadow-xs ring-2 ring-red-400/50', keywords: ['carne', 'carnes', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco', 'pulpa', 'sobrecostilla', 'abastero', 'huachalomo', 'choclillo', 'plateada', 'alitas', 'pavo', 'cordero', 'carniceria', 'carnicería'] },
     { id: 'frutos_secos', name: 'Frutos Secos', key: 'Frutos Secos', icon: '🥜', badgeColor: 'bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60', activeColor: 'bg-orange-600 text-white shadow-xs ring-2 ring-orange-400/50', keywords: ['fruto seco', 'frutos secos', 'nuez', 'nueces', 'almendra', 'almendras', 'mani', 'maní', 'semilla', 'semillas', 'legumbre', 'legumbres', 'pasas', 'castaña'] }
   ];
 }

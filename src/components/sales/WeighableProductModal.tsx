@@ -227,21 +227,21 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
                ['tomate', 'palta', 'papa', 'cebolla', 'lechuga', 'limon', 'limón', 'platano', 'plátano', 'manzana', 'naranja', 'zanahoria', 'pepino', 'fruta', 'verdura'].some(k => pName.includes(k) || pCat.includes(k));
       }
 
-      // Frutos Secos
-      if (deptId.includes('fruto') || deptId.includes('granel')) {
-        const isMeatOrBread = ['carne', 'pollo', 'cecina', 'jamon', 'jamón', 'pan', 'hallulla', 'tomate'].some(k => pName.includes(k) || pCat.includes(k));
+      // 4. Carne a Granel: ÚNICAMENTE carnes al corte y pesables (vacuno, pollo, cerdo)
+      // Debe evaluarse ANTES de frutos secos y sin usar comodín 'granel'
+      if (deptId.includes('carne') || deptId.includes('carnic')) {
+        const isNonMeat = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'almendra', 'mani', 'fruto', 'leche', 'yogur', 'queso', 'cecina'].some(k => pName.includes(k) || pCat.includes(k));
+        if (isNonMeat) return false;
+        return pCat.includes('carne') || pCat.includes('carnic') ||
+               ['carne', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco', 'pulpa', 'sobrecostilla', 'abastero', 'huachalomo', 'choclillo', 'plateada', 'alitas', 'pavo', 'cordero'].some(k => pName.includes(k) || pCat.includes(k));
+      }
+
+      // 5. Frutos Secos: ÚNICAMENTE frutos secos y semillas (NUNCA carnes_granel)
+      if (deptId.includes('fruto') || deptId.includes('semilla')) {
+        const isMeatOrBread = ['carne', 'pollo', 'cecina', 'jamon', 'jamón', 'pan', 'hallulla', 'tomate', 'vacuno', 'cerdo'].some(k => pName.includes(k) || pCat.includes(k));
         if (isMeatOrBread) return false;
         return pCat.includes('fruto') ||
                ['fruto seco', 'nuez', 'nueces', 'almendra', 'mani', 'maní', 'semilla', 'pasas', 'castaña', 'avellana', 'pistacho'].some(k => pName.includes(k) || pCat.includes(k));
-      }
-
-      
-      // Carne a Granel: ÚNICAMENTE carnes al corte y a granel (vacuno, pollo, cerdo)
-      if (deptId.includes('carne') || deptId.includes('carnic')) {
-        const isBreadOrDairy = ['pan', 'hallulla', 'marraqueta', 'tomate', 'palta', 'nuez', 'leche', 'yogur'].some(k => pName.includes(k) || pCat.includes(k));
-        if (isBreadOrDairy) return false;
-        return pCat.includes('carne') || pCat.includes('carnic') ||
-               ['carne', 'vacuno', 'pollo', 'cerdo', 'posta', 'lomo', 'trutro', 'pechuga', 'costillar', 'asado', 'molida', 'churrasco', 'pulpa', 'sobrecostilla', 'abastero', 'huachalomo', 'choclillo', 'plateada', 'alitas', 'pavo', 'cordero'].some(k => pName.includes(k) || pCat.includes(k));
       }
 
       return currentDepartment.keywords.some(k => pName.includes(k) || pCat.includes(k));

@@ -37,6 +37,9 @@ export function getPaymentMethodLabel(method: string): string {
     case 'DEBITO': return 'Tarjeta Débito (Redcompra)';
     case 'CREDITO': return 'Tarjeta Crédito';
     case 'TRANSFERENCIA': return 'Transferencia Bancaria';
+    case 'MERCADO_PAGO': return 'Mercado Pago';
+    case 'MIXTO': return 'Pago Mixto';
+    case 'FIADO': return 'Crédito / Fiado';
     case 'CHEQUE': return 'Cheque';
     default: return 'Otro Medio de Pago';
   }

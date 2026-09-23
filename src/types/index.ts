@@ -498,7 +498,7 @@ export interface Worker {
   createdAt: string;
 }
 
-export type PaymentMethod = 'EFECTIVO' | 'DEBITO' | 'CREDITO' | 'TRANSFERENCIA' | 'CHEQUE' | 'OTRO';
+export type PaymentMethod = 'EFECTIVO' | 'DEBITO' | 'CREDITO' | 'TRANSFERENCIA' | 'MERCADO_PAGO' | 'MIXTO' | 'FIADO' | 'CHEQUE' | 'OTRO';
 
 export type DTEType = 'BOLETA_ELECTRONICA' | 'FACTURA_ELECTRONICA' | 'BOLETA_EXENTA' | 'FACTURA_EXENTA' | 'TICKET_INTERNO';
 
@@ -541,6 +541,13 @@ export interface Sale {
   total: number;
   discountTotal?: number;
   paymentMethod: PaymentMethod;
+  mixedPayments?: {
+    cash?: number;
+    card?: number;
+    transfer?: number;
+    mercadoPago?: number;
+    other?: number;
+  };
   paymentReference?: string;
   amountPaid?: number;
   cashChange?: number;

@@ -3,7 +3,7 @@ import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
-import type { Product, Sale, SaleItem, Customer } from '../../types';
+import type { Product, Sale, SaleItem, Customer, DTEType } from '../../types';
 import { getChileLocalDateString } from '../../utils/chileanCurrencyAndDates';
 import { formatCLP, generateSaleInvoicePDF } from '../../utils/salesPdfGenerator';
 import { getWeighableCategoriesForRubro, type RubroWeighableCategory } from '../../utils/rubroPresets';
@@ -143,7 +143,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('FINAL');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('GENERAL');
 
   // Filtros y busqueda
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +154,8 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
   // Modales
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutInitialDteType, setCheckoutInitialDteType] = useState<DTEType>('BOLETA_ELECTRONICA');
+  const cartEndRef = useRef<HTMLDivElement>(null);
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -161,6 +163,13 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [isWeighableModalOpen, setIsWeighableModalOpen] = useState(false);
   const [selectedWeighableProduct, setSelectedWeighableProduct] = useState<Product | null>(null);
   const [activeWeighableDepartment, setActiveWeighableDepartment] = useState<string | null>(null);
+
+  // Auto-scroll hacia abajo al agregar nuevo producto al carrito
+  useEffect(() => {
+    if (cartEndRef.current && cart.length > 0) {
+      cartEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [cart.length]);
   const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
 
   // Modal para Agregar Producto Comun
@@ -728,23 +737,41 @@ export const SalesView: React.FC<SalesViewProps> = ({
           <section className="w-full lg:w-[35%] xl:w-[32%] shrink-0 flex flex-col h-full bg-white dark:bg-[#0d1620] border-r border-slate-200 dark:border-slate-800 shadow-md p-2.5 sm:p-3 overflow-hidden">
             
             {/* Botones Superiores: AGREGAR PRODUCTO COMUN | ULTIMA VENTA */}
-            <div className="grid grid-cols-2 gap-2 mb-2 shrink-0">
+            <div className="grid grid-cols-3 gap-1.5 mb-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setIsCommonProductModalOpen(true)}
-                className="bg-[#00a8e8] hover:bg-[#0092ca] active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
-                title="Agregar producto rápido con precio y nombre personalizado"
+                onClick={handleOpenLastSale}
+                className="bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                title="Ver o reimprimir el comprobante de la última venta"
               >
-                AGREGAR PRODUCTO COMÚN
+                ÚLTIMA VENTA
               </button>
 
               <button
                 type="button"
-                onClick={handleOpenLastSale}
-                className="bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-[11px] sm:text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
-                title="Ver o reimprimir el comprobante de la última venta"
+                onClick={handleGenerateQuotation}
+                disabled={cart.length === 0}
+                className="bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                title="Generar cotización formal en PDF de los productos del carrito"
               >
-                ÚLTIMA VENTA
+                COTIZACIÓN
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (cart.length === 0) {
+                    alert('El carrito está vacío. Agrega productos antes de facturar.');
+                    return;
+                  }
+                  setCheckoutInitialDteType('FACTURA_ELECTRONICA');
+                  setIsCheckoutOpen(true);
+                }}
+                disabled={cart.length === 0 || isReadOnly}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                title="Abrir cobro directo con Factura Electrónica (RUT y Razón Social)"
+              >
+                FACTURA
               </button>
             </div>
 
@@ -756,8 +783,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#162330] border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs rounded-lg px-2.5 py-1.5 font-bold focus:outline-hidden focus:ring-1 focus:ring-sky-500 cursor-pointer"
                 >
-                  <option value="FINAL">Cliente Final</option>
-                  <option value="GENERAL">Público General</option>
+                  <option value="GENERAL">Venta General</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.businessName || c.tradeName || 'Cliente'} {c.rut ? `(${c.rut})` : ''}
@@ -886,6 +912,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                     </div>
                   ))
                 )}
+                <div ref={cartEndRef} />
               </div>
             </div>
 
@@ -938,6 +965,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       alert('El carrito está vacío. Agrega productos antes de pagar.');
                       return;
                     }
+                    setCheckoutInitialDteType('BOLETA_ELECTRONICA');
                     setIsCheckoutOpen(true);
                   }}
                   disabled={cart.length === 0 || isReadOnly}
@@ -1251,6 +1279,8 @@ export const SalesView: React.FC<SalesViewProps> = ({
           isOpen={isCheckoutOpen}
           onClose={() => setIsCheckoutOpen(false)}
           cartItems={cart}
+          initialDteType={checkoutInitialDteType}
+          selectedCustomer={customers.find(c => String(c.id) === String(selectedCustomerId))}
           onSaleCompleted={() => {
             setIsCheckoutOpen(false);
             setCart([]);

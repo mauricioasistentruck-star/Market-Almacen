@@ -102,7 +102,8 @@ const STANDARD_CATEGORIES = [
   { code: '04', name: 'ART LIMPIEZA', key: 'Limpieza y Aseo' },
   { code: '05', name: 'CUIDADO PERSONAL', key: 'Cuidado Personal' },
   { code: '06', name: 'SNACKS Y GOLOSINAS', key: 'Snacks y Golosinas' },
-  { code: '07', name: 'ADICIONAL', key: 'ADICIONAL' }
+  { code: '07', name: '🎁 PACKS Y PROMOS', key: 'Packs y Promociones' },
+  { code: '08', name: 'ADICIONAL', key: 'ADICIONAL' }
 ];
 
 export const SalesView: React.FC<SalesViewProps> = ({
@@ -428,6 +429,9 @@ export const SalesView: React.FC<SalesViewProps> = ({
           if (key === 'congelados' || key === 'congelado' || key.includes('congelad')) {
             // En Congelados: alimentos congelados y carnes selladas/pesadas previamente con etiqueta (isBulk !== true)
             return (cat.includes('congelad') || cat.includes('carne')) && p.isBulk !== true;
+          }
+          if (key.includes('pack') || key.includes('promo')) {
+            return cat.includes('pack') || cat.includes('promo') || (p.unit && p.unit.toLowerCase() === 'pack') || (p.condition === 'OFERTA' && (p.offerLabel || '').toLowerCase().includes('pack'));
           }
           if (key.includes('bebida') || key.includes('licor')) {
             return cat.includes('bebida') || cat.includes('licor') || cat.includes('cerveza') || cat.includes('vino') || cat.includes('alcohol');

@@ -45,6 +45,7 @@ export const RUBROS_CATALOG: Record<string, RubroDefinition> = {
       'Verdulería',
       'Frutos Secos',
       'Abarrotes',
+        'Packs y Promociones',
       'Bebidas y Licores',
       'Lácteos y Fiambrería',
       'Panadería y Pastelería',

@@ -10,10 +10,12 @@ import { naturalLocationSort } from '../../utils/sortingUtils';
 import { exportProductsInventoryExcel } from '../../utils/excelExporter';
 import { BarcodePrintModal } from './BarcodePrintModal';
 import { ProductDetailModal } from './ProductDetailModal';
+import { PackGeneratorModal } from './PackGeneratorModal';
 import { ProductMovementsHistoryModal } from './ProductMovementsHistoryModal';
 import {
   Boxes,
   Plus,
+  Package,
   ArrowDownLeft,
   ArrowUpRight,
   Sliders,
@@ -64,6 +66,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   // Modals state
   const [selectedProductForPhoto, setSelectedProductForPhoto] = useState<Product | null>(null);
   const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
+  const [isPackModalOpen, setIsPackModalOpen] = useState(false);
   const [isMovementsHistoryOpen, setIsMovementsHistoryOpen] = useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState<Product | null>(null);
   const [selectedProductForBarcode, setSelectedProductForBarcode] = useState<Product | null>(null);
@@ -253,6 +256,18 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>+ Nuevo Producto</span>
+              </button>
+            )}
+
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={() => setIsPackModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/25 transition active:scale-95 cursor-pointer"
+                title="Generar packs y promociones sumando productos con descuento de stock"
+              >
+                <Package className="w-4 h-4" />
+                <span>🎁 Generar Pack</span>
               </button>
             )}
 
@@ -593,6 +608,15 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         isOpen={isBarcodePrintOpen}
         onClose={() => setIsBarcodePrintOpen(false)}
         initialSelectedProduct={selectedProductForBarcode}
+      />
+
+      {/* Modal Generador de Packs y Promociones */}
+      <PackGeneratorModal
+        isOpen={isPackModalOpen}
+        onClose={() => setIsPackModalOpen(false)}
+        onPackCreated={() => {
+          loadProducts();
+        }}
       />
 
       {/* Modal Ficha Completa del Producto al presionar la fila */}

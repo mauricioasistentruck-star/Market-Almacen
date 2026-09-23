@@ -4,6 +4,7 @@ import { useTheme } from '../../utils/themeContext';
 import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
 import type { Product } from '../../types';
+import { PackGeneratorModal } from './PackGeneratorModal';
 import {
   X,
   Boxes,
@@ -16,6 +17,8 @@ import {
   Calendar,
   MapPin,
   Tag,
+  Package,
+  ChevronDown,
   DollarSign,
   AlertTriangle,
   Layers,
@@ -54,6 +57,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const [currentProduct, setCurrentProduct] = useState<Product | null>(initialProduct);
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+  const [isPackModalOpen, setIsPackModalOpen] = useState(false);
+  const [isLiquidarMenuOpen, setIsLiquidarMenuOpen] = useState(false);
   const [offerPriceInput, setOfferPriceInput] = useState<number | string>('');
   const [offerStockLimitInput, setOfferStockLimitInput] = useState<number | string>('');
   const [offerLabelInput, setOfferLabelInput] = useState<string>('Liquidación');
@@ -332,21 +337,73 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </span>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {/* 5. Liquidar / Modo Oferta */}
+                {/* 5. Liquidar / Modo Oferta con Submenú */}
                 {!isReadOnly && (
-                  <button
-                    type="button"
-                    onClick={handleOpenOfferModal}
-                    className={`h-10 sm:h-11 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
-                      hasOffer
-                        ? 'bg-amber-500 text-white border border-amber-600 hover:bg-amber-600 shadow-sm'
-                        : 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-800'
-                    }`}
-                    title="Configurar precio rebajado por lote acotado"
-                  >
-                    <Tag className="w-4 h-4 shrink-0" />
-                    <span>{hasOffer ? 'En Oferta' : 'Liquidar'}</span>
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsLiquidarMenuOpen(prev => !prev)}
+                      className={`w-full h-10 sm:h-11 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
+                        hasOffer
+                          ? 'bg-amber-500 text-white border border-amber-600 hover:bg-amber-600 shadow-sm'
+                          : 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-800'
+                      }`}
+                      title="Liquidación individual o generar packs de productos"
+                    >
+                      <Tag className="w-4 h-4 shrink-0" />
+                      <span>{hasOffer ? 'En Oferta' : 'Liquidar'}</span>
+                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                    </button>
+
+                    {isLiquidarMenuOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsLiquidarMenuOpen(false)}
+                        />
+                        <div className="absolute left-0 bottom-full mb-2 sm:bottom-auto sm:top-full sm:mt-2 z-50 w-64 p-2 bg-white dark:bg-slate-900 border-2 border-orange-400 rounded-2xl shadow-2xl animate-scaleIn space-y-1.5">
+                          <div className="px-2 py-1 text-[11px] font-black uppercase text-orange-600 dark:text-orange-400 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>Opciones de Liquidación</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsLiquidarMenuOpen(false);
+                              handleOpenOfferModal();
+                            }}
+                            className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-amber-50 dark:hover:bg-amber-950/50 flex items-start gap-2.5 transition cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                              <Tag className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="font-black text-xs text-amber-700 dark:text-amber-300">Liquidación Individual</p>
+                              <p className="text-[10px] text-slate-500 font-medium">Rebajar precio a un lote acotado de este producto</p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsLiquidarMenuOpen(false);
+                              setIsPackModalOpen(true);
+                            }}
+                            className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-orange-50 dark:hover:bg-orange-950/50 flex items-start gap-2.5 transition cursor-pointer border-t border-slate-100 dark:border-slate-800 pt-2"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-600 flex items-center justify-center shrink-0 mt-0.5">
+                              <Package className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="font-black text-xs text-orange-700 dark:text-orange-300">🎁 Generar Pack / Promoción</p>
+                              <p className="text-[10px] text-slate-500 font-medium">Sumar productos para combo con nuevo código y descuento de inventario</p>
+                            </div>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 {/* 6. Imprimir Código de Barras */}
@@ -414,7 +471,21 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
       </div>
 
-      {/* Modal de Liquidación / Oferta por Lote */}
+      {/* Modal de Generación de Packs y Promociones */}
+        <PackGeneratorModal
+          isOpen={isPackModalOpen}
+          onClose={() => setIsPackModalOpen(false)}
+          initialProduct={currentProduct}
+          onPackCreated={async () => {
+            if (currentProduct?.id) {
+              const refreshed = await db.products.get(currentProduct.id);
+              if (refreshed) setCurrentProduct(refreshed);
+            }
+            if (onProductUpdated) onProductUpdated();
+          }}
+        />
+
+        {/* Modal de Liquidación / Oferta por Lote */}
       {isOfferModalOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-lg rounded-3xl border-2 border-amber-400 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
@@ -441,7 +512,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 space-y-1.5">
+            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-800 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                  <span className="text-[11px] font-bold text-orange-800 dark:text-orange-200">
+                    ¿Deseas combinar este producto en un Pack / Promo?
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOfferModalOpen(false);
+                    setIsPackModalOpen(true);
+                  }}
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[11px] shadow-xs cursor-pointer active:scale-95 shrink-0"
+                >
+                  🎁 Armar Pack
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 space-y-1.5">
               <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100">{product.name}</p>
               <div className="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 font-mono">
                 <span>Precio Normal: ${(product.price || 0).toLocaleString('es-CL')}</span>

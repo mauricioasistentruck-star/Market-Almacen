@@ -736,25 +736,15 @@ export const SalesView: React.FC<SalesViewProps> = ({
           {/* --------------------------------------------------------------------- */}
           <section className="w-full lg:w-[35%] xl:w-[32%] shrink-0 flex flex-col h-full bg-white dark:bg-[#0d1620] border-r border-slate-200 dark:border-slate-800 shadow-md p-2.5 sm:p-3 overflow-hidden">
             
-            {/* Botones Superiores: AGREGAR PRODUCTO COMUN | ULTIMA VENTA */}
-            <div className="grid grid-cols-3 gap-1.5 mb-2 shrink-0">
+            {/* Botones Superiores: ÚLTIMA VENTA | FACTURA */}
+            <div className="grid grid-cols-2 gap-2 mb-2 shrink-0">
               <button
                 type="button"
                 onClick={handleOpenLastSale}
-                className="bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                className="bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
                 title="Ver o reimprimir el comprobante de la última venta"
               >
                 ÚLTIMA VENTA
-              </button>
-
-              <button
-                type="button"
-                onClick={handleGenerateQuotation}
-                disabled={cart.length === 0}
-                className="bg-slate-600 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
-                title="Generar cotización formal en PDF de los productos del carrito"
-              >
-                COTIZACIÓN
               </button>
 
               <button
@@ -768,37 +758,10 @@ export const SalesView: React.FC<SalesViewProps> = ({
                   setIsCheckoutOpen(true);
                 }}
                 disabled={cart.length === 0 || isReadOnly}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-98 text-white font-black text-[11px] sm:text-xs py-2 px-1 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-98 text-white font-black text-xs py-2 px-2 rounded-lg text-center shadow-xs uppercase tracking-wider transition cursor-pointer"
                 title="Abrir cobro directo con Factura Electrónica (RUT y Razón Social)"
               >
                 FACTURA
-              </button>
-            </div>
-
-            {/* Selector de Cliente + Boton (+) */}
-            <div className="flex items-center gap-1.5 mb-2 shrink-0">
-              <div className="relative flex-1">
-                <select
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#162330] border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs rounded-lg px-2.5 py-1.5 font-bold focus:outline-hidden focus:ring-1 focus:ring-sky-500 cursor-pointer"
-                >
-                  <option value="GENERAL">Venta General</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.businessName || c.tradeName || 'Cliente'} {c.rut ? `(${c.rut})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCustomerModalOpen(true)}
-                className="w-8 h-8 rounded-full bg-[#00a8e8] hover:bg-[#0092ca] text-white flex items-center justify-center font-black transition active:scale-95 shrink-0 shadow-xs cursor-pointer"
-                title="Crear o seleccionar cliente para factura o boleta con RUT"
-              >
-                <Plus className="w-4 h-4" />
               </button>
             </div>
 

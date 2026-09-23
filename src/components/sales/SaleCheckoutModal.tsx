@@ -4,8 +4,14 @@ import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { useTheme } from '../../utils/themeContext';
 import type { Sale, SaleItem, PaymentMethod, DTEType, SiiConfig, Customer } from '../../types';
-import { formatCLP, formatRut, getDteLabel, generateSaleThermalTicketPDF } from '../../utils/salesPdfGenerator';
-import { downloadPDF } from '../../utils/pdfGenerator';
+import {
+  formatCLP,
+  formatRut,
+  getDteLabel,
+  generateSaleThermalTicketPDF,
+  generateSaleInvoicePDF
+} from '../../utils/salesPdfGenerator';
+import { printPDF } from '../../utils/pdfGenerator';
 import confetti from 'canvas-confetti';
 import {
   CreditCard,
@@ -40,20 +46,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { currentUser } = useAuth();
 
-  // Método de pago activo: 'EFECTIVO' | 'DEBITO' | 'CREDITO' | 'TRANSFERENCIA' | 'MERCADO_PAGO' | 'MIXTO' | 'FIADO'
+  // Métodos de pago permitidos: Efectivo, Tarjeta (Débito/Crédito), Transferencia, Fiado/Crédito
   const [activeTab, setActiveTab] = useState<PaymentMethod>('EFECTIVO');
   const [cardSubType, setCardSubType] = useState<'DEBITO' | 'CREDITO'>('DEBITO');
   const [dteType, setDteType] = useState<DTEType>(initialDteType || 'BOLETA_ELECTRONICA');
   const [paymentReference, setPaymentReference] = useState('');
-  const [amountPaid, setAmountPaid] = useState<number>(0);
+  
+  // En efectivo: monto recibido debe estar VACÍO inicialmente para que el cajero/a lo ingrese
+  const [amountPaid, setAmountPaid] = useState<number | string>('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [printTicket, setPrintTicket] = useState(true);
-
-  // Pagos Mixtos (Imagen 3)
-  const [mixedCash, setMixedCash] = useState<number | string>('');
-  const [mixedCard, setMixedCard] = useState<number | string>('');
-  const [mixedTransfer, setMixedTransfer] = useState<number | string>('');
-  const [mixedMercadoPago, setMixedMercadoPago] = useState<number | string>('');
 
   // Cliente info
   const [customerRut, setCustomerRut] = useState('');
@@ -249,44 +251,32 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
     return shortcuts;
   }, [cashRoundedTotal]);
 
-  // Cálculos Mixtos
-  const numMixedCash = Number(mixedCash) || 0;
-  const numMixedCard = Number(mixedCard) || 0;
-  const numMixedTransfer = Number(mixedTransfer) || 0;
-  const numMixedMercadoPago = Number(mixedMercadoPago) || 0;
-  const totalMixedEntered = numMixedCash + numMixedCard + numMixedTransfer + numMixedMercadoPago;
+  const numAmountPaid = typeof amountPaid === 'number' ? amountPaid : (Number(amountPaid) || 0);
 
   // Monto Pagado y Vuelto según método activo
   const effectiveAmountPaid = useMemo(() => {
-    if (activeTab === 'MIXTO') return totalMixedEntered;
-    if (activeTab === 'EFECTIVO') return amountPaid || 0;
+    if (activeTab === 'EFECTIVO') return numAmountPaid;
     return finalTotal;
-  }, [activeTab, totalMixedEntered, amountPaid, finalTotal]);
+  }, [activeTab, numAmountPaid, finalTotal]);
 
   const effectiveChange = useMemo(() => {
     if (activeTab === 'EFECTIVO') {
-      return Math.max(0, (amountPaid || 0) - cashRoundedTotal);
-    }
-    if (activeTab === 'MIXTO') {
-      return Math.max(0, totalMixedEntered - finalTotal);
+      return numAmountPaid >= cashRoundedTotal ? numAmountPaid - cashRoundedTotal : 0;
     }
     return 0;
-  }, [activeTab, amountPaid, cashRoundedTotal, totalMixedEntered, finalTotal]);
-
-  const mixedPending = Math.max(0, finalTotal - totalMixedEntered);
+  }, [activeTab, numAmountPaid, cashRoundedTotal]);
 
   // Inicializar montos al abrir o cambiar de pestaña
   useEffect(() => {
     if (!isOpen) return;
     if (activeTab === 'EFECTIVO') {
-      setAmountPaid(cashRoundedTotal);
-    } else if (activeTab === 'MIXTO') {
-      // Dejar campos limpios o con sugerencia inicial
+      // El monto recibido del cliente DEBE estar vacío inicialmente para que el cajero/a lo ingrese
+      setAmountPaid('');
     } else {
       setAmountPaid(finalTotal);
     }
     setErrorMessage('');
-  }, [isOpen, activeTab, cashRoundedTotal, finalTotal]);
+  }, [isOpen, activeTab, finalTotal]);
 
   // Manejo de teclado (Esc para cerrar, Enter para confirmar)
   useEffect(() => {
@@ -305,7 +295,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isProcessing, activeTab, amountPaid, totalMixedEntered, finalTotal]);
+  }, [isOpen, isProcessing, activeTab, numAmountPaid, finalTotal]);
 
   if (!isOpen) return null;
 
@@ -323,13 +313,8 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
       }
     }
 
-    if (activeTab === 'EFECTIVO' && (amountPaid || 0) < cashRoundedTotal) {
+    if (activeTab === 'EFECTIVO' && numAmountPaid < cashRoundedTotal) {
       setErrorMessage(`El monto pagado en efectivo no puede ser menor a ${formatCLP(cashRoundedTotal)}.`);
-      return;
-    }
-
-    if (activeTab === 'MIXTO' && totalMixedEntered < finalTotal) {
-      setErrorMessage(`El monto total ingresado en pago mixto (${formatCLP(totalMixedEntered)}) es menor al total a cobrar (${formatCLP(finalTotal)}).`);
       return;
     }
 
@@ -404,16 +389,10 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         cashChange: effectiveChange,
         roundingDifference: activeTab === 'EFECTIVO' ? roundingDifference : 0,
         cashRoundedTotal: activeTab === 'EFECTIVO' ? cashRoundedTotal : finalTotal,
-        mixedPayments: activeTab === 'MIXTO' ? {
-          cash: numMixedCash > 0 ? numMixedCash : undefined,
-          card: numMixedCard > 0 ? numMixedCard : undefined,
-          transfer: numMixedTransfer > 0 ? numMixedTransfer : undefined,
-          mercadoPago: numMixedMercadoPago > 0 ? numMixedMercadoPago : undefined
-        } : undefined,
         dteType,
         dteFolio: String(dteFolioNumber),
         siiStatus: siiConfig?.environment === 'PRODUCCION' ? 'EMITIDO' : 'SIMULADO',
-        siiResolution: `Res. Ex. SII N° ${siiConfig?.resolucionNumero || '80'} de ${siiConfig?.resolucionFecha?.slice(0, 4) || '2014'}`,
+        siiResolution: `Res. Ex. SII Nº ${siiConfig?.resolucionNumero || '80'} de ${siiConfig?.resolucionFecha?.slice(0, 4) || '2014'}`,
         sellerName: currentUser?.name || 'Cajero Principal',
         sellerUser: currentUser?.username || 'admin',
         status: 'COMPLETADA',
@@ -506,17 +485,20 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         }
       }
 
-      // 4. Imprimir ticket térmico si está activado
+      // 4. Imprimir de forma automática la boleta o factura (sin descargar)
       if (printTicket) {
         try {
-          const doc = generateSaleThermalTicketPDF(newSale, selectedCompany, siiConfig || undefined);
-          downloadPDF(doc, `Ticket_${newSale.folio || 'venta'}.pdf`);
+          const doc = dteType === 'FACTURA_ELECTRONICA'
+            ? generateSaleInvoicePDF(newSale, selectedCompany, siiConfig || undefined)
+            : generateSaleThermalTicketPDF(newSale, selectedCompany, siiConfig || undefined);
+          const docFilename = `${dteType === 'FACTURA_ELECTRONICA' ? 'Factura' : 'Boleta'}_${newSale.folio || 'venta'}.pdf`;
+          printPDF(doc, docFilename);
         } catch (printErr) {
-          console.error('Error imprimiendo ticket:', printErr);
+          console.error('Error imprimiendo documento de venta:', printErr);
         }
       }
 
-      // 5. Efecto de éxito
+      // 5. Efecto de Éxito
       try {
         confetti({
           particleCount: 80,
@@ -632,15 +614,14 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* BARRA DE PESTAÑAS HORIZONTALES (IDÉNTICO A LA IMAGEN 3)                   */}
+        {/* BARRA DE PESTAÑAS HORIZONTALES (EFECTIVO, TARJETA, TRANSFERENCIA, FIADO)   */}
+        {/* Mercado Pago y Mixto eliminados a solicitud del usuario                  */}
         {/* ========================================================================= */}
         <div className="flex items-center overflow-x-auto border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0 custom-scrollbar px-2 sm:px-4">
           {[
             { id: 'EFECTIVO' as PaymentMethod, label: 'Efectivo', icon: '💵' },
             { id: 'DEBITO' as PaymentMethod, label: 'Tarjeta', icon: '💳' },
-            { id: 'MERCADO_PAGO' as PaymentMethod, label: 'Mercado Pago', icon: '🔵' },
             { id: 'TRANSFERENCIA' as PaymentMethod, label: 'Transferencia', icon: '🏛️' },
-            { id: 'MIXTO' as PaymentMethod, label: 'Mixto', icon: '🔀' },
             { id: 'FIADO' as PaymentMethod, label: 'Crédito/Fiado', icon: '📋' },
           ].map(tab => {
             const isActive = activeTab === tab.id;
@@ -652,7 +633,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                   setActiveTab(tab.id);
                   if (tab.id === 'DEBITO') setCardSubType('DEBITO');
                 }}
-                className={`flex items-center gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-black whitespace-nowrap transition border-b-2 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-4 sm:px-6 py-3 text-xs sm:text-sm font-black whitespace-nowrap transition border-b-2 cursor-pointer ${
                   isActive
                     ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 shadow-2xs'
                     : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
@@ -666,117 +647,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* CUERPO DINÁMICO SEGÚN PESTAÑA SELECCIONADA (CON SCROLL INTERNO SI SE REQUIERE) */}
+        {/* CUERPO DINÁMICO SEGÚN PESTAÑA SELECCIONADA                              */}
         {/* ========================================================================= */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
           
-          {/* ---------------- PESTAÑA: MIXTO (TAL COMO IMAGEN 3) ---------------- */}
-          {activeTab === 'MIXTO' && (
-            <div className="space-y-3.5 animate-fadeIn">
-              <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-2xl text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Distribuya los montos ingresados entre los diferentes medios de pago:</span>
-                <span className="font-mono font-black text-blue-600 dark:text-blue-400">
-                  Total: {formatCLP(finalTotal)}
-                </span>
-              </div>
-
-              {/* 1. Monto Efectivo */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span>💵</span>
-                  <span>Monto Efectivo</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400">$</span>
-                  <input
-                    type="number"
-                    value={mixedCash}
-                    onChange={(e) => setMixedCash(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-base focus:ring-2 focus:ring-blue-500 focus:outline-none text-right"
-                  />
-                </div>
-              </div>
-
-              {/* 2. Monto Tarjeta */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span>💳</span>
-                  <span>Monto Tarjeta</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400">$</span>
-                  <input
-                    type="number"
-                    value={mixedCard}
-                    onChange={(e) => setMixedCard(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-base focus:ring-2 focus:ring-blue-500 focus:outline-none text-right"
-                  />
-                </div>
-              </div>
-
-              {/* 3. Monto Transferencia */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span>🏛️</span>
-                  <span>Monto Transferencia</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400">$</span>
-                  <input
-                    type="number"
-                    value={mixedTransfer}
-                    onChange={(e) => setMixedTransfer(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-base focus:ring-2 focus:ring-blue-500 focus:outline-none text-right"
-                  />
-                </div>
-              </div>
-
-              {/* 4. Monto Mercado Pago */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span>🔵</span>
-                  <span>Monto Mercado Pago (Opcional)</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400">$</span>
-                  <input
-                    type="number"
-                    value={mixedMercadoPago}
-                    onChange={(e) => setMixedMercadoPago(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-8 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-right"
-                  />
-                </div>
-              </div>
-
-              {/* Barra de Balance Mixto */}
-              <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold">
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">Total Ingresado: </span>
-                  <span className="font-mono text-slate-900 dark:text-white text-sm font-black">{formatCLP(totalMixedEntered)}</span>
-                </div>
-                {mixedPending > 0 ? (
-                  <span className="text-red-600 dark:text-red-400 font-mono font-black">
-                    Faltante: {formatCLP(mixedPending)}
-                  </span>
-                ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-black">
-                    ✓ Completo (Vuelto: {formatCLP(effectiveChange)})
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* ---------------- PESTAÑA: EFECTIVO ---------------- */}
           {activeTab === 'EFECTIVO' && (
             <div className="space-y-3.5 animate-fadeIn">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                  <label className="flex items-center gap-1.5 font-black">
+                  <label className="flex items-center gap-1.5 font-black text-sm">
                     <span>💵</span>
                     <span>Monto Recibido del Cliente</span>
                   </label>
@@ -787,12 +667,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                   )}
                 </div>
 
+                {/* El campo inicia vacío para que el cajero/a lo ingrese manualmente */}
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-600 font-mono select-none">$</span>
                   <input
                     type="number"
-                    value={amountPaid === 0 ? '' : amountPaid}
-                    onChange={(e) => setAmountPaid(Number(e.target.value))}
+                    value={amountPaid}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAmountPaid(val === '' ? '' : Number(val));
+                    }}
                     placeholder="0"
                     autoFocus
                     className="w-full pl-9 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-emerald-500 text-slate-900 dark:text-white text-2xl font-mono font-black focus:ring-2 focus:ring-emerald-400 focus:outline-none shadow-inner text-right"
@@ -800,12 +684,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* Botones de Atajo Rápido */}
+              {/* Botones de Atajo Rápido (Chips) */}
               <div className="flex items-center gap-1.5 overflow-x-auto py-1 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => setAmountPaid(cashRoundedTotal)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shrink-0 cursor-pointer shadow-xs transition"
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 cursor-pointer shadow-xs transition active:scale-95 ${
+                    numAmountPaid === cashRoundedTotal
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
+                  }`}
                 >
                   Exacto ({formatCLP(cashRoundedTotal)})
                 </button>
@@ -814,7 +702,11 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                     key={quickM}
                     type="button"
                     onClick={() => setAmountPaid(quickM)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black active:scale-95 transition shrink-0 cursor-pointer shadow-2xs"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black active:scale-95 transition shrink-0 cursor-pointer shadow-2xs border ${
+                      numAmountPaid === quickM
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                    }`}
                   >
                     ${quickM.toLocaleString('es-CL')}
                   </button>
@@ -864,13 +756,13 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  N° de Voucher / Código de Autorización POS (Opcional):
+                  Nº de Voucher / Código de Autorización POS (Opcional):
                 </label>
                 <input
                   type="text"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="Ej: AUT-89420 o N° operación"
+                  placeholder="Ej: AUT-89420 o Nº operación"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
@@ -882,35 +774,12 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             </div>
           )}
 
-          {/* ---------------- PESTAÑA: MERCADO PAGO ---------------- */}
-          {activeTab === 'MERCADO_PAGO' && (
-            <div className="space-y-3.5 animate-fadeIn">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  N° de Operación o Referencia Mercado Pago:
-                </label>
-                <input
-                  type="text"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="Ej: MP-9812401 o Comprobante"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 text-xs font-medium text-sky-900 dark:text-sky-200 flex items-center gap-2">
-                <QrCode className="w-4 h-4 shrink-0 text-sky-600" />
-                <span>Muestre el código QR al cliente o verifique la recepción del dinero por <strong>{formatCLP(finalTotal)}</strong> en Mercado Pago.</span>
-              </div>
-            </div>
-          )}
-
           {/* ---------------- PESTAÑA: TRANSFERENCIA ---------------- */}
           {activeTab === 'TRANSFERENCIA' && (
             <div className="space-y-3.5 animate-fadeIn">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  N° de Transferencia / Comprobante Bancario:
+                  Nº de Transferencia / Comprobante Bancario:
                 </label>
                 <input
                   type="text"
@@ -989,8 +858,9 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                     </button>
                   </div>
 
+                  {/* Sugerencias de clientes */}
                   {suggestedCustomers.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl z-30 max-h-36 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl overflow-hidden max-h-40 overflow-y-auto">
                       {suggestedCustomers.map(c => (
                         <button
                           key={c.id}
@@ -1045,30 +915,28 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             </div>
           )}
 
-          {/* Opcional para Boleta: Correo o WhatsApp */}
-          {dteType === 'BOLETA_ELECTRONICA' && (
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
-                Envío de Comprobante Digital (Opcional):
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <input
-                  type="text"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="WhatsApp (Ej: +56912345678)"
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="Correo Electrónico"
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
+          {/* Opcional: Correo o WhatsApp para envío digital */}
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+              Envío de Comprobante Digital (Opcional):
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <input
+                type="text"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="WhatsApp (Ej: +56912345678)"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="Correo Electrónico"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
             </div>
-          )}
+          </div>
 
         </div>
 
@@ -1133,8 +1001,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               disabled={
                 isProcessing ||
                 cartItems.length === 0 ||
-                (activeTab === 'EFECTIVO' && (amountPaid || 0) < cashRoundedTotal) ||
-                (activeTab === 'MIXTO' && totalMixedEntered < finalTotal)
+                (activeTab === 'EFECTIVO' && numAmountPaid < cashRoundedTotal)
               }
               className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm sm:text-base transition shadow-lg shadow-emerald-500/20 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
             >
@@ -1269,13 +1136,13 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreateCustomerModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 font-bold hover:bg-slate-300 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-xs cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-md cursor-pointer"
                 >
                   Guardar y Usar en Factura
                 </button>
@@ -1284,7 +1151,6 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };

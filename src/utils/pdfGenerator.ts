@@ -616,21 +616,7 @@ export function printPDF(doc: jsPDF, filename: string = 'documento.pdf'): void {
       return;
     }
 
-    // 1. Intentar abrir ventana de impresión directa (100% compatible con todos los navegadores)
-    const printWindow = window.open(url, '_blank');
-    if (printWindow) {
-      printWindow.focus();
-      printWindow.onload = () => {
-        try {
-          printWindow.print();
-        } catch (e) {
-          console.warn('Auto print triggered on load:', e);
-        }
-      };
-      return;
-    }
-
-    // 2. Si las ventanas emergentes estuvieran bloqueadas, usar iframe invisible (NUNCA display:none)
+    // Impresión silenciosa en segundo plano sin abrir ventanas emergentes ni pestañas
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';

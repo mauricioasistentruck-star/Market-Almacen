@@ -12,12 +12,14 @@ import { PDFViewerModal } from '../PDFViewerModal';
 import { SiiConfigModal } from './SiiConfigModal';
 import { CustomerManagerModal } from '../customers/CustomerManagerModal';
 import { SaleCheckoutModal } from './SaleCheckoutModal';
+import { ThermalPrinterModal } from './ThermalPrinterModal';
 import { SaleDetailsModal } from './SaleDetailsModal';
 import { CashClosingModal } from './CashClosingModal';
 import { WeighableProductModal } from './WeighableProductModal';
 import { ProductConsultantModal } from '../inventory/ProductConsultantModal';
 import type jsPDF from 'jspdf';
 import {
+  Printer,
   Package,
   X,
   ShoppingCart,
@@ -157,6 +159,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const [checkoutInitialDteType, setCheckoutInitialDteType] = useState<DTEType>('BOLETA_ELECTRONICA');
   const cartEndRef = useRef<HTMLDivElement>(null);
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
+  const [isThermalPrinterModalOpen, setIsThermalPrinterModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
@@ -699,6 +702,16 @@ export const SalesView: React.FC<SalesViewProps> = ({
           >
             <Lock className="w-3.5 h-3.5" />
             <span>CIERRE DE CAJA</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsThermalPrinterModalOpen(true)}
+            className="px-2.5 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+            title="Configuración de Impresora Térmica de Boletas (80mm)"
+          >
+            <Printer className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>IMPRESORA 80MM</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           </button>
         </div>
 
@@ -1526,6 +1539,12 @@ export const SalesView: React.FC<SalesViewProps> = ({
         </div>
       )}
 
+    
+      {/* Modal de Configuración de Impresora Térmica 80mm */}
+      <ThermalPrinterModal
+        isOpen={isThermalPrinterModalOpen}
+        onClose={() => setIsThermalPrinterModalOpen(false)}
+      />
     </div>
   );
 };

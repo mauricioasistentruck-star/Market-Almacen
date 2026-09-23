@@ -12,6 +12,8 @@ import {
   generateSaleInvoicePDF
 } from '../../utils/salesPdfGenerator';
 import { printPDF } from '../../utils/pdfGenerator';
+import { printThermalReceipt80mm } from '../../utils/thermalPrinter';
+import { ThermalPrinterModal } from './ThermalPrinterModal';
 import confetti from 'canvas-confetti';
 import {
   CreditCard,
@@ -56,6 +58,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   const [amountPaid, setAmountPaid] = useState<number | string>('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [printTicket, setPrintTicket] = useState(true);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
 
   // Cliente info
   const [customerRut, setCustomerRut] = useState('');
@@ -485,16 +488,18 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         }
       }
 
-      // 4. Imprimir de forma automática la boleta o factura (sin descargar)
+      // 4. Imprimir de forma automática la boleta o factura (sin descargar y sin abrir ventanas)
       if (printTicket) {
         try {
-          const doc = dteType === 'FACTURA_ELECTRONICA'
-            ? generateSaleInvoicePDF(newSale, selectedCompany, siiConfig || undefined)
-            : generateSaleThermalTicketPDF(newSale, selectedCompany, siiConfig || undefined);
-          const docFilename = `${dteType === 'FACTURA_ELECTRONICA' ? 'Factura' : 'Boleta'}_${newSale.folio || 'venta'}.pdf`;
-          printPDF(doc, docFilename);
+          if (dteType === 'FACTURA_ELECTRONICA') {
+            const doc = generateSaleInvoicePDF(newSale, selectedCompany, siiConfig || undefined);
+            printPDF(doc, `Factura_${newSale.folio || 'venta'}.pdf`);
+          } else {
+            // Boleta o Ticket Interno: Impresión automática directa a impresora térmica de 80mm
+            printThermalReceipt80mm(newSale, selectedCompany, siiConfig || undefined);
+          }
         } catch (printErr) {
-          console.error('Error imprimiendo documento de venta:', printErr);
+          console.error('Error imprimiendo comprobante de venta:', printErr);
         }
       }
 
@@ -963,18 +968,30 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             </div>
 
             {/* Checkbox Imprimir Ticket (Imagen 3) */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-slate-300 font-bold">
-              <input
-                type="checkbox"
-                checked={printTicket}
-                onChange={(e) => setPrintTicket(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-              />
-              <span className="flex items-center gap-1.5">
-                <Printer className="w-3.5 h-3.5 text-slate-500" />
-                <span>Imprimir ticket</span>
-              </span>
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-slate-300 font-bold">
+                <input
+                  type="checkbox"
+                  checked={printTicket}
+                  onChange={(e) => setPrintTicket(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <span className="flex items-center gap-1.5">
+                  <Printer className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Imprimir ticket</span>
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setIsPrinterModalOpen(true)}
+                className="px-2 py-0.5 rounded-md bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 text-[11px] font-black border border-emerald-300 dark:border-emerald-800 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                title="Configuración de impresora de boletas 80mm"
+              >
+                <span>80mm Auto</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+            </div>
           </div>
 
           {/* Aviso de Error si existe */}
@@ -1151,6 +1168,9 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
           </div>
         </div>
       )}
+    
+      {/* Modal de Configuración de Impresora Térmica 80mm */}
+      <ThermalPrinterModal isOpen={isPrinterModalOpen} onClose={() => setIsPrinterModalOpen(false)} />
     </div>
   );
 };

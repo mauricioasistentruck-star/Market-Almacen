@@ -13,6 +13,7 @@ import { SiiConfigModal } from './SiiConfigModal';
 import { CustomerManagerModal } from '../customers/CustomerManagerModal';
 import { SaleCheckoutModal } from './SaleCheckoutModal';
 import { ThermalPrinterModal } from './ThermalPrinterModal';
+import { CreditAccountsModal } from '../customers/CreditAccountsModal';
 import { SaleDetailsModal } from './SaleDetailsModal';
 import { CashClosingModal } from './CashClosingModal';
 import { WeighableProductModal } from './WeighableProductModal';
@@ -29,6 +30,7 @@ import {
   Minus,
   Trash2,
   Barcode,
+  BookOpen,
   Lock,
   Menu,
   Home,
@@ -161,6 +163,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
   const cartEndRef = useRef<HTMLDivElement>(null);
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
   const [isThermalPrinterModalOpen, setIsThermalPrinterModalOpen] = useState(false);
+  const [isCreditAccountsOpen, setIsCreditAccountsOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
@@ -721,6 +724,15 @@ export const SalesView: React.FC<SalesViewProps> = ({
           >
             <Lock className="w-3.5 h-3.5" />
             <span>CIERRE DE CAJA</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCreditAccountsOpen(true)}
+            className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+            title="Libreta de Fiados / Cuentas Corrientes"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>LIBRETA FIADOS</span>
           </button>
           <button
             type="button"
@@ -1563,6 +1575,12 @@ export const SalesView: React.FC<SalesViewProps> = ({
       <ThermalPrinterModal
         isOpen={isThermalPrinterModalOpen}
         onClose={() => setIsThermalPrinterModalOpen(false)}
+      />
+      {/* Modal Libreta de Fiados / Cuentas de Clientes */}
+      <CreditAccountsModal
+        isOpen={isCreditAccountsOpen}
+        onClose={() => setIsCreditAccountsOpen(false)}
+        onOpenCustomerManager={() => setIsCustomerModalOpen(true)}
       />
     </div>
   );

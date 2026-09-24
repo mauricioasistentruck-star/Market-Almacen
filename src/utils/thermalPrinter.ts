@@ -1,4 +1,4 @@
-import type { Sale, Company, SiiConfig } from '../types';
+import type { Sale, Company, SiiConfig, Customer, CreditPayment } from '../types';
 import { formatCLP, formatRut, getDteLabel, getPaymentMethodLabel } from './salesPdfGenerator';
 
 export interface ThermalPrinterConfig {
@@ -351,4 +351,209 @@ export function printTestThermalTicket80mm(company?: Company, config?: SiiConfig
   };
 
   printThermalReceipt80mm(dummySale, company, config);
+}
+
+
+/**
+ * Imprime un ticket térmico de 80mm de Abono / Pago de Cuenta Fiado
+ */
+export function printCreditPaymentTicket80mm(
+  payment: CreditPayment,
+  customer: Customer,
+  company?: Company
+): void {
+  const config = getThermalPrinterConfig();
+  const widthMm = config.paperWidth === '58mm' ? 58 : 80;
+  const is58 = widthMm === 58;
+
+  const companyName = company?.name || 'ALMACÉN & MARKET';
+  const companyRut = company?.rut || '';
+  const companyAddress = company?.address || '';
+  const companyPhone = company?.phone || '';
+
+  const isFullyPaid = payment.remainingDebt <= 0;
+  const dateFormatted = new Date(payment.date).toLocaleString('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Comprobante de Abono - ${payment.receiptFolio || 'REC-001'}</title>
+  <style>
+    @page {
+      size: ${widthMm}mm auto;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Courier New', Courier, monospace, -apple-system, sans-serif;
+      width: ${widthMm}mm;
+      max-width: ${widthMm}mm;
+      padding: 4mm 3mm;
+      font-size: ${is58 ? '10px' : '11.5px'};
+      line-height: 1.25;
+      color: #000;
+      background: #fff;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .bold { font-weight: bold; }
+    .title { font-size: ${is58 ? '13px' : '15px'}; font-weight: 900; margin-bottom: 2px; }
+    .subtitle { font-size: ${is58 ? '10px' : '11px'}; font-weight: bold; }
+    .divider { border-top: 1px dashed #000; margin: 4px 0; }
+    .double-divider { border-top: 2px solid #000; margin: 5px 0; }
+    .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .box {
+      border: 1.5px solid #000;
+      padding: 4px;
+      margin: 5px 0;
+      text-align: center;
+      font-weight: 900;
+    }
+    .status-badge {
+      display: block;
+      padding: 3px 0;
+      font-size: ${is58 ? '11px' : '13px'};
+      font-weight: 900;
+      text-align: center;
+      border: 2px solid #000;
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Encabezado del Local -->
+  <div class="text-center">
+    <div class="title">${companyName.toUpperCase()}</div>
+    ${companyRut ? `<div class="subtitle">RUT: ${formatRut(companyRut)}</div>` : ''}
+    ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+    ${companyPhone ? `<div>TEL: ${companyPhone}</div>` : ''}
+  </div>
+
+  <div class="double-divider"></div>
+
+  <!-- Título del documento -->
+  <div class="text-center">
+    <div class="subtitle bold">COMPROBANTE DE PAGO DE CUENTA</div>
+    <div class="bold" style="font-size: 13px;">(LIBRETA DE FIADOS)</div>
+    <div style="font-size: 10px; margin-top: 2px;">FOLIO: ${payment.receiptFolio || 'REC-' + (payment.id || 1)}</div>
+    <div style="font-size: 10px;">FECHA: ${dateFormatted}</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Datos del Cliente -->
+  <div>
+    <div class="row">
+      <span class="bold">CLIENTE:</span>
+      <span class="bold">${payment.customerName.toUpperCase()}</span>
+    </div>
+    ${payment.customerRut ? `
+    <div class="row">
+      <span>RUT:</span>
+      <span>${formatRut(payment.customerRut)}</span>
+    </div>` : ''}
+    ${customer.phone ? `
+    <div class="row">
+      <span>TEL:</span>
+      <span>${customer.phone}</span>
+    </div>` : ''}
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Detalle del Movimiento Financiero -->
+  <div style="margin: 6px 0;">
+    <div class="row">
+      <span>Saldo Deuda Anterior:</span>
+      <span class="bold">${formatCLP(payment.previousDebt)}</span>
+    </div>
+    
+    <div class="row" style="font-size: ${is58 ? '11px' : '13px'}; margin: 4px 0;">
+      <span class="bold">MONTO ABONADO/PAGADO:</span>
+      <span class="bold">${formatCLP(payment.amount)}</span>
+    </div>
+
+    <div class="row">
+      <span>Forma de Pago:</span>
+      <span class="bold">${payment.paymentMethod}</span>
+    </div>
+
+    ${payment.notes ? `
+    <div class="row" style="font-size: 10px;">
+      <span>Observación:</span>
+      <span>${payment.notes}</span>
+    </div>` : ''}
+  </div>
+
+  <div class="double-divider"></div>
+
+  <!-- Saldo Restante y Estado -->
+  <div class="row" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 900;">
+    <span>NUEVO SALDO PENDIENTE:</span>
+    <span>${formatCLP(payment.remainingDebt)}</span>
+  </div>
+
+  <div class="status-badge">
+    ${isFullyPaid ? '*** CUENTA AL DÍA (SALDO $0) ***' : '*** SALDO PENDIENTE POR COBRAR ***'}
+  </div>
+
+  ${customer.paymentDueDay ? `
+  <div class="text-center" style="font-size: 10px; margin-top: 3px;">
+    Fecha habitual de pago: Días ${customer.paymentDueDay} de cada mes
+  </div>` : ''}
+
+  <div class="divider"></div>
+
+  <!-- Pie de Ticket -->
+  <div class="text-center" style="margin-top: 6px;">
+    ${payment.registeredBy ? `<div style="font-size: 10px;">Atendido por: ${payment.registeredBy}</div>` : ''}
+    <div class="bold" style="margin-top: 4px;">¡Muchas Gracias por su Pago!</div>
+    <div style="font-size: 9px; margin-top: 2px;">Conserve este comprobante para su respaldo</div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+      setTimeout(function() {
+        window.close();
+      }, 800);
+    };
+  </script>
+</body>
+</html>
+`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (doc) {
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        document.body.removeChild(iframe);
+      } catch {}
+    }, 4000);
+  }
 }

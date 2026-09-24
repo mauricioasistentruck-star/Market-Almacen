@@ -5,6 +5,7 @@ import { useCompany } from '../utils/companyContext';
 import { useAuth } from '../utils/authContext';
 import {
   ShoppingCart,
+  BookOpen,
   Search,
   FileSpreadsheet,
   BarChart3,
@@ -41,6 +42,7 @@ interface NavbarProps {
   onOpenImport?: () => void;
   onOpenSuppliers?: () => void;
   onOpenCustomers?: () => void;
+  onOpenCreditAccounts?: () => void;
   onOpenInventoryTaking?: () => void;
 }
 
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBackup,
   onOpenSuppliers,
   onOpenCustomers,
+  onOpenCreditAccounts,
   onOpenInventoryTaking
 }) => {
   const { theme, setTheme, themeClasses } = useTheme();
@@ -307,6 +310,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
+            {/* Acceso Directo Libreta de Fiados */}
+            {onOpenCreditAccounts && (
+              <button
+                type="button"
+                onClick={onOpenCreditAccounts}
+                className="hidden md:flex items-center gap-1.5 h-10 px-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-black transition shadow-xs cursor-pointer"
+                title="Libreta de Fiados / Cuentas Corrientes"
+              >
+                <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span className="hidden xl:inline">Libreta de Fiados</span>
+              </button>
+            )}
+
             {/* User Profile Menu: Solo visible en pantallas de escritorio */}
             <div className="hidden md:block relative">
               <button
@@ -381,6 +397,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <Building2 className="w-4 h-4 text-blue-500" />
                         <span>Clientes con Factura</span>
+                      </button>
+                    )}
+
+                    {/* Libreta de Fiados / Cuentas Corrientes */}
+                    {onOpenCreditAccounts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenCreditAccounts();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left text-xs font-black text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                          <span>Libreta de Fiados</span>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 font-black">
+                          CRÉDITO
+                        </span>
                       </button>
                     )}
 

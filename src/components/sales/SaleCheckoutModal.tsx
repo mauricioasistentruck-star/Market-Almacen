@@ -24,7 +24,13 @@ import {
   Check,
   RefreshCw,
   QrCode,
-  Printer
+  Printer,
+  ShieldCheck,
+  BookOpen,
+  AlertTriangle,
+  UserCheck,
+  Ban,
+  CheckCircle2
 } from 'lucide-react';
 
 interface SaleCheckoutModalProps {
@@ -46,7 +52,8 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
 }) => {
   const { themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin, isSuperAdmin } = useAuth();
+  const isOwner = Boolean(isSuperAdmin || isAdmin);
 
   // Métodos de pago permitidos: Efectivo, Tarjeta (Débito/Crédito), Transferencia, Fiado/Crédito
   const [activeTab, setActiveTab] = useState<PaymentMethod>('EFECTIVO');
@@ -69,6 +76,30 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
+  // Estados para Fiado / Crédito Autorizado por el Dueño
+  const [creditCustomers, setCreditCustomers] = useState<Customer[]>([]);
+  const [selectedCreditCustomer, setSelectedCreditCustomer] = useState<Customer | null>(null);
+  const [creditSearchQuery, setCreditSearchQuery] = useState('');
+  const [allowOwnerOverride, setAllowOwnerOverride] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      db.customers.toArray().then(all => {
+        let compCust = all;
+        if (selectedCompanyId && selectedCompanyId !== 'ALL') {
+          compCust = all.filter(c => !c.companyId || c.companyId === selectedCompanyId);
+        }
+        const authorized = compCust.filter(c => c.hasCredit === true || (c.currentDebt || 0) > 0);
+        setCreditCustomers(authorized);
+        setAllowOwnerOverride(false);
+      }).catch(() => {});
+    } else {
+      setSelectedCreditCustomer(null);
+      setCreditSearchQuery('');
+      setAllowOwnerOverride(false);
+    }
+  }, [isOpen, selectedCompanyId]);
+
 
   // Autocompletado de Clientes con Factura
   const [foundCustomerNotice, setFoundCustomerNotice] = useState<string | null>(null);
@@ -321,6 +352,22 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
       return;
     }
 
+    if (activeTab === 'FIADO') {
+      if (!selectedCreditCustomer) {
+        setErrorMessage('Debe seleccionar un cliente con crédito autorizado para registrar la venta a fiado.');
+        return;
+      }
+      if (selectedCreditCustomer.creditStatus === 'BLOQUEADO') {
+        setErrorMessage('El crédito de este cliente se encuentra bloqueado o suspendido. Solo el dueño del local puede autorizarlo.');
+        return;
+      }
+      const availableCredit = Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0));
+      if (finalTotal > availableCredit && !isOwner && !allowOwnerOverride) {
+        setErrorMessage(`Esta compra excede el cupo disponible del cliente (${formatCLP(availableCredit)}). Requiere autorización directa del dueño del local.`);
+        return;
+      }
+    }
+
     setIsProcessing(true);
     setErrorMessage('');
 
@@ -374,13 +421,14 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         time: timeStr,
         companyId: selectedCompanyId || 'ALL',
         companyName: selectedCompany?.name || 'Mi Negocio',
-        customerRut: customerRut.trim() || undefined,
-        customerName: customerName.trim() || (dteType === 'FACTURA_ELECTRONICA' ? 'Empresa' : 'Venta General'),
+        customerId: activeTab === 'FIADO' ? selectedCreditCustomer?.id : undefined,
+        customerRut: activeTab === 'FIADO' ? (selectedCreditCustomer?.rut || undefined) : (customerRut.trim() || undefined),
+        customerName: activeTab === 'FIADO' ? ((selectedCreditCustomer as any)?.name || selectedCreditCustomer?.businessName || 'Cliente Fiado') : (customerName.trim() || (dteType === 'FACTURA_ELECTRONICA' ? 'Empresa' : 'Venta General')),
         customerBusiness: customerBusiness.trim() || undefined,
         customerAddress: customerAddress.trim() || undefined,
         customerCity: customerCity.trim() || undefined,
         customerEmail: customerEmail.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
+        customerPhone: activeTab === 'FIADO' ? (selectedCreditCustomer?.phone || undefined) : (customerPhone.trim() || undefined),
         items: cartItems,
         subtotalNeto,
         iva,
@@ -405,6 +453,22 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
 
       // 2. Guardar en Base de Datos de Ventas
       const saleId = await db.sales.add(newSale);
+
+      // 2.2 Actualizar deuda acumulada del cliente si la venta fue a FIADO
+      if (activeTab === 'FIADO' && selectedCreditCustomer && selectedCreditCustomer.id) {
+        try {
+          const newDebt = (selectedCreditCustomer.currentDebt || 0) + finalTotal;
+          await db.customers.update(selectedCreditCustomer.id, {
+            currentDebt: newDebt,
+            creditStatus: 'CON_DEUDA',
+            lastPurchaseDate: now.toISOString(),
+            updatedAt: now.toISOString()
+          });
+        } catch (e) {
+          console.warn('Error actualizando deuda de cliente fiado:', e);
+        }
+      }
+      
       newSale.id = saleId;
 
       // 2.1 Autoguardar cliente de Factura en db.customers
@@ -802,31 +866,228 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             </div>
           )}
 
-          {/* ---------------- PESTAÑA: FIADO / CRÉDITO ---------------- */}
-          {activeTab === 'FIADO' && (
-            <div className="space-y-3.5 animate-fadeIn">
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs font-medium text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                <FileText className="w-4 h-4 shrink-0 text-amber-600" />
-                <span>Se registrará la cuenta por cobrar (fiado) a nombre del cliente seleccionado por un valor de <strong>{formatCLP(finalTotal)}</strong>.</span>
-              </div>
+          {/* ---------------- PESTAÑA: FIADO / CRÉDITO AUTORIZADO POR EL DUEÑO ---------------- */}
+          {activeTab === 'FIADO' && (() => {
+            const currentDebt = selectedCreditCustomer ? (selectedCreditCustomer.currentDebt || 0) : 0;
+            const creditLimit = selectedCreditCustomer ? (selectedCreditCustomer.creditLimit || 50000) : 50000;
+            const availableCredit = Math.max(0, creditLimit - currentDebt);
+            const isExceeded = finalTotal > availableCredit;
+            const isBlocked = selectedCreditCustomer?.creditStatus === 'BLOQUEADO';
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Nombre del Cliente o Nota de Fiado:
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Nombre de la persona que fía..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
+            const filteredCreditCust = creditCustomers.filter(c => {
+              if (!creditSearchQuery.trim()) return true;
+              const q = creditSearchQuery.toLowerCase().trim();
+              return c.businessName.toLowerCase().includes(q) ||
+                     (c.rut && c.rut.toLowerCase().includes(q)) ||
+                     (c.phone && c.phone.includes(q));
+            });
 
-          {/* ========================================================================= */}
-          {/* SECCIÓN FACTURA: DATOS TRIBUTARIOS DE LA EMPRESA (SI SELECCIONÓ FACTURA) */}
+            return (
+              <div className="space-y-3.5 animate-fadeIn">
+                {/* Banner de Seguridad */}
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-amber-950 dark:text-amber-200 block">
+                        Venta a Crédito / Fiado Autorizado
+                      </span>
+                      <span className="text-[11px] text-amber-800 dark:text-amber-300">
+                        Solo clientes previamente autorizados por el dueño del local pueden fiar.
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl text-xs font-mono font-black bg-amber-200/80 dark:bg-amber-900 text-amber-950 dark:text-amber-200">
+                    Total: {formatCLP(finalTotal)}
+                  </span>
+                </div>
+
+                {!selectedCreditCustomer ? (
+                  /* Selector y Búsqueda de Clientes con Crédito */
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                      <span>Seleccione el Cliente Autorizado para Fiado *:</span>
+                      <span className="text-[11px] text-slate-500 font-bold">
+                        {creditCustomers.length} {creditCustomers.length === 1 ? 'cliente habilitado' : 'clientes habilitados'}
+                      </span>
+                    </label>
+
+                    <input
+                      type="text"
+                      value={creditSearchQuery}
+                      onChange={(e) => setCreditSearchQuery(e.target.value)}
+                      placeholder="Buscar por nombre, RUT o teléfono del cliente..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      autoFocus
+                    />
+
+                    <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-1.5 p-1 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                      {filteredCreditCust.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-slate-500">
+                          {creditCustomers.length === 0 ? (
+                            <div className="space-y-1">
+                              <p className="font-bold">No hay clientes con crédito autorizado en el sistema.</p>
+                              <p className="text-[11px]">El dueño del local debe habilitar créditos desde la Libreta de Fiados.</p>
+                            </div>
+                          ) : (
+                            <p>No se encontraron clientes autorizados con ese criterio.</p>
+                          )}
+                        </div>
+                      ) : (
+                        filteredCreditCust.map(c => {
+                          const cDebt = c.currentDebt || 0;
+                          const cLimit = c.creditLimit || 50000;
+                          const cAvail = Math.max(0, cLimit - cDebt);
+                          const cBlocked = c.creditStatus === 'BLOQUEADO';
+
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCreditCustomer(c);
+                                setCustomerName(c.businessName);
+                                setCustomerRut(c.rut || '');
+                                setCustomerPhone(c.phone || '');
+                              }}
+                              className={`w-full p-2.5 rounded-xl text-left transition cursor-pointer flex items-center justify-between gap-2.5 border ${
+                                cBlocked
+                                  ? 'bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700 opacity-60'
+                                  : 'bg-white hover:bg-amber-50/60 dark:bg-slate-800 dark:hover:bg-slate-700/60 border-slate-200 dark:border-slate-700 hover:border-amber-300 shadow-2xs'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-xs text-slate-900 dark:text-white truncate">
+                                    {c.businessName}
+                                  </span>
+                                  {cBlocked ? (
+                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                                      SUSPENDIDO
+                                    </span>
+                                  ) : cDebt <= 0 ? (
+                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                      AL DÍA
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+                                      DEBE {formatCLP(cDebt)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10.5px] text-slate-500 font-bold flex items-center gap-2">
+                                  {c.phone && <span>Tel: {c.phone}</span>}
+                                  {c.paymentDueDay && <span>Paga: Días {c.paymentDueDay}</span>}
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-[11px] font-mono font-black text-emerald-600 block">
+                                  Cupo Disp: {formatCLP(cAvail)}
+                                </span>
+                                <span className="text-[9px] text-slate-400">
+                                  Límite: {formatCLP(cLimit)}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Tarjeta del Cliente Seleccionado */
+                  <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-amber-400 dark:border-amber-600 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-black shrink-0">
+                          <UserCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white block">
+                            {selectedCreditCustomer.businessName}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            {selectedCreditCustomer.phone ? `Tel: ${selectedCreditCustomer.phone}` : ''} 
+                            {selectedCreditCustomer.paymentDueDay ? ` · Paga los días ${selectedCreditCustomer.paymentDueDay} de cada mes` : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCreditCustomer(null)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 cursor-pointer"
+                      >
+                        Cambiar Cliente
+                      </button>
+                    </div>
+
+                    {/* Métricas de Crédito del Cliente */}
+                    <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-center">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase text-slate-500 block">Límite Autorizado</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">{formatCLP(creditLimit)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold uppercase text-slate-500 block">Deuda Actual</span>
+                        <span className="text-xs font-black text-rose-600">{formatCLP(currentDebt)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold uppercase text-slate-500 block">Cupo Disponible</span>
+                        <span className={`text-xs font-black ${availableCredit < finalTotal ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          {formatCLP(availableCredit)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Alertas de Cupo o Bloqueo */}
+                    {isBlocked ? (
+                      <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 text-xs font-bold flex items-center gap-2">
+                        <Ban className="w-4 h-4 shrink-0" />
+                        <span>⛔ El crédito de este cliente ha sido suspendido por el dueño del local. No es posible fiar.</span>
+                      </div>
+                    ) : isExceeded ? (
+                      <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-xs font-bold space-y-1.5 border border-amber-300">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                          <span>Esta compra ({formatCLP(finalTotal)}) excede el cupo disponible ({formatCLP(availableCredit)}).</span>
+                        </div>
+                        {isOwner ? (
+                          <label className="flex items-center gap-2 pt-1 cursor-pointer text-[11px] font-black text-blue-900 dark:text-blue-200">
+                            <input
+                              type="checkbox"
+                              checked={allowOwnerOverride}
+                              onChange={(e) => setAllowOwnerOverride(e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <span>Autorizar sobregiro extraordinario como Dueño del local</span>
+                          </label>
+                        ) : (
+                          <p className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
+                            🔒 Solo el dueño del local puede autorizar compras por encima del límite de fiado.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Crédito aprobado dentro del límite autorizado por el dueño.</span>
+                        </span>
+                        <span className="font-mono text-[11px]">
+                          Nuevo Saldo: {formatCLP(currentDebt + finalTotal)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ========================================================================= */}
           {dteType === 'FACTURA_ELECTRONICA' && (
             <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border-2 border-blue-400 dark:border-blue-800 space-y-3 animate-fadeIn">

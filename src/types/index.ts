@@ -15,6 +15,7 @@ export interface UserPermissions {
   reports: boolean;        // Informes y estadísticas
   suppliers: boolean;      // Proveedores
   customers: boolean;      // Clientes con factura
+  creditAccounts: boolean; // Libreta de fiados y cuentas corrientes
   inventoryTaking: boolean;// Toma de inventario física
   cafFolios: boolean;      // Sistema de Folios CAF (SII)
   cloudSync: boolean;      // Sincronización Nube Supabase
@@ -35,6 +36,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     reports: true,
     suppliers: true,
     customers: true,
+    creditAccounts: true,
     inventoryTaking: true,
     cafFolios: true,
     cloudSync: true,
@@ -53,6 +55,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     reports: true,
     suppliers: true,
     customers: true,
+    creditAccounts: true,
     inventoryTaking: true,
     cafFolios: true,
     cloudSync: true,
@@ -71,6 +74,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     reports: false,
     suppliers: false,
     customers: true,
+    creditAccounts: true,
     inventoryTaking: false,
     cafFolios: false,
     cloudSync: false,
@@ -89,6 +93,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     reports: false,
     suppliers: true,
     customers: false,
+    creditAccounts: false,
     inventoryTaking: true,
     cafFolios: false,
     cloudSync: false,
@@ -107,6 +112,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     reports: false,
     suppliers: false,
     customers: false,
+    creditAccounts: false,
     inventoryTaking: false,
     cafFolios: false,
     cloudSync: false,
@@ -302,6 +308,7 @@ export interface DeliveryGuide {
   companyRut?: string;
   dispatchType?: 'FACTURABLE_CLIENTE' | 'TRASPASO_SUCURSAL';
   invoiceFolio?: string;
+  customerId?: number;
   customerRut?: string;
   customerBusinessName?: string;
   customerActivity?: string;
@@ -526,6 +533,7 @@ export interface Sale {
   time?: string;
   companyId: string;
   companyName?: string;
+  customerId?: number;
   customerRut?: string;
   customerName?: string;
   customerBusiness?: string; // Giro
@@ -643,19 +651,51 @@ export interface Supplier {
 export interface Customer {
   id?: number;
   rut: string;
-  businessName: string; // Razón Social
-  tradeName?: string; // Nombre Fantasía
+  businessName: string;
+  name?: string; // Razón Social o Nombre Completo del Cliente
+  tradeName?: string; // Nombre Fantasía o Apodo
   industry?: string; // Giro Comercial para Factura
   address?: string; // Dirección
   city?: string; // Comuna / Ciudad
-  email?: string; // Email DTE
-  phone?: string; // Teléfono
+  email?: string; // Email DTE o contacto
+  phone?: string; // Teléfono / WhatsApp
   contactName?: string; // Contacto
   companyId?: string;
+
+  // GESTIÓN DE CRÉDITO / FIADO (EXCLUSIVO DEL DUEÑO DEL LOCAL)
+  hasCredit?: boolean; // Solo el dueño puede autorizar crédito a un cliente
+  creditLimit?: number; // Monto máximo autorizado en pesos ($)
+  currentDebt?: number; // Monto acumulado de deuda pendiente ($)
+  creditStatus?: 'AL_DIA' | 'CON_DEUDA' | 'BLOQUEADO';
+  paymentDueDay?: number; // Día pactado de pago cada mes (ej: día 5 o 30)
+  paymentDueDate?: string; // Fecha acordada de pago puntual (YYYY-MM-DD)
+  creditNotes?: string; // Condiciones o acuerdos pactados por el dueño
+  authorizedBy?: string; // Dueño o administrador que autorizó el crédito
+  authorizedAt?: string; // Fecha en que se le otorgó el crédito
+  lastPurchaseDate?: string; // Fecha de la última compra a fiado
+  lastPaymentDate?: string; // Fecha del último pago o abono registrado
+
   createdAt: string;
   updatedAt?: string;
 }
 
+export interface CreditPayment {
+  id?: number;
+  customerId: number;
+  customerRut?: string;
+  customerName: string;
+  date: string; // Fecha y hora ISO o YYYY-MM-DD HH:mm
+  amount: number; // Monto pagado / abonado ($)
+  previousDebt: number; // Saldo de deuda antes del pago ($)
+  remainingDebt: number; // Saldo pendiente después del pago ($)
+  paymentType: 'TOTAL' | 'PARCIAL'; // Pago Total o Abono Parcial (Otro monto)
+  paymentMethod: 'EFECTIVO' | 'DEBITO' | 'TRANSFERENCIA';
+  notes?: string;
+  registeredBy?: string; // Usuario / cajero que recibió el dinero
+  companyId?: string;
+  receiptFolio?: string; // Folio de comprobante de pago
+  createdAt: string;
+}
 
 export interface InventoryTakingSection {
   id: string;

@@ -856,6 +856,71 @@ export async function initDatabaseIfEmpty() {
     await db.productMovements.bulkPut(demoMovements);
   }
 
+    // 6. Clientes con Crédito Autorizado / Libreta de Fiados (Inicialización / Demo)
+  const creditCustsCount = await db.customers.filter(c => Boolean(c.hasCredit)).count();
+  if (creditCustsCount === 0) {
+    const demoCreditCustomers = [
+      {
+        companyId: 'market-almacen',
+        name: 'Carlos Fuentes Morales (Don Carlos)',
+        rut: '12.345.678-9',
+        address: 'Pasaje Los Robles #142, Barrio Sur',
+        phone: '+56987654321',
+        activity: 'Vecino del Barrio',
+        hasCredit: true,
+        creditLimit: 80000,
+        currentDebt: 24500,
+        creditStatus: 'ACTIVO',
+        paymentDueDay: 5,
+        creditNotes: 'Vecino de confianza de años. Paga los días 5 de cada mes.',
+        authorizedBy: 'Dueño del Local',
+        authorizedAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+        lastPurchaseDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+        lastPaymentDate: new Date(Date.now() - 15 * 86400000).toISOString(),
+        createdAt: new Date(Date.now() - 60 * 86400000).toISOString()
+      },
+      {
+        companyId: 'market-almacen',
+        name: 'Gloria Valenzuela Silva (Sra. Gloria)',
+        rut: '15.678.901-2',
+        address: 'Calle Los Ciruelos #510',
+        phone: '+56911223344',
+        activity: 'Profesora Colegio Vecinal',
+        hasCredit: true,
+        creditLimit: 50000,
+        currentDebt: 0, // Cliente al día ($0 saldo)
+        creditStatus: 'ACTIVO',
+        paymentDueDay: 30,
+        creditNotes: 'Cliente ejemplar, siempre al día. Paga a fin de mes.',
+        authorizedBy: 'Dueño del Local',
+        authorizedAt: new Date(Date.now() - 45 * 86400000).toISOString(),
+        lastPurchaseDate: new Date(Date.now() - 5 * 86400000).toISOString(),
+        lastPaymentDate: new Date(Date.now() - 1 * 86400000).toISOString(),
+        createdAt: new Date(Date.now() - 90 * 86400000).toISOString()
+      },
+      {
+        companyId: 'market-almacen',
+        name: 'Pedro Morales Rojas (Don Pedro)',
+        rut: '9.876.543-1',
+        address: 'Av. Libertador #1040',
+        phone: '+56999887766',
+        activity: 'Comerciante Local',
+        hasCredit: true,
+        creditLimit: 60000,
+        currentDebt: 18900,
+        creditStatus: 'ACTIVO',
+        paymentDueDay: 15,
+        creditNotes: 'Paga quincenal los días 15.',
+        authorizedBy: 'Dueño del Local',
+        authorizedAt: new Date(Date.now() - 20 * 86400000).toISOString(),
+        lastPurchaseDate: new Date(Date.now() - 3 * 86400000).toISOString(),
+        lastPaymentDate: new Date(Date.now() - 18 * 86400000).toISOString(),
+        createdAt: new Date(Date.now() - 40 * 86400000).toISOString()
+      }
+    ];
+    await db.customers.bulkAdd(demoCreditCustomers as any);
+  }
+
   await cleanupOrphanedRecords();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('marketalmacen-data-updated'));

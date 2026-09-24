@@ -19,6 +19,7 @@ import {
   LogOut,
   Palette,
   ShoppingCart,
+  BookOpen,
   Package,
   FileText
 } from 'lucide-react';
@@ -32,6 +33,7 @@ interface MobileMoreMenuModalProps {
   onOpenCashClosing?: () => void;
   onOpenSuppliers?: () => void;
   onOpenCustomers?: () => void;
+  onOpenCreditAccounts?: () => void;
   onOpenInventoryTaking?: () => void;
   onOpenUserManager?: () => void;
   onOpenCloudModal?: () => void;
@@ -49,6 +51,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   onOpenCashClosing,
   onOpenSuppliers,
   onOpenCustomers,
+  onOpenCreditAccounts,
   onOpenInventoryTaking,
   onOpenUserManager,
   onOpenCloudModal,
@@ -227,6 +230,23 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
                 >
                   <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>Clientes con Factura</span>
+                </button>
+              )}
+
+              {/* Libreta de Fiados / Cuentas Corrientes */}
+              {onOpenCreditAccounts && (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); onOpenCreditAccounts(); }}
+                  className="w-full p-2.5 rounded-xl text-left text-xs font-black text-amber-800 dark:text-amber-300 bg-amber-50/70 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 flex items-center justify-between transition cursor-pointer border border-amber-200/70 dark:border-amber-800/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Libreta de Fiados / Cuentas</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-900 dark:bg-amber-900 dark:text-amber-200 font-black">
+                    CRÉDITO
+                  </span>
                 </button>
               )}
 

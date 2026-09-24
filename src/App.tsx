@@ -34,6 +34,7 @@ import { ImportModal } from './components/import/ImportModal';
 import { MasterBackupModal } from './components/MasterBackupModal';
 import { SupplierManagerModal } from './components/suppliers/SupplierManagerModal';
 import { CustomerManagerModal } from './components/customers/CustomerManagerModal';
+import { CreditAccountsModal } from './components/customers/CreditAccountsModal';
 import { InventoryTakingModal } from './components/inventory/InventoryTakingModal';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { MobileMoreMenuModal } from './components/common/MobileMoreMenuModal';
@@ -115,6 +116,7 @@ export const App: React.FC = () => {
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isCreditAccountsOpen, setIsCreditAccountsOpen] = useState(false);
   const [isInventoryTakingOpen, setIsInventoryTakingOpen] = useState(false);
 
   const triggerRefresh = () => {
@@ -173,6 +175,7 @@ export const App: React.FC = () => {
         onOpenBackup={() => setIsBackupOpen(true)}
           onOpenSuppliers={() => setIsSupplierModalOpen(true)}
           onOpenCustomers={() => setIsCustomerModalOpen(true)}
+          onOpenCreditAccounts={() => setIsCreditAccountsOpen(true)}
           onOpenInventoryTaking={() => setIsInventoryTakingOpen(true)}
       />
 
@@ -338,6 +341,12 @@ export const App: React.FC = () => {
         onClose={() => setIsCustomerModalOpen(false)}
       />
 
+      <CreditAccountsModal
+        isOpen={isCreditAccountsOpen}
+        onClose={() => setIsCreditAccountsOpen(false)}
+        onOpenCustomerManager={() => setIsCustomerModalOpen(true)}
+      />
+
       <InventoryTakingModal
         isOpen={isInventoryTakingOpen}
         onClose={() => setIsInventoryTakingOpen(false)}
@@ -408,6 +417,7 @@ export const App: React.FC = () => {
         onOpenCashClosing={() => setIsCashClosingOpen(true)}
         onOpenSuppliers={() => setIsSupplierModalOpen(true)}
         onOpenCustomers={() => setIsCustomerModalOpen(true)}
+        onOpenCreditAccounts={() => setIsCreditAccountsOpen(true)}
         onOpenInventoryTaking={() => setIsInventoryTakingOpen(true)}
         onOpenUserManager={() => setIsUserManagerOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}

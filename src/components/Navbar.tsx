@@ -310,19 +310,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Acceso Directo Libreta de Fiados */}
-            {onOpenCreditAccounts && (
-              <button
-                type="button"
-                onClick={onOpenCreditAccounts}
-                className="hidden md:flex items-center gap-1.5 h-10 px-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-black transition shadow-xs cursor-pointer"
-                title="Libreta de Fiados / Cuentas Corrientes"
-              >
-                <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span className="hidden xl:inline">Libreta de Fiados</span>
-              </button>
-            )}
-
             {/* User Profile Menu: Solo visible en pantallas de escritorio */}
             <div className="hidden md:block relative">
               <button

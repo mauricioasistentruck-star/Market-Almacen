@@ -725,15 +725,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
             <Lock className="w-3.5 h-3.5" />
             <span>CIERRE DE CAJA</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setIsCreditAccountsOpen(true)}
-            className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 font-bold transition cursor-pointer shadow-2xs flex items-center gap-1.5"
-            title="Libreta de Fiados / Cuentas Corrientes"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>LIBRETA FIADOS</span>
-          </button>
+
           <button
             type="button"
             onClick={() => setIsThermalPrinterModalOpen(true)}

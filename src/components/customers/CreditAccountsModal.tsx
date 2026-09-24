@@ -286,7 +286,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
 
       alert(
         remainingDebt <= 0
-          ? `🎉 ¡Cuenta pagada en su totalidad! El cliente ${selectedCustomerForPayment.businessName} ha quedado AL DÍA (Saldo $0).`
+          ? `🎉 ¡Cuenta pagada en su totalidad! El cliente ${selectedCustomerForPayment.businessName || selectedCustomerForPayment.name || selectedCustomerForPayment.tradeName || "Cliente"} ha quedado AL DÍA (Saldo $0).`
           : `✅ Abono de $${amountToPay.toLocaleString('es-CL')} registrado con éxito. Nuevo saldo pendiente: $${remainingDebt.toLocaleString('es-CL')}.`
       );
     } catch (e: any) {
@@ -636,7 +636,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-                          {customer.businessName}
+                          {customer.businessName || customer.name || customer.tradeName || "Cliente"}
                         </span>
 
                         {/* Badges de Estado */}
@@ -675,7 +675,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                             <Phone className="w-3.5 h-3.5 text-blue-500" />
                             <span>{customer.phone}</span>
                             <a
-                              href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${customer.businessName}, te saludamos de ${selectedCompany?.name || 'nuestro local'}. Te informamos que tu saldo actual de fiado es de ${formatCLP(currentDebt)}.`)}`}
+                              href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${customer.businessName || customer.name || customer.tradeName || "Cliente"}, te saludamos de ${selectedCompany?.name || 'nuestro local'}. Te informamos que tu saldo actual de fiado es de ${formatCLP(currentDebt)}.`)}`}
                               target="_blank"
                               rel="noreferrer"
                               className="ml-1 text-emerald-600 hover:text-emerald-700"
@@ -837,7 +837,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                     Registrar Pago / Abono de Fiado
                   </h3>
                   <p className="text-xs font-bold text-slate-500">
-                    Cliente: <strong>{selectedCustomerForPayment.businessName}</strong>
+                    Cliente: <strong>{selectedCustomerForPayment.businessName || selectedCustomerForPayment.name || selectedCustomerForPayment.tradeName || "Cliente"}</strong>
                   </p>
                 </div>
               </div>
@@ -1033,7 +1033,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                     Historial de Cuenta & Movimientos de Fiado
                   </h3>
                   <p className="text-xs font-bold text-slate-500">
-                    Cliente: <strong>{selectedCustomerForHistory.businessName}</strong> ({formatRut(selectedCustomerForHistory.rut)})
+                    Cliente: <strong>{selectedCustomerForHistory.businessName || selectedCustomerForHistory.name || selectedCustomerForHistory.tradeName || "Cliente"}</strong> ({formatRut(selectedCustomerForHistory.rut)})
                   </p>
                 </div>
               </div>
@@ -1160,7 +1160,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             </div>
 
             <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
-              Cliente: <strong>{selectedCustomerForConfig.businessName}</strong>
+              Cliente: <strong>{selectedCustomerForConfig.businessName || selectedCustomerForConfig.name || selectedCustomerForConfig.tradeName || "Cliente"}</strong>
             </div>
 
             <div className="space-y-3 text-xs">

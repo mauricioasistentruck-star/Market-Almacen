@@ -862,6 +862,7 @@ export async function initDatabaseIfEmpty() {
     const demoCreditCustomers = [
       {
         companyId: 'market-almacen',
+        businessName: 'Carlos Fuentes Morales (Don Carlos)',
         name: 'Carlos Fuentes Morales (Don Carlos)',
         rut: '12.345.678-9',
         address: 'Pasaje Los Robles #142, Barrio Sur',
@@ -881,6 +882,7 @@ export async function initDatabaseIfEmpty() {
       },
       {
         companyId: 'market-almacen',
+        businessName: 'Gloria Valenzuela Silva (Sra. Gloria)',
         name: 'Gloria Valenzuela Silva (Sra. Gloria)',
         rut: '15.678.901-2',
         address: 'Calle Los Ciruelos #510',
@@ -900,6 +902,7 @@ export async function initDatabaseIfEmpty() {
       },
       {
         companyId: 'market-almacen',
+        businessName: 'Pedro Morales Rojas (Don Pedro)',
         name: 'Pedro Morales Rojas (Don Pedro)',
         rut: '9.876.543-1',
         address: 'Av. Libertador #1040',
@@ -919,6 +922,14 @@ export async function initDatabaseIfEmpty() {
       }
     ];
     await db.customers.bulkAdd(demoCreditCustomers as any);
+  }
+
+    // Asegurar que todo cliente tenga businessName
+  const allCusts = await db.customers.toArray();
+  for (const c of allCusts) {
+    if (!c.businessName && (c as any).name) {
+      await db.customers.update(c.id!, { businessName: (c as any).name });
+    }
   }
 
   await cleanupOrphanedRecords();

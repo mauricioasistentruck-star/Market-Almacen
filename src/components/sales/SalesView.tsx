@@ -1572,8 +1572,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
       <CreditAccountsModal
         isOpen={isCreditAccountsOpen}
         onClose={() => setIsCreditAccountsOpen(false)}
-        onOpenCustomerManager={() => setIsCustomerModalOpen(true)}
-      />
+              />
     </div>
   );
 };

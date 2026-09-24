@@ -3,7 +3,7 @@ import { db } from '../../db/database';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { useTheme } from '../../utils/themeContext';
-import type { Sale, SaleItem, PaymentMethod, DTEType, SiiConfig, Customer } from '../../types';
+import type { Sale, SaleItem, PaymentMethod, DTEType, SiiConfig, Customer, CreditCustomer } from '../../types';
 import {
   formatCLP,
   formatRut,
@@ -77,20 +77,19 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   // Estados para Fiado / Crédito Autorizado por el Dueño
-  const [creditCustomers, setCreditCustomers] = useState<Customer[]>([]);
-  const [selectedCreditCustomer, setSelectedCreditCustomer] = useState<Customer | null>(null);
+  const [creditCustomers, setCreditCustomers] = useState<CreditCustomer[]>([]);
+  const [selectedCreditCustomer, setSelectedCreditCustomer] = useState<CreditCustomer | null>(null);
   const [creditSearchQuery, setCreditSearchQuery] = useState('');
   const [allowOwnerOverride, setAllowOwnerOverride] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      db.customers.toArray().then(all => {
+      db.creditCustomers.toArray().then(all => {
         let compCust = all;
         if (selectedCompanyId && selectedCompanyId !== 'ALL') {
           compCust = all.filter(c => !c.companyId || c.companyId === selectedCompanyId);
         }
-        const authorized = compCust.filter(c => c.hasCredit === true || (c.currentDebt || 0) > 0);
-        setCreditCustomers(authorized);
+        setCreditCustomers(compCust);
         setAllowOwnerOverride(false);
       }).catch(() => {});
     } else {
@@ -423,11 +422,11 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         companyName: selectedCompany?.name || 'Mi Negocio',
         customerId: activeTab === 'FIADO' ? selectedCreditCustomer?.id : undefined,
         customerRut: activeTab === 'FIADO' ? (selectedCreditCustomer?.rut || undefined) : (customerRut.trim() || undefined),
-        customerName: activeTab === 'FIADO' ? ((selectedCreditCustomer as any)?.name || selectedCreditCustomer?.businessName || 'Cliente Fiado') : (customerName.trim() || (dteType === 'FACTURA_ELECTRONICA' ? 'Empresa' : 'Venta General')),
-        customerBusiness: customerBusiness.trim() || undefined,
-        customerAddress: customerAddress.trim() || undefined,
-        customerCity: customerCity.trim() || undefined,
-        customerEmail: customerEmail.trim() || undefined,
+        customerName: activeTab === 'FIADO' ? ((selectedCreditCustomer?.name || 'Cliente') + (selectedCreditCustomer?.alias ? ' (' + selectedCreditCustomer.alias + ')' : '')) : (customerName.trim() || (dteType === 'FACTURA_ELECTRONICA' ? 'Empresa' : 'Venta General')),
+        customerBusiness: activeTab === 'FIADO' ? undefined : (customerBusiness.trim() || undefined),
+        customerAddress: activeTab === 'FIADO' ? (selectedCreditCustomer?.address || undefined) : (customerAddress.trim() || undefined),
+        customerCity: activeTab === 'FIADO' ? undefined : (customerCity.trim() || undefined),
+        customerEmail: activeTab === 'FIADO' ? undefined : (customerEmail.trim() || undefined),
         customerPhone: activeTab === 'FIADO' ? (selectedCreditCustomer?.phone || undefined) : (customerPhone.trim() || undefined),
         items: cartItems,
         subtotalNeto,
@@ -458,7 +457,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
       if (activeTab === 'FIADO' && selectedCreditCustomer && selectedCreditCustomer.id) {
         try {
           const newDebt = (selectedCreditCustomer.currentDebt || 0) + finalTotal;
-          await db.customers.update(selectedCreditCustomer.id, {
+          await db.creditCustomers.update(selectedCreditCustomer.id, {
             currentDebt: newDebt,
             creditStatus: 'CON_DEUDA',
             lastPurchaseDate: now.toISOString(),
@@ -701,6 +700,9 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                 onClick={() => {
                   setActiveTab(tab.id);
                   if (tab.id === 'DEBITO') setCardSubType('DEBITO');
+                  if (tab.id === 'FIADO' && dteType === 'FACTURA_ELECTRONICA') {
+                    setDteType('BOLETA_ELECTRONICA');
+                  }
                 }}
                 className={`flex items-center gap-1.5 px-4 sm:px-6 py-3 text-xs sm:text-sm font-black whitespace-nowrap transition border-b-2 cursor-pointer ${
                   isActive
@@ -877,9 +879,13 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
             const filteredCreditCust = creditCustomers.filter(c => {
               if (!creditSearchQuery.trim()) return true;
               const q = creditSearchQuery.toLowerCase().trim();
-              return c.businessName.toLowerCase().includes(q) ||
-                     (c.rut && c.rut.toLowerCase().includes(q)) ||
-                     (c.phone && c.phone.includes(q));
+              return (
+                (c.name && c.name.toLowerCase().includes(q)) ||
+                (c.alias && c.alias.toLowerCase().includes(q)) ||
+                (c.rut && c.rut.toLowerCase().includes(q)) ||
+                (c.phone && c.phone.includes(q)) ||
+                (c.address && c.address.toLowerCase().includes(q))
+              );
             });
 
             return (
@@ -948,7 +954,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                               type="button"
                               onClick={() => {
                                 setSelectedCreditCustomer(c);
-                                setCustomerName(c.businessName);
+                                setCustomerName(c.name + (c.alias ? ' (' + c.alias + ')' : ''));
                                 setCustomerRut(c.rut || '');
                                 setCustomerPhone(c.phone || '');
                               }}
@@ -961,8 +967,13 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-black text-xs text-slate-900 dark:text-white truncate">
-                                    {c.businessName}
+                                    {c.name}
                                   </span>
+                                  {c.alias && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                                      {c.alias}
+                                    </span>
+                                  )}
                                   {cBlocked ? (
                                     <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
                                       SUSPENDIDO
@@ -980,6 +991,7 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                                 <div className="text-[10.5px] text-slate-500 font-bold flex items-center gap-2">
                                   {c.phone && <span>Tel: {c.phone}</span>}
                                   {c.paymentDueDay && <span>Paga: Días {c.paymentDueDay}</span>}
+                                  {c.address && <span className="truncate">· Dir: {c.address}</span>}
                                 </div>
                               </div>
 
@@ -1006,9 +1018,16 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                           <UserCheck className="w-4 h-4" />
                         </div>
                         <div>
-                          <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white block">
-                            {selectedCreditCustomer.businessName}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                              {selectedCreditCustomer.name}
+                            </span>
+                            {selectedCreditCustomer.alias && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                                {selectedCreditCustomer.alias}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[11px] text-slate-500">
                             {selectedCreditCustomer.phone ? `Tel: ${selectedCreditCustomer.phone}` : ''} 
                             {selectedCreditCustomer.paymentDueDay ? ` · Paga los días ${selectedCreditCustomer.paymentDueDay} de cada mes` : ''}

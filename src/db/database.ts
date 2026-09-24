@@ -18,6 +18,7 @@ import type {
   CashClosing,
   Supplier,
   Customer,
+  CreditCustomer,
   CreditPayment,
   InventoryTakingSection,
   InventoryTakingCountItem,
@@ -44,6 +45,7 @@ export class MarketAlmacenDatabase extends Dexie {
   cashClosings!: Table<CashClosing, number>;
   suppliers!: Table<Supplier, number>;
   customers!: Table<Customer, number>;
+  creditCustomers!: Table<CreditCustomer, number>;
   creditPayments!: Table<CreditPayment, number>;
   inventorySections!: Table<InventoryTakingSection, string>;
   inventoryCounts!: Table<InventoryTakingCountItem, number>;
@@ -85,6 +87,7 @@ export class MarketAlmacenDatabase extends Dexie {
 
     this.version(4).stores({
       customers: '++id, rut, businessName, industry, address, city, email, phone, hasCredit, creditStatus, companyId, createdAt',
+      creditCustomers: '++id, rut, name, alias, phone, address, creditStatus, paymentDueDay, companyId, createdAt',
       creditPayments: '++id, customerId, customerRut, customerName, date, amount, previousDebt, remainingDebt, paymentMethod, registeredBy, companyId, createdAt'
     });
   }

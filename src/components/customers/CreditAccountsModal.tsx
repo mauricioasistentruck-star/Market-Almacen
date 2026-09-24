@@ -6,7 +6,7 @@ import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
 import { formatCLP, formatRut } from '../../utils/salesPdfGenerator';
 import { printCreditPaymentTicket80mm } from '../../utils/thermalPrinter';
-import type { Customer, Sale, CreditPayment } from '../../types';
+import type { CreditCustomer, Sale, CreditPayment } from '../../types';
 import {
   X,
   BookOpen,
@@ -29,172 +29,169 @@ import {
   FileSpreadsheet,
   Receipt,
   FileText,
-  User
+  User,
+  Home
 } from 'lucide-react';
 
 interface CreditAccountsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenCustomerManager?: () => void;
 }
 
 export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
   isOpen,
-  onClose,
-  onOpenCustomerManager
+  onClose
 }) => {
-  useBodyScrollLock(Boolean(isOpen));
-  const { themeClasses } = useTheme();
+  useBodyScrollLock(isOpen);
+  const { theme, themeClasses } = useTheme();
   const { selectedCompanyId, selectedCompany } = useCompany();
-  const { currentUser, isAdmin, isSuperAdmin } = useAuth();
+  const { currentUser, isSuperAdmin, isAdmin } = useAuth();
 
   // El dueño del local (SuperAdmin o Admin)
   const isOwner = Boolean(isSuperAdmin || isAdmin);
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CreditCustomer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [payments, setPayments] = useState<CreditPayment[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'CON_DEUDA' | 'AL_DIA' | 'BLOQUEADO'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'WITH_DEBT' | 'UP_TO_DATE' | 'BLOCKED'>('ALL');
 
   // Modales secundarios
-  const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<Customer | null>(null);
-  const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
-  const [selectedCustomerForConfig, setSelectedCustomerForConfig] = useState<Customer | null>(null);
+  const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<CreditCustomer | null>(null);
+  const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<CreditCustomer | null>(null);
+  const [selectedCustomerForConfig, setSelectedCustomerForConfig] = useState<CreditCustomer | null>(null);
   const [isNewCreditCustomerOpen, setIsNewCreditCustomerOpen] = useState(false);
 
-  // Estados del modal de pago / abono
+  // Estados para Registro de Pago / Abono
   const [paymentType, setPaymentType] = useState<'TOTAL' | 'PARCIAL'>('TOTAL');
   const [amountToPayInput, setAmountToPayInput] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'EFECTIVO' | 'DEBITO' | 'TRANSFERENCIA'>('EFECTIVO');
-  const [amountReceivedInput, setAmountReceivedInput] = useState<string>('');
-  const [paymentNotes, setPaymentNotes] = useState<string>('');
-  const [autoPrintTicket, setAutoPrintTicket] = useState<boolean>(true);
-  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [shouldPrintTicket, setShouldPrintTicket] = useState(true);
 
-  // Estados del modal de configuración del dueño
-  const [configHasCredit, setConfigHasCredit] = useState<boolean>(true);
-  const [configLimit, setConfigLimit] = useState<string>('50000');
-  const [configDueDay, setConfigDueDay] = useState<string>('5');
-  const [configDueDate, setConfigDueDate] = useState<string>('');
-  const [configStatus, setConfigStatus] = useState<'AL_DIA' | 'CON_DEUDA' | 'BLOQUEADO'>('AL_DIA');
-  const [configNotes, setConfigNotes] = useState<string>('');
-
-  // Estados para nuevo cliente a crédito
-  const [newCustMode, setNewCustMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
-  const [selectedExistingCustId, setSelectedExistingCustId] = useState<string>('');
-  const [newCustName, setNewCustName] = useState<string>('');
-  const [newCustRut, setNewCustRut] = useState<string>('');
-  const [newCustPhone, setNewCustPhone] = useState<string>('');
-  const [newCustAddress, setNewCustAddress] = useState<string>('');
+  // Estados para Autorizar Nuevo Crédito (Persona Normal / Vecino)
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustAlias, setNewCustAlias] = useState('');
+  const [newCustRut, setNewCustRut] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustAddress, setNewCustAddress] = useState('');
   const [newCustLimit, setNewCustLimit] = useState<string>('50000');
   const [newCustDueDay, setNewCustDueDay] = useState<string>('5');
-  const [newCustNotes, setNewCustNotes] = useState<string>('');
+  const [newCustNotes, setNewCustNotes] = useState('');
 
-  const loadData = async () => {
+  // Estados para Modificar Configuración de Crédito existente (Solo Dueño)
+  const [editLimit, setEditLimit] = useState<string>('');
+  const [editDueDay, setEditDueDay] = useState<string>('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editStatus, setEditStatus] = useState<'AL_DIA' | 'CON_DEUDA' | 'BLOQUEADO'>('AL_DIA');
+
+  // Cargar datos
+  const loadCreditData = async () => {
     try {
-      // 1. Cargar clientes
-      let allCust = await db.customers.toArray();
-      if (selectedCompanyId && selectedCompanyId !== 'ALL') {
-        allCust = allCust.filter(c => !c.companyId || c.companyId === selectedCompanyId);
-      }
-      setCustomers(allCust);
+      const allCreditCusts = await db.creditCustomers.toArray();
+      const compCusts = allCreditCusts.filter(
+        c => !c.companyId || c.companyId === (selectedCompanyId || 'market-almacen')
+      );
+      setCustomers(compCusts);
 
-      // 2. Cargar ventas a fiado
-      let allSales = await db.sales.toArray();
-      if (selectedCompanyId && selectedCompanyId !== 'ALL') {
-        allSales = allSales.filter(s => s.companyId === selectedCompanyId);
-      }
-      const fiadoSales = allSales.filter(s => s.paymentMethod === 'FIADO' && s.status !== 'ANULADA');
-      setSales(fiadoSales);
+      const allSales = await db.sales.toArray();
+      const compSales = allSales.filter(
+        s => !s.companyId || s.companyId === (selectedCompanyId || 'market-almacen')
+      );
+      setSales(compSales);
 
-      // 3. Cargar pagos de fiado
-      let allPayments = await db.creditPayments.toArray();
-      if (selectedCompanyId && selectedCompanyId !== 'ALL') {
-        allPayments = allPayments.filter(p => !p.companyId || p.companyId === selectedCompanyId);
-      }
-      setPayments(allPayments);
-    } catch (e) {
-      console.warn('Error cargando cuentas corrientes:', e);
+      const allPayments = await db.creditPayments.toArray();
+      const compPayments = allPayments.filter(
+        p => !p.companyId || p.companyId === (selectedCompanyId || 'market-almacen')
+      );
+      setPayments(compPayments);
+    } catch (err) {
+      console.error('Error loading credit data:', err);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      loadData();
+      loadCreditData();
     }
   }, [isOpen, selectedCompanyId]);
 
-  // Lista de clientes con cuenta de crédito autorizada
-  const creditCustomers = useMemo(() => {
-    return customers.filter(c => c.hasCredit === true || (c.currentDebt || 0) > 0);
-  }, [customers]);
-
-  // Métricas Generales
+  // Métricas Consolidadas (KPIs)
   const metrics = useMemo(() => {
-    const totalPendingDebt = creditCustomers.reduce((acc, c) => acc + (c.currentDebt || 0), 0);
-    const withDebtCount = creditCustomers.filter(c => (c.currentDebt || 0) > 0).length;
-    const upToDateCount = creditCustomers.filter(c => (c.currentDebt || 0) <= 0 && c.creditStatus !== 'BLOQUEADO').length;
-    const blockedCount = creditCustomers.filter(c => c.creditStatus === 'BLOQUEADO').length;
+    let totalDebt = 0;
+    let upToDateCount = 0;
+    let withDebtCount = 0;
+    let blockedCount = 0;
+
+    customers.forEach(c => {
+      const debt = c.currentDebt || 0;
+      if (c.creditStatus === 'BLOQUEADO') {
+        blockedCount++;
+      }
+      if (debt > 0) {
+        totalDebt += debt;
+        withDebtCount++;
+      } else {
+        upToDateCount++;
+      }
+    });
 
     return {
-      totalPendingDebt,
-      totalCustomers: creditCustomers.length,
-      withDebtCount,
+      totalDebt,
+      totalCustomers: customers.length,
       upToDateCount,
+      withDebtCount,
       blockedCount
     };
-  }, [creditCustomers]);
+  }, [customers]);
 
-  // Filtrado de clientes según pestaña y buscador
+  // Filtrado de Clientes en Tiempo Real
   const filteredCustomers = useMemo(() => {
-    let list = creditCustomers;
+    return customers.filter(c => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = (c.name || '').toLowerCase().includes(q);
+        const matchAlias = (c.alias || '').toLowerCase().includes(q);
+        const matchRut = (c.rut || '').toLowerCase().includes(q);
+        const matchPhone = (c.phone || '').toLowerCase().includes(q);
+        const matchAddress = (c.address || '').toLowerCase().includes(q);
+        if (!matchName && !matchAlias && !matchRut && !matchPhone && !matchAddress) {
+          return false;
+        }
+      }
 
-    if (activeFilter === 'CON_DEUDA') {
-      list = list.filter(c => (c.currentDebt || 0) > 0);
-    } else if (activeFilter === 'AL_DIA') {
-      list = list.filter(c => (c.currentDebt || 0) <= 0 && c.creditStatus !== 'BLOQUEADO');
-    } else if (activeFilter === 'BLOQUEADO') {
-      list = list.filter(c => c.creditStatus === 'BLOQUEADO');
-    }
+      const debt = c.currentDebt || 0;
+      if (filterStatus === 'WITH_DEBT') return debt > 0;
+      if (filterStatus === 'UP_TO_DATE') return debt <= 0;
+      if (filterStatus === 'BLOCKED') return c.creditStatus === 'BLOQUEADO';
 
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
-      list = list.filter(c =>
-        c.businessName.toLowerCase().includes(q) ||
-        (c.rut && c.rut.toLowerCase().includes(q)) ||
-        (c.phone && c.phone.toLowerCase().includes(q)) ||
-        (c.contactName && c.contactName.toLowerCase().includes(q))
-      );
-    }
+      return true;
+    });
+  }, [customers, searchQuery, filterStatus]);
 
-    // Ordenar: primero los que tienen mayor deuda
-    return list.sort((a, b) => (b.currentDebt || 0) - (a.currentDebt || 0));
-  }, [creditCustomers, activeFilter, searchTerm]);
-
-  // Abrir modal de pago para un cliente
-  const handleOpenPayment = (customer: Customer) => {
+  // Abrir Modal de Pago / Abono
+  const handleOpenPayment = (customer: CreditCustomer) => {
     setSelectedCustomerForPayment(customer);
     setPaymentType('TOTAL');
     setAmountToPayInput(String(customer.currentDebt || 0));
-    setAmountReceivedInput('');
-    setPaymentMethod('EFECTIVO');
     setPaymentNotes('');
-    setAutoPrintTicket(true);
+    setPaymentMethod('EFECTIVO');
   };
 
-  // Abrir modal de configuración de crédito del dueño
-  const handleOpenConfig = (customer: Customer) => {
+  // Abrir Modal de Configuración (Solo Dueño)
+  const handleOpenConfig = (customer: CreditCustomer) => {
+    if (!isOwner) {
+      alert('Solo el dueño o administrador del local puede modificar las condiciones de crédito.');
+      return;
+    }
     setSelectedCustomerForConfig(customer);
-    setConfigHasCredit(customer.hasCredit ?? true);
-    setConfigLimit(String(customer.creditLimit || 50000));
-    setConfigDueDay(String(customer.paymentDueDay || 5));
-    setConfigDueDate(customer.paymentDueDate || '');
-    setConfigStatus(customer.creditStatus || ((customer.currentDebt || 0) > 0 ? 'CON_DEUDA' : 'AL_DIA'));
-    setConfigNotes(customer.creditNotes || '');
+    setEditLimit(String(customer.creditLimit || 50000));
+    setEditDueDay(String(customer.paymentDueDay || 5));
+    setEditNotes(customer.creditNotes || '');
+    setEditStatus(customer.creditStatus || ((customer.currentDebt || 0) > 0 ? 'CON_DEUDA' : 'AL_DIA'));
   };
 
-  // Guardar configuración del dueño
+  // Guardar Cambios de Configuración de Crédito (Solo Dueño)
   const handleSaveConfig = async () => {
     if (!selectedCustomerForConfig || !selectedCustomerForConfig.id) return;
     if (!isOwner) {
@@ -202,258 +199,213 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
       return;
     }
 
-    const limitNum = Number(configLimit) || 0;
-    const dueDayNum = Number(configDueDay) || undefined;
+    const numLimit = Number(editLimit);
+    if (isNaN(numLimit) || numLimit < 0) {
+      alert('Ingrese un límite de crédito válido en pesos.');
+      return;
+    }
 
-    await db.customers.update(selectedCustomerForConfig.id, {
-      hasCredit: configHasCredit,
-      creditLimit: limitNum,
-      paymentDueDay: dueDayNum,
-      paymentDueDate: configDueDate.trim() || undefined,
-      creditStatus: configStatus,
-      creditNotes: configNotes.trim() || undefined,
-      authorizedBy: currentUser?.name || 'Dueño del Local',
-      authorizedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
+    try {
+      await db.creditCustomers.update(selectedCustomerForConfig.id, {
+        creditLimit: numLimit,
+        paymentDueDay: Number(editDueDay) || 5,
+        creditNotes: editNotes.trim(),
+        creditStatus: editStatus,
+        updatedAt: new Date().toISOString()
+      });
 
-    await loadData();
-    setSelectedCustomerForConfig(null);
-    alert('✅ Condiciones de crédito actualizadas exitosamente por el dueño.');
+      await loadCreditData();
+      setSelectedCustomerForConfig(null);
+      alert('Configuración de crédito actualizada correctamente.');
+    } catch (err: any) {
+      alert('Error al guardar configuración: ' + err.message);
+    }
   };
 
-  // Procesar abono / pago de cuenta
+  // Confirmar Pago / Abono de Deuda
   const handleConfirmPayment = async () => {
     if (!selectedCustomerForPayment || !selectedCustomerForPayment.id) return;
 
-    const currentDebt = selectedCustomerForPayment.currentDebt || 0;
-    const amountToPay = paymentType === 'TOTAL' ? currentDebt : Number(amountToPayInput);
+    const previousDebt = selectedCustomerForPayment.currentDebt || 0;
+    const amountToPay = paymentType === 'TOTAL' ? previousDebt : Number(amountToPayInput);
 
     if (isNaN(amountToPay) || amountToPay <= 0) {
-      alert('Por favor ingrese un monto de abono válido.');
+      alert('Por favor ingrese un monto de abono válido mayor a $0.');
       return;
     }
 
-    if (amountToPay > currentDebt) {
-      alert(`El monto ingresado ($${amountToPay.toLocaleString('es-CL')}) es mayor que la deuda pendiente actual ($${currentDebt.toLocaleString('es-CL')}).`);
+    if (amountToPay > previousDebt) {
+      alert(`El monto del abono ($${amountToPay.toLocaleString('es-CL')}) no puede ser mayor a la deuda pendiente actual ($${previousDebt.toLocaleString('es-CL')}).`);
       return;
     }
 
-    setIsProcessingPayment(true);
+    const remainingDebt = Math.max(0, previousDebt - amountToPay);
+    const now = new Date();
+    const receiptFolio = `ABN-${Date.now().toString().slice(-6)}`;
 
     try {
-      const now = new Date();
-      const remainingDebt = Math.max(0, currentDebt - amountToPay);
-      const newStatus = remainingDebt <= 0 ? 'AL_DIA' : 'CON_DEUDA';
-      const receiptFolio = `AB-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-
       const newPayment: CreditPayment = {
         customerId: selectedCustomerForPayment.id,
         customerRut: selectedCustomerForPayment.rut,
-        customerName: selectedCustomerForPayment.businessName,
+        customerName: selectedCustomerForPayment.name,
         date: now.toISOString(),
         amount: amountToPay,
-        previousDebt: currentDebt,
+        previousDebt,
         remainingDebt,
         paymentType,
         paymentMethod,
-        notes: paymentNotes.trim() || (paymentType === 'TOTAL' ? 'Pago total de la cuenta' : 'Abono parcial a cuenta'),
+        notes: paymentNotes.trim() || undefined,
         registeredBy: currentUser?.name || 'Cajero',
         companyId: selectedCompanyId || 'market-almacen',
         receiptFolio,
         createdAt: now.toISOString()
       };
 
-      // 1. Guardar pago en base de datos
-      const paymentId = await db.creditPayments.add(newPayment);
-      newPayment.id = paymentId;
+      await db.creditPayments.add(newPayment);
 
-      // 2. Actualizar cliente
-      await db.customers.update(selectedCustomerForPayment.id, {
+      await db.creditCustomers.update(selectedCustomerForPayment.id, {
         currentDebt: remainingDebt,
-        creditStatus: newStatus,
+        creditStatus: remainingDebt === 0 ? 'AL_DIA' : 'CON_DEUDA',
         lastPaymentDate: now.toISOString(),
         updatedAt: now.toISOString()
       });
 
-      // 3. Imprimir comprobante en ticket térmico si está activado
-      if (autoPrintTicket) {
+      if (shouldPrintTicket) {
         printCreditPaymentTicket80mm(newPayment, selectedCustomerForPayment, selectedCompany);
       }
 
-      await loadData();
+      await loadCreditData();
       setSelectedCustomerForPayment(null);
-
-      alert(
-        remainingDebt <= 0
-          ? `🎉 ¡Cuenta pagada en su totalidad! El cliente ${selectedCustomerForPayment.businessName || selectedCustomerForPayment.name || selectedCustomerForPayment.tradeName || "Cliente"} ha quedado AL DÍA (Saldo $0).`
-          : `✅ Abono de $${amountToPay.toLocaleString('es-CL')} registrado con éxito. Nuevo saldo pendiente: $${remainingDebt.toLocaleString('es-CL')}.`
-      );
-    } catch (e: any) {
-      alert('Error registrando el pago: ' + (e?.message || e));
-    } finally {
-      setIsProcessingPayment(false);
+      alert(`Pago de ${formatCLP(amountToPay)} registrado exitosamente.\nNuevo saldo pendiente: ${formatCLP(remainingDebt)}.`);
+    } catch (err: any) {
+      alert('Error al registrar el pago: ' + err.message);
     }
   };
 
-  // Crear o autorizar nuevo cliente a crédito
+  // Crear y Autorizar Nuevo Crédito a Vecino / Persona Normal (Solo Dueño)
   const handleCreateNewCreditCustomer = async () => {
     if (!isOwner) {
       alert('Solo el dueño o administrador del local puede autorizar nuevos créditos a clientes.');
       return;
     }
 
-    const limitNum = Number(newCustLimit) || 50000;
-    const dueDayNum = Number(newCustDueDay) || 5;
-    const now = new Date();
-
-    if (newCustMode === 'EXISTING') {
-      if (!selectedExistingCustId) {
-        alert('Seleccione un cliente registrado.');
-        return;
-      }
-      const custId = Number(selectedExistingCustId);
-      await db.customers.update(custId, {
-        hasCredit: true,
-        creditLimit: limitNum,
-        paymentDueDay: dueDayNum,
-        creditStatus: 'AL_DIA',
-        creditNotes: newCustNotes.trim() || undefined,
-        authorizedBy: currentUser?.name || 'Dueño del Local',
-        authorizedAt: now.toISOString(),
-        updatedAt: now.toISOString()
-      });
-    } else {
-      if (!newCustName.trim()) {
-        alert('Ingrese el nombre completo del cliente.');
-        return;
-      }
-      await db.customers.add({
-        rut: newCustRut.trim() ? formatRut(newCustRut.trim()) : 'S/R',
-        businessName: newCustName.trim().toUpperCase(),
-        phone: newCustPhone.trim() || undefined,
-        address: newCustAddress.trim() || undefined,
-        hasCredit: true,
-        creditLimit: limitNum,
-        currentDebt: 0,
-        paymentDueDay: dueDayNum,
-        creditStatus: 'AL_DIA',
-        creditNotes: newCustNotes.trim() || undefined,
-        authorizedBy: currentUser?.name || 'Dueño del Local',
-        authorizedAt: now.toISOString(),
-        companyId: selectedCompanyId || 'market-almacen',
-        createdAt: now.toISOString(),
-        updatedAt: now.toISOString()
-      });
+    if (!newCustName.trim()) {
+      alert('Por favor ingrese el nombre del vecino o cliente.');
+      return;
     }
 
-    await loadData();
-    setIsNewCreditCustomerOpen(false);
-    alert('✅ Crédito / Fiado autorizado exitosamente por el dueño.');
+    const numLimit = Number(newCustLimit);
+    if (isNaN(numLimit) || numLimit <= 0) {
+      alert('Por favor ingrese un cupo máximo de crédito válido.');
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const newCreditCustomer: CreditCustomer = {
+        name: newCustName.trim(),
+        alias: newCustAlias.trim() || undefined,
+        rut: newCustRut.trim() ? formatRut(newCustRut.trim()) : undefined,
+        phone: newCustPhone.trim() || undefined,
+        address: newCustAddress.trim() || undefined,
+        companyId: selectedCompanyId || 'market-almacen',
+        creditLimit: numLimit,
+        currentDebt: 0,
+        creditStatus: 'AL_DIA',
+        paymentDueDay: Number(newCustDueDay) || 5,
+        creditNotes: newCustNotes.trim() || 'Vecino de confianza',
+        authorizedBy: currentUser?.name || 'Dueño del Local',
+        authorizedAt: now.toISOString(),
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+      };
+
+      await db.creditCustomers.add(newCreditCustomer);
+
+      setNewCustName('');
+      setNewCustAlias('');
+      setNewCustRut('');
+      setNewCustPhone('');
+      setNewCustAddress('');
+      setNewCustLimit('50000');
+      setNewCustDueDay('5');
+      setNewCustNotes('');
+      setIsNewCreditCustomerOpen(false);
+
+      await loadCreditData();
+      alert(`¡Crédito autorizado con éxito para ${newCreditCustomer.name}! Cupo: ${formatCLP(numLimit)}.`);
+    } catch (err: any) {
+      alert('Error al autorizar crédito: ' + err.message);
+    }
   };
 
-  // Clientes existentes que aún no tienen crédito habilitado
-  const existingCustomersWithoutCredit = useMemo(() => {
-    return customers.filter(c => !c.hasCredit);
-  }, [customers]);
-
-  // Historial detallado para el cliente seleccionado en Kardex
+  // Movimientos Consolidados de Historial (Kardex del Cliente)
   const customerHistoryMovements = useMemo(() => {
     if (!selectedCustomerForHistory || !selectedCustomerForHistory.id) return [];
 
     const custId = selectedCustomerForHistory.id;
-    const custRut = (selectedCustomerForHistory.rut || '').replace(/[^0-9kK]/g, '').toUpperCase();
-    const custName = selectedCustomerForHistory.businessName.toLowerCase();
+    const custName = (selectedCustomerForHistory.name || '').toLowerCase();
+    const custRut = (selectedCustomerForHistory.rut || '').replace(/[^0-9kK]/g, '').toLowerCase();
 
     // 1. Compras a fiado
-    const custSales = sales.filter(s =>
-      s.customerId === custId ||
-      (s.customerRut && s.customerRut.replace(/[^0-9kK]/g, '').toUpperCase() === custRut && custRut !== 'SR') ||
-      (s.customerName && s.customerName.toLowerCase() === custName)
+    const creditSales = sales.filter(s => {
+      if (s.status === 'ANULADA') return false;
+      const isFiado = s.paymentMethod === 'FIADO';
+      const matchId = (s as any).creditCustomerId === custId || (s as any).customerId === custId;
+      const matchName = (s.customerName || '').toLowerCase().includes(custName);
+      const matchRut = custRut && (s.customerRut || '').replace(/[^0-9kK]/g, '').toLowerCase() === custRut;
+      return isFiado && (matchId || matchName || matchRut);
+    }).map(s => ({
+      id: `sale-${s.id}`,
+      type: 'COMPRA' as const,
+      date: s.date + (s.time ? ` ${s.time}` : ''),
+      folio: s.folio,
+      docType: s.dteType || 'BOLETA',
+      amount: s.total,
+      description: `Compra con Boleta a Fiado (${s.items.length} productos)`,
+      registeredBy: s.sellerName || 'Cajero'
+    }));
+
+    // 2. Abonos y Pagos
+    const custPayments = payments.filter(p => p.customerId === custId).map(p => ({
+      id: `pay-${p.id}`,
+      type: 'ABONO' as const,
+      date: p.date,
+      folio: p.receiptFolio || `ABN-${p.id}`,
+      docType: 'COMPROBANTE_PAGO',
+      amount: p.amount,
+      description: `Abono de Deuda (${p.paymentType === 'TOTAL' ? 'Pago Total' : 'Abono Parcial'}) vía ${p.paymentMethod}`,
+      registeredBy: p.registeredBy || 'Cajero'
+    }));
+
+    return [...creditSales, ...custPayments].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-
-    // 2. Pagos / Abonos
-    const custPayments = payments.filter(p => p.customerId === custId);
-
-    // 3. Unificar movimientos
-    const movements: Array<{
-      id: string;
-      date: string;
-      type: 'COMPRA' | 'ABONO';
-      description: string;
-      amount: number;
-      method?: string;
-      reference?: string;
-      itemsCount?: number;
-    }> = [];
-
-    custSales.forEach(s => {
-      const itemsList = s.items.map(it => `${it.quantity}x ${it.productName}`).join(', ');
-      movements.push({
-        id: `sale-${s.id}`,
-        date: s.createdAt || s.date,
-        type: 'COMPRA',
-        description: itemsList || 'Compra de mercadería a fiado',
-        amount: s.total,
-        reference: `Boleta/Ticket #${s.folio || s.id}`,
-        itemsCount: s.items.length
-      });
-    });
-
-    custPayments.forEach(p => {
-      movements.push({
-        id: `pay-${p.id}`,
-        date: p.date,
-        type: 'ABONO',
-        description: p.notes || (p.paymentType === 'TOTAL' ? 'Pago Total de Cuenta' : 'Abono Parcial a Cuenta'),
-        amount: p.amount,
-        method: p.paymentMethod,
-        reference: p.receiptFolio || `Recibo #${p.id}`
-      });
-    });
-
-    // Ordenar cronológicamente ascendente para calcular saldos
-    movements.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    let runningBalance = 0;
-    return movements.map(m => {
-      if (m.type === 'COMPRA') {
-        runningBalance += m.amount;
-      } else {
-        runningBalance = Math.max(0, runningBalance - m.amount);
-      }
-      return {
-        ...m,
-        balance: runningBalance
-      };
-    }).reverse(); // Mostramos los más recientes primero
   }, [selectedCustomerForHistory, sales, payments]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className={`w-full max-w-5xl max-h-[94vh] rounded-3xl border-2 ${themeClasses.border} ${themeClasses.card} shadow-2xl flex flex-col overflow-hidden animate-scaleIn`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-xs animate-fadeIn select-none">
+      <div className="w-full max-w-5xl max-h-[95vh] flex flex-col rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shadow-2xl overflow-hidden animate-scaleIn">
         
-        {/* ========================================================================= */}
-        {/* HEADER                                                                    */}
-        {/* ========================================================================= */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shrink-0">
+        {/* HEADER: LIBRETA DE FIADOS & CUENTAS DE VECINOS */}
+        <div className="px-4 sm:px-6 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-              <BookOpen className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  Libreta de Fiados & Cuentas Corrientes
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  Libreta de Fiados & Cuentas de Vecinos
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                  {selectedCompany?.name || 'Mi Negocio'}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 font-bold uppercase border border-amber-300 dark:border-amber-800">
+                  Compras con Boleta
                 </span>
               </div>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                Control de clientes con crédito autorizado, fechas de pago y montos pendientes
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Control de vecinos y personas normales autorizadas por el dueño para llevar mercadería a crédito.
               </p>
             </div>
           </div>
@@ -462,20 +414,11 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             {isOwner && (
               <button
                 type="button"
-                onClick={() => {
-                  setNewCustMode('EXISTING');
-                  setSelectedExistingCustId('');
-                  setNewCustName('');
-                  setNewCustRut('');
-                  setNewCustPhone('');
-                  setNewCustLimit('50000');
-                  setNewCustDueDay('5');
-                  setIsNewCreditCustomerOpen(true);
-                }}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-                title="Autorizar crédito a un cliente (Exclusivo Dueño)"
+                onClick={() => setIsNewCreditCustomerOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                title="Solo el dueño puede autorizar crédito a un vecino"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
+                <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">+ Autorizar Crédito</span>
               </button>
             )}
@@ -483,36 +426,33 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* ========================================================================= */}
-        {/* TARJETAS DE MÉTRICAS KPI                                                  */}
-        {/* ========================================================================= */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-4 sm:px-6 bg-slate-100/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          {/* 1. Total por Cobrar */}
+        {/* TARJETAS KPI RESUMEN DE LA LIBRETA */}
+        <div className="p-3 sm:p-5 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 shrink-0 bg-slate-100/70 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800">
+          
           <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
             <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5" />
-              <span>Deuda Total por Cobrar</span>
+              Deuda Total por Cobrar
             </span>
-            <p className="text-lg sm:text-xl font-mono font-black text-slate-900 dark:text-white mt-1">
-              {formatCLP(metrics.totalPendingDebt)}
+            <p className="text-lg sm:text-xl font-mono font-black text-amber-700 dark:text-amber-300 mt-1">
+              {formatCLP(metrics.totalDebt)}
             </p>
             <span className="text-[10px] text-slate-500 font-bold">
-              En {metrics.withDebtCount} {metrics.withDebtCount === 1 ? 'cliente con deuda' : 'clientes con deuda'}
+              En {metrics.withDebtCount} vecinos con deuda
             </span>
           </div>
 
-          {/* 2. Total Clientes a Crédito */}
           <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
             <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Clientes Autorizados</span>
+              <UserCheck className="w-3.5 h-3.5" />
+              Vecinos Autorizados
             </span>
             <p className="text-lg sm:text-xl font-mono font-black text-slate-900 dark:text-white mt-1">
               {metrics.totalCustomers}
@@ -522,89 +462,112 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             </span>
           </div>
 
-          {/* 3. Clientes al Día */}
           <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
             <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Clientes al Día</span>
+              Clientes al Día
             </span>
             <p className="text-lg sm:text-xl font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
               {metrics.upToDateCount}
             </p>
-            <span className="text-[10px] text-emerald-700 dark:text-emerald-500 font-bold">
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
               Saldo $0 (Sin deuda)
             </span>
           </div>
 
-          {/* 4. Con Saldo Pendiente */}
           <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
             <span className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 flex items-center gap-1">
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Con Deuda Pendiente</span>
+              Con Deuda Pendiente
             </span>
             <p className="text-lg sm:text-xl font-mono font-black text-rose-600 dark:text-rose-400 mt-1">
               {metrics.withDebtCount}
             </p>
-            <span className="text-[10px] text-rose-700 dark:text-rose-500 font-bold">
+            <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold">
               Cobro pendiente de pago
             </span>
           </div>
+
         </div>
 
-        {/* ========================================================================= */}
-        {/* BARRA DE BÚSQUEDA Y FILTROS RÁPIDOS                                       */}
-        {/* ========================================================================= */}
-        <div className="p-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* BUSCADOR Y FILTROS RÁPIDOS */}
+        <div className="p-3 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+          
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nombre, RUT o teléfono..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar vecino por nombre, apodo, casa o teléfono..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-bold"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto custom-scrollbar pb-1 sm:pb-0">
-            {[
-              { id: 'ALL', label: 'Todos los Clientes' },
-              { id: 'CON_DEUDA', label: '🔴 Con Deuda' },
-              { id: 'AL_DIA', label: '🟢 Al Día ($0)' },
-              { id: 'BLOQUEADO', label: '⛔ Suspendidos' },
-            ].map(f => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setActiveFilter(f.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap shadow-2xs ${
-                  activeFilter === f.id
-                    ? 'bg-amber-500 text-white shadow-sm'
-                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setFilterStatus('ALL')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer whitespace-nowrap ${
+                filterStatus === 'ALL'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+              }`}
+            >
+              Todos los Vecinos
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus('WITH_DEBT')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                filterStatus === 'WITH_DEBT'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <span>Con Deuda</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus('UP_TO_DATE')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                filterStatus === 'UP_TO_DATE'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Al Día ($0)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus('BLOCKED')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                filterStatus === 'BLOCKED'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              <span>Suspendidos</span>
+            </button>
           </div>
+
         </div>
 
-        {/* ========================================================================= */}
-        {/* LISTADO DE CLIENTES CON CUENTA CORRIENTE                                   */}
-        {/* ========================================================================= */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 space-y-3">
+        {/* LISTADO DE CLIENTES DE LA LIBRETA */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 custom-scrollbar">
           {filteredCustomers.length === 0 ? (
-            <div className="py-16 text-center text-slate-500">
-              <BookOpen className="w-12 h-12 mx-auto text-slate-400 mb-2 opacity-40" />
-              <p className="font-black text-base text-slate-700 dark:text-slate-300">
-                No se encontraron cuentas de clientes
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                {searchTerm
+            <div className="py-16 text-center text-slate-400 dark:text-slate-500 space-y-2">
+              <BookOpen className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
+              <p className="font-bold text-sm">No se encontraron vecinos registrados con crédito.</p>
+              <p className="text-xs">
+                {searchQuery
                   ? 'Intente con otro criterio de búsqueda.'
                   : isOwner
-                  ? 'Presione "+ Autorizar Crédito" para habilitar la libreta de fiados a un vecino o cliente.'
-                  : 'Aún no hay clientes con crédito autorizado en esta empresa.'}
+                  ? 'Presione "+ Autorizar Crédito" para registrar a un vecino o persona de confianza en la libreta.'
+                  : 'Aún no hay vecinos autorizados a fiado por el dueño.'}
               </p>
             </div>
           ) : (
@@ -632,12 +595,18 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                     
-                    {/* Columna Izquierda: Datos del Cliente */}
+                    {/* Columna Izquierda: Datos del Vecino / Persona Normal */}
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-                          {customer.businessName || customer.name || customer.tradeName || "Cliente"}
+                          {customer.name}
                         </span>
+
+                        {customer.alias && (
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                            {customer.alias}
+                          </span>
+                        )}
 
                         {/* Badges de Estado */}
                         {isBlocked ? (
@@ -646,120 +615,120 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                             CRÉDITO SUSPENDIDO
                           </span>
                         ) : isUpToDate ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             CLIENTE AL DÍA
                           </span>
+                        ) : isOverLimit ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 flex items-center gap-1 border border-rose-300 dark:border-rose-800">
+                            <AlertTriangle className="w-3 h-3 text-rose-600" />
+                            CUPO EXCEDIDO
+                          </span>
                         ) : (
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${
-                            isOverLimit
-                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
-                          }`}>
-                            <AlertTriangle className="w-3 h-3" />
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 flex items-center gap-1 border border-amber-300 dark:border-amber-800">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" />
                             DEUDA PENDIENTE
                           </span>
                         )}
 
-                        {customer.rut && customer.rut !== 'S/R' && (
-                          <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded">
+                        {customer.rut && (
+                          <span className="text-[11px] text-slate-400 font-mono">
                             {formatRut(customer.rut)}
                           </span>
                         )}
                       </div>
 
-                      {/* Información de Contacto y Fechas de Pago */}
-                      <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
+                      {/* Contacto, Casa y Día de Pago */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-semibold">
                         {customer.phone && (
-                          <span className="flex items-center gap-1 font-bold">
-                            <Phone className="w-3.5 h-3.5 text-blue-500" />
+                          <a
+                            href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline"
+                            title="Contactar por WhatsApp"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
                             <span>{customer.phone}</span>
-                            <a
-                              href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${customer.businessName || customer.name || customer.tradeName || "Cliente"}, te saludamos de ${selectedCompany?.name || 'nuestro local'}. Te informamos que tu saldo actual de fiado es de ${formatCLP(currentDebt)}.`)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="ml-1 text-emerald-600 hover:text-emerald-700"
-                              title="Enviar recordatorio de pago por WhatsApp"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 inline" />
-                            </a>
+                            <MessageCircle className="w-3 h-3 text-emerald-500" />
+                          </a>
+                        )}
+
+                        {customer.address && (
+                          <span className="flex items-center gap-1 text-slate-500">
+                            <Home className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{customer.address}</span>
                           </span>
                         )}
 
-                        <span className="flex items-center gap-1 font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60">
-                          <Calendar className="w-3 h-3 text-amber-600" />
-                          <span>
-                            {customer.paymentDueDay
-                              ? `Paga los días ${customer.paymentDueDay} de cada mes`
-                              : customer.paymentDueDate
-                              ? `Vence: ${customer.paymentDueDate}`
-                              : 'Pago a convenir'}
-                          </span>
+                        <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60 font-bold">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Paga los días {customer.paymentDueDay || 5} de cada mes</span>
                         </span>
 
                         {customer.authorizedBy && (
                           <span className="text-[11px] text-slate-500">
-                            Autorizado por: <strong>{customer.authorizedBy}</strong>
+                            Autorizado por: <strong className="text-slate-700 dark:text-slate-300">{customer.authorizedBy}</strong>
                           </span>
                         )}
                       </div>
 
+                      {/* Nota del dueño */}
                       {customer.creditNotes && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-white/60 dark:bg-slate-800/60 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700/60 inline-block">
+                        <p className="text-[11px] text-slate-500 italic bg-white/60 dark:bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
                           "{customer.creditNotes}"
                         </p>
                       )}
                     </div>
 
-                    {/* Columna Central: Saldo, Barra de Cupo y Límites */}
-                    <div className="w-full md:w-64 space-y-1.5 shrink-0 bg-white dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
-                      <div className="flex justify-between items-baseline">
+                    {/* Columna Centro: Barra de Progreso y Deuda */}
+                    <div className="w-full md:w-64 space-y-1 bg-white/70 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0">
+                      <div className="flex items-center justify-between text-xs">
                         <span className="text-[10px] font-black uppercase text-slate-500">Saldo Pendiente</span>
-                        <span className={`text-base sm:text-lg font-mono font-black ${
-                          isUpToDate ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                        }`}>
+                        <span className={`text-base font-mono font-black ${isUpToDate ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {formatCLP(currentDebt)}
                         </span>
                       </div>
 
-                      {/* Barra de progreso de crédito */}
+                      {/* Barra de Progreso */}
                       <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-500 ${
-                            isOverLimit
-                              ? 'bg-rose-600'
-                              : percentUsed > 75
-                              ? 'bg-amber-500'
-                              : 'bg-blue-600'
+                          className={`h-full transition-all duration-300 ${
+                            isOverLimit ? 'bg-rose-500' : percentUsed > 75 ? 'bg-amber-500' : 'bg-blue-600'
                           }`}
                           style={{ width: `${percentUsed}%` }}
                         />
                       </div>
 
-                      <div className="flex justify-between text-[10px] text-slate-500 font-bold font-mono">
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono font-bold pt-0.5">
                         <span>Límite: {formatCLP(creditLimit)}</span>
                         <span>Disponible: {formatCLP(availableCredit)}</span>
                       </div>
                     </div>
 
                     {/* Columna Derecha: Botones de Acción */}
-                    <div className="flex items-center gap-2 flex-wrap md:flex-col justify-end shrink-0">
-                      {/* Botón Abonar / Pagar */}
+                    <div className="flex md:flex-col items-center justify-end gap-1.5 shrink-0">
+                      
+                      {/* Botón Abonar / Pagar Deuda */}
                       <button
                         type="button"
                         onClick={() => handleOpenPayment(customer)}
-                        disabled={currentDebt <= 0}
-                        className="flex-1 md:w-36 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                        disabled={isUpToDate}
+                        className={`w-full py-2 px-3.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer ${
+                          isUpToDate
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
+                        }`}
                       >
                         <DollarSign className="w-3.5 h-3.5" />
                         <span>Abonar / Pagar</span>
                       </button>
 
-                      {/* Botón Ver Kardex / Historial */}
+                      {/* Botón Historial de Cuenta (Kardex) */}
                       <button
                         type="button"
                         onClick={() => setSelectedCustomerForHistory(customer)}
-                        className="flex-1 md:w-36 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-black transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-600"
+                        className="w-full py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <History className="w-3.5 h-3.5 text-blue-500" />
                         <span>Ver Cuenta</span>
@@ -770,13 +739,13 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenConfig(customer)}
-                          className="py-1.5 px-3 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer flex items-center justify-center gap-1"
-                          title="Modificar límite de crédito y día de pago"
+                          className="w-full py-1 px-2.5 rounded-lg text-[11px] text-slate-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition flex items-center justify-center gap-1 cursor-pointer"
                         >
-                          <Settings className="w-3 h-3 text-slate-400" />
+                          <Settings className="w-3 h-3" />
                           <span>Ajustar Límite</span>
                         </button>
                       )}
+
                     </div>
 
                   </div>
@@ -786,83 +755,63 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* FOOTER                                                                    */}
-        {/* ========================================================================= */}
-        <div className="px-5 sm:px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
-          <span className="text-xs text-slate-500 font-bold">
-            💡 Consejo: Los tickets de fiado se imprimen con folio y fecha para respaldo mutuo con el cliente.
+        {/* FOOTER: NOTA Y BOTÓN DE CIERRE */}
+        <div className="px-4 sm:px-6 py-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
+          <span className="text-slate-500 flex items-center gap-1.5">
+            <span>💡</span>
+            <span>Las compras a fiado se emiten con boleta y los abonos se respaldan con ticket térmico de 80mm.</span>
           </span>
 
-          <div className="flex items-center gap-2">
-            {onOpenCustomerManager && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenCustomerManager();
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-black border border-slate-300 dark:border-slate-700 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                🏢 Clientes Factura
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 text-xs font-black rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition cursor-pointer shadow-sm"
-            >
-              Cerrar Libreta
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black transition cursor-pointer"
+          >
+            Cerrar Libreta
+          </button>
         </div>
 
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: REGISTRAR ABONO / PAGO DE CUENTA (PAGO TOTAL U OTRO MONTO)       */}
-      {/* ========================================================================= */}
+      {/* MODAL 1: REGISTRAR ABONO / PAGO DE CUENTA (PAGO TOTAL U OTRO MONTO) */}
       {selectedCustomerForPayment && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl border-2 border-emerald-500 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
+          <div className="w-full max-w-md rounded-3xl border-2 border-emerald-500 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
             
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-black shrink-0">
-                  <DollarSign className="w-5 h-5" />
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center font-black">
+                  $
                 </div>
                 <div>
                   <h3 className="font-black text-base text-slate-900 dark:text-white">
                     Registrar Pago / Abono de Fiado
                   </h3>
                   <p className="text-xs font-bold text-slate-500">
-                    Cliente: <strong>{selectedCustomerForPayment.businessName || selectedCustomerForPayment.name || selectedCustomerForPayment.tradeName || "Cliente"}</strong>
+                    Vecino: <strong>{selectedCustomerForPayment.name}</strong> {selectedCustomerForPayment.alias ? `(${selectedCustomerForPayment.alias})` : ''}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForPayment(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Cuadro de Deuda Actual */}
-            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-between">
+            {/* Resumen Deuda Actual */}
+            <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 block">Deuda Pendiente Actual</span>
-                <span className="text-xl font-mono font-black text-amber-950 dark:text-amber-100">
+                <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 block">Deuda Pendiente Actual</span>
+                <span className="text-xl font-mono font-black text-amber-800 dark:text-amber-200">
                   {formatCLP(selectedCustomerForPayment.currentDebt || 0)}
                 </span>
               </div>
-              {selectedCustomerForPayment.paymentDueDay && (
-                <div className="text-right text-[11px] font-bold text-amber-800 dark:text-amber-300">
-                  <span>Día de pago: Días {selectedCustomerForPayment.paymentDueDay}</span>
-                </div>
-              )}
+              <div className="text-right text-xs font-bold text-amber-700 dark:text-amber-400">
+                <span>Día de pago: Días {selectedCustomerForPayment.paymentDueDay || 5}</span>
+              </div>
             </div>
 
             {/* Selección de Tipo de Pago: Pago Total vs Otro Monto */}
@@ -920,23 +869,27 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                   min="1"
                   max={selectedCustomerForPayment.currentDebt || 0}
                   value={amountToPayInput}
-                  onChange={(e) => setAmountToPayInput(e.target.value)}
+                  onChange={e => setAmountToPayInput(e.target.value)}
                   placeholder="Ej: 10000"
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-blue-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-black text-lg focus:outline-none"
+                  className="w-full text-lg font-mono font-black p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
                   autoFocus
                 />
               </div>
             )}
 
-            {/* Previsualización del Saldo que quedará */}
-            {Boolean(amountToPayInput) && (
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-600 dark:text-slate-400">Saldo que quedará debiendo:</span>
-                <span className="font-mono font-black text-sm text-slate-900 dark:text-white">
-                  {formatCLP(Math.max(0, (selectedCustomerForPayment.currentDebt || 0) - Number(amountToPayInput)))}
-                </span>
-              </div>
-            )}
+            {/* Saldo Restante en tiempo real */}
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs flex items-center justify-between font-bold">
+              <span className="text-slate-500">Saldo que quedará debiendo:</span>
+              <span className="font-mono text-slate-900 dark:text-white font-black text-sm">
+                {formatCLP(
+                  Math.max(
+                    0,
+                    (selectedCustomerForPayment.currentDebt || 0) -
+                      (paymentType === 'TOTAL' ? (selectedCustomerForPayment.currentDebt || 0) : Number(amountToPayInput || 0))
+                  )
+                )}
+              </span>
+            </div>
 
             {/* Método de Pago del Abono */}
             <div className="space-y-1.5">
@@ -955,8 +908,8 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                     onClick={() => setPaymentMethod(m.id as any)}
                     className={`py-2 px-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 border ${
                       paymentMethod === m.id
-                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     <span>{m.icon}</span>
@@ -966,33 +919,33 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               </div>
             </div>
 
-            {/* Notas opcionales */}
-            <div>
-              <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
+            {/* Observación Opcional */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block">
                 Nota u Observación (Opcional):
               </label>
               <input
                 type="text"
                 value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
+                onChange={e => setPaymentNotes(e.target.value)}
                 placeholder="Ej: Dejó pagado en caja..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
               />
             </div>
 
-            {/* Checkbox Impresión Térmica */}
+            {/* Checkbox Impresión Térmica 80mm */}
             <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
               <input
                 type="checkbox"
-                checked={autoPrintTicket}
-                onChange={(e) => setAutoPrintTicket(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded"
+                checked={shouldPrintTicket}
+                onChange={e => setShouldPrintTicket(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
               />
-              <Printer className="w-4 h-4 text-slate-500" />
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
               <span>Imprimir comprobante en ticket térmico de 80mm para el cliente</span>
             </label>
 
-            {/* Botones de Acción */}
+            {/* Botones del Modal */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
@@ -1001,11 +954,11 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
-                disabled={isProcessingPayment}
                 onClick={handleConfirmPayment}
-                className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md transition cursor-pointer active:scale-95 flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Confirmar Pago de {formatCLP(paymentType === 'TOTAL' ? (selectedCustomerForPayment.currentDebt || 0) : Number(amountToPayInput))}</span>
@@ -1016,24 +969,22 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: HISTORIAL DETALLADO DE CUENTA (KARDEX DE FIADOS)                 */}
-      {/* ========================================================================= */}
+      {/* MODAL 2: HISTORIAL DE CUENTA CORRIENTE (KARDEX COMPRAS Y ABONOS) */}
       {selectedCustomerForHistory && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl border-2 border-blue-500 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden animate-scaleIn">
             
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-600 flex items-center justify-center shrink-0">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold">
                   <History className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-black text-base text-slate-900 dark:text-white">
-                    Historial de Cuenta & Movimientos de Fiado
+                    Historial de Cuenta Corriente (Kardex)
                   </h3>
                   <p className="text-xs font-bold text-slate-500">
-                    Cliente: <strong>{selectedCustomerForHistory.businessName || selectedCustomerForHistory.name || selectedCustomerForHistory.tradeName || "Cliente"}</strong> ({formatRut(selectedCustomerForHistory.rut)})
+                    Vecino: <strong>{selectedCustomerForHistory.name}</strong> {selectedCustomerForHistory.alias ? `(${selectedCustomerForHistory.alias})` : ''}
                   </p>
                 </div>
               </div>
@@ -1048,66 +999,67 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             </div>
 
             {/* Resumen Superior del Cliente */}
-            <div className="p-4 bg-slate-100/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+            <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/40 flex items-center justify-between text-xs font-bold px-5">
               <div>
-                <span className="text-[10px] font-black uppercase text-slate-500 block">Deuda Pendiente Actual</span>
-                <span className="text-xl font-mono font-black text-rose-600 dark:text-rose-400">
+                <span className="text-slate-500 block text-[10px]">DEUDA VIGENTE ACTUAL</span>
+                <span className="text-lg font-mono font-black text-rose-600">
                   {formatCLP(selectedCustomerForHistory.currentDebt || 0)}
                 </span>
               </div>
-              <div className="text-right text-xs font-bold text-slate-600 dark:text-slate-400">
-                <p>Límite Autorizado: {formatCLP(selectedCustomerForHistory.creditLimit || 50000)}</p>
+              <div className="text-right text-slate-600 dark:text-slate-400">
+                <p>Cupo Autorizado: {formatCLP(selectedCustomerForHistory.creditLimit || 50000)}</p>
                 <p className="text-[11px] text-amber-700 dark:text-amber-400">
                   {selectedCustomerForHistory.paymentDueDay ? `Fecha de pago: Días ${selectedCustomerForHistory.paymentDueDay}` : 'Pago a convenir'}
                 </p>
               </div>
             </div>
 
-            {/* Tabla de Movimientos */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 text-xs">
+            {/* Listado Cronológico de Movimientos */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
               {customerHistoryMovements.length === 0 ? (
                 <div className="py-12 text-center text-slate-500">
-                  <p className="font-bold">No hay compras ni abonos registrados para este cliente.</p>
+                  <p className="font-bold">No hay compras ni abonos registrados para este vecino.</p>
                 </div>
               ) : (
                 customerHistoryMovements.map(m => (
                   <div
                     key={m.id}
-                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                    className={`p-3 rounded-2xl border flex items-center justify-between text-xs transition ${
                       m.type === 'COMPRA'
-                        ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50'
-                        : 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50'
+                        ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40'
+                        : 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40'
                     }`}
                   >
-                    <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
                           m.type === 'COMPRA'
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            ? 'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-200'
+                            : 'bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200'
                         }`}>
                           {m.type === 'COMPRA' ? '🛒 COMPRA A FIADO' : '💵 ABONO / PAGO'}
                         </span>
                         <span className="text-[11px] text-slate-400 font-mono">
-                          {new Date(m.date).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {m.folio}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-500">
-                          {m.reference}
+                        <span className="text-slate-400">•</span>
+                        <span className="text-[11px] text-slate-500 font-semibold">
+                          {new Date(m.date).toLocaleString('es-CL')}
                         </span>
                       </div>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">
                         {m.description}
                       </p>
+                      <span className="text-[10px] text-slate-400">
+                        Registrado por: {m.registeredBy}
+                      </span>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <span className={`text-sm font-mono font-black ${
+                    <div className="text-right font-mono">
+                      <span className={`text-sm sm:text-base font-black ${
                         m.type === 'COMPRA' ? 'text-rose-600' : 'text-emerald-600'
                       }`}>
                         {m.type === 'COMPRA' ? `+${formatCLP(m.amount)}` : `-${formatCLP(m.amount)}`}
-                      </span>
-                      <span className="block text-[10px] text-slate-500 font-mono">
-                        Saldo: {formatCLP(m.balance)}
                       </span>
                     </div>
                   </div>
@@ -1115,13 +1067,13 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end shrink-0">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForHistory(null)}
                 className="px-5 py-2 rounded-xl text-xs font-black bg-slate-800 text-white hover:bg-slate-700 cursor-pointer"
               >
-                Cerrar
+                Cerrar Historial
               </button>
             </div>
 
@@ -1129,25 +1081,23 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: CONFIGURACIÓN DE CRÉDITO (EXCLUSIVO DEL DUEÑO DEL LOCAL)          */}
-      {/* ========================================================================= */}
+      {/* MODAL 3: CONFIGURACIÓN DE CRÉDITO / MODIFICAR LÍMITE (SOLO DUEÑO) */}
       {selectedCustomerForConfig && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md rounded-3xl border-2 border-amber-500 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
             
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-bold">
+                  <Settings className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
                     Condiciones de Crédito
                   </h3>
-                  <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                    Exclusivo Dueño / Administrador del Local
-                  </p>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">
+                    Exclusivo del Dueño del Local
+                  </span>
                 </div>
               </div>
               <button
@@ -1160,86 +1110,69 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
             </div>
 
             <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
-              Cliente: <strong>{selectedCustomerForConfig.businessName || selectedCustomerForConfig.name || selectedCustomerForConfig.tradeName || "Cliente"}</strong>
+              Vecino: <strong>{selectedCustomerForConfig.name}</strong> {selectedCustomerForConfig.alias ? `(${selectedCustomerForConfig.alias})` : ''}
             </div>
 
             <div className="space-y-3 text-xs">
               {/* Activar / Suspender Crédito */}
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div>
-                  <label className="font-black text-slate-800 dark:text-slate-200 block">
-                    Crédito / Fiado Habilitado
-                  </label>
-                  <span className="text-[10px] text-slate-500">
-                    Solo el dueño decide si este cliente puede fiar en caja
-                  </span>
+                  <span className="font-black block text-slate-900 dark:text-white">Estado del Crédito</span>
+                  <span className="text-slate-500 text-[11px]">Permitir o bloquear compras a fiado</span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={configHasCredit}
-                  onChange={(e) => setConfigHasCredit(e.target.checked)}
-                  className="w-5 h-5 text-amber-600 rounded cursor-pointer"
-                />
+                <select
+                  value={editStatus}
+                  onChange={e => setEditStatus(e.target.value as any)}
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-bold"
+                >
+                  <option value="AL_DIA">Habilitado (Activo)</option>
+                  <option value="CON_DEUDA">Con Deuda (Activo)</option>
+                  <option value="BLOQUEADO">Bloqueado / Suspendido</option>
+                </select>
               </div>
 
-              {/* Límite de Crédito */}
-              <div>
-                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                  Límite Máximo de Crédito ($ CLP):
+              {/* Límite de Crédito en Pesos */}
+              <div className="space-y-1">
+                <label className="font-black text-slate-800 dark:text-slate-200 block">
+                  Cupo Máximo Autorizado en Pesos ($):
                 </label>
                 <input
                   type="number"
-                  min="0"
                   step="5000"
-                  value={configLimit}
-                  onChange={(e) => setConfigLimit(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-mono font-bold"
+                  value={editLimit}
+                  onChange={e => setEditLimit(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono font-black text-base"
                 />
+                <span className="text-[10px] text-slate-500">Monto tope hasta el cual el vecino puede llevar productos a fiado.</span>
               </div>
 
-              {/* Día de Pago del Mes */}
-              <div>
-                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                  Día Pactado de Pago (Día del mes):
+              {/* Día Pactado de Pago */}
+              <div className="space-y-1">
+                <label className="font-black text-slate-800 dark:text-slate-200 block">
+                  Día del Mes Pactado para Pago:
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="31"
-                  value={configDueDay}
-                  onChange={(e) => setConfigDueDay(e.target.value)}
-                  placeholder="Ej: 5 (para pagar los días 5 de cada mes)"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold"
+                  value={editDueDay}
+                  onChange={e => setEditDueDay(e.target.value)}
+                  placeholder="Ej: 5 (Día 5 de cada mes)"
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold"
                 />
               </div>
 
-              {/* Estado del Crédito */}
-              <div>
-                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                  Estado del Crédito:
-                </label>
-                <select
-                  value={configStatus}
-                  onChange={(e) => setConfigStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold bg-white dark:bg-slate-800"
-                >
-                  <option value="AL_DIA">🟢 Al Día / Normal</option>
-                  <option value="CON_DEUDA">🔴 Con Deuda Pendiente</option>
-                  <option value="BLOQUEADO">⛔ Suspendido / Bloqueado por el Dueño</option>
-                </select>
-              </div>
-
-              {/* Notas del Dueño */}
-              <div>
-                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                  Observaciones y Acuerdos del Dueño:
+              {/* Notas y Acuerdos */}
+              <div className="space-y-1">
+                <label className="font-black text-slate-800 dark:text-slate-200 block">
+                  Condiciones / Acuerdos del Dueño:
                 </label>
                 <textarea
                   rows={2}
-                  value={configNotes}
-                  onChange={(e) => setConfigNotes(e.target.value)}
-                  placeholder="Ej: Vecino de confianza, cancelar sueldo de fin de mes..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs"
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Ej: Vecino de confianza, cancela quincena y fin de mes..."
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
                 />
               </div>
             </div>
@@ -1255,9 +1188,9 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               <button
                 type="button"
                 onClick={handleSaveConfig}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-white shadow-md cursor-pointer active:scale-95"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-amber-600 hover:bg-amber-700 text-white shadow-md cursor-pointer"
               >
-                Guardar Ajustes
+                Guardar Cambios
               </button>
             </div>
 
@@ -1265,25 +1198,23 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 4: AUTORIZAR NUEVO CLIENTE A CRÉDITO (EXCLUSIVO DEL DUEÑO)          */}
-      {/* ========================================================================= */}
+      {/* MODAL 4: + AUTORIZAR NUEVO CRÉDITO A VECINO / PERSONA NORMAL (SOLO DUEÑO) */}
       {isNewCreditCustomerOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md rounded-3xl border-2 border-amber-500 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
+          <div className="w-full max-w-lg rounded-3xl border-2 border-amber-500 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4 animate-scaleIn">
             
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-bold">
+                  <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-                    Autorizar Crédito / Fiado
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
+                    Autorizar Crédito a Vecino / Persona
                   </h3>
-                  <p className="text-[11px] font-bold text-amber-600">
-                    Solo el dueño decide a quién otorgar fiado
-                  </p>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">
+                    Libreta de Fiados (Compras con Boleta)
+                  </span>
                 </div>
               </div>
               <button
@@ -1295,144 +1226,127 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               </button>
             </div>
 
-            {/* Selector de Modo: Cliente Registrado vs Nuevo Cliente */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setNewCustMode('EXISTING')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition cursor-pointer border ${
-                  newCustMode === 'EXISTING'
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                Cliente Existente
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewCustMode('NEW')}
-                className={`py-2 px-2 rounded-xl text-xs font-black transition cursor-pointer border ${
-                  newCustMode === 'NEW'
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                + Crear Nuevo Cliente
-              </button>
-            </div>
+            <p className="text-xs text-slate-500">
+              Complete los datos del vecino o persona de confianza que llevará mercadería a fiado:
+            </p>
 
-            <div className="space-y-3 text-xs">
-              {newCustMode === 'EXISTING' ? (
+            <div className="space-y-2.5 text-xs max-h-[60vh] overflow-y-auto pr-1">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                    Seleccione Cliente:
+                    Nombre y Apellido *
                   </label>
-                  {existingCustomersWithoutCredit.length === 0 ? (
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-amber-800 dark:text-amber-200 text-xs">
-                      No hay clientes sin crédito disponibles. Elija "+ Crear Nuevo Cliente".
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedExistingCustId}
-                      onChange={(e) => setSelectedExistingCustId(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold bg-white dark:bg-slate-800"
-                    >
-                      <option value="">-- Seleccione un cliente --</option>
-                      {existingCustomersWithoutCredit.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.businessName} {c.phone ? `(${c.phone})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <input
+                    type="text"
+                    required
+                    value={newCustName}
+                    onChange={e => setNewCustName(e.target.value)}
+                    placeholder="Ej: Carlos Fuentes Morales"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold"
+                  />
                 </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                      Nombre Completo del Cliente *:
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newCustName}
-                      onChange={(e) => setNewCustName(e.target.value)}
-                      placeholder="Ej: Don Juan Pérez"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                        Teléfono / WhatsApp:
-                      </label>
-                      <input
-                        type="text"
-                        value={newCustPhone}
-                        onChange={(e) => setNewCustPhone(e.target.value)}
-                        placeholder="+56 9 1234 5678"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                        RUT (Opcional):
-                      </label>
-                      <input
-                        type="text"
-                        value={newCustRut}
-                        onChange={(e) => setNewCustRut(e.target.value)}
-                        placeholder="12.345.678-9"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
 
-              {/* Límite y Día de Pago */}
-              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                    Límite Inicial ($):
+                    Apodo / Referencia Vecinal
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustAlias}
+                    onChange={e => setNewCustAlias(e.target.value)}
+                    placeholder="Ej: Don Carlos, Pasaje Los Robles #142"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
+                    Teléfono Celular / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustPhone}
+                    onChange={e => setNewCustPhone(e.target.value)}
+                    placeholder="Ej: +569 8765 4321"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
+                    RUT Personal (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustRut}
+                    onChange={e => setNewCustRut(e.target.value)}
+                    placeholder="Ej: 12.345.678-9"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
+                  Dirección del Domicilio / Casa
+                </label>
+                <input
+                  type="text"
+                  value={newCustAddress}
+                  onChange={e => setNewCustAddress(e.target.value)}
+                  placeholder="Ej: Pasaje Los Robles #142, Barrio Sur"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
+                    Cupo Máximo Autorizado ($) *
                   </label>
                   <input
                     type="number"
-                    min="1000"
                     step="5000"
+                    required
                     value={newCustLimit}
-                    onChange={(e) => setNewCustLimit(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-mono font-bold"
+                    onChange={e => setNewCustLimit(e.target.value)}
+                    placeholder="Ej: 50000"
+                    className="w-full p-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/30 font-mono font-black text-sm text-amber-900 dark:text-amber-200"
                   />
                 </div>
+
                 <div>
                   <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
-                    Día de Pago (Mes):
+                    Día del Mes para Pagar
                   </label>
                   <input
                     type="number"
                     min="1"
                     max="31"
                     value={newCustDueDay}
-                    onChange={(e) => setNewCustDueDay(e.target.value)}
-                    placeholder="Ej: 5"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold"
+                    onChange={e => setNewCustDueDay(e.target.value)}
+                    placeholder="Ej: 5 (Día 5 de cada mes)"
+                    className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Notas / Observaciones del Dueño:
+                <label className="font-black text-slate-800 dark:text-slate-200 block mb-1">
+                  Notas / Acuerdos del Dueño:
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={2}
                   value={newCustNotes}
-                  onChange={(e) => setNewCustNotes(e.target.value)}
-                  placeholder="Ej: Vecino confiable, paga primera semana..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700"
+                  onChange={e => setNewCustNotes(e.target.value)}
+                  placeholder="Ej: Vecino de confianza, cancela los días 5 al cobrar jubilación..."
+                  className="w-full p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
                 />
               </div>
+
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -1443,12 +1357,13 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
                 onClick={handleCreateNewCreditCustomer}
                 className="px-5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md cursor-pointer active:scale-95"
               >
-                Autorizar Crédito
+                Autorizar y Guardar en Libreta
               </button>
             </div>
 

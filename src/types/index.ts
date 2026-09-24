@@ -679,6 +679,29 @@ export interface Customer {
   updatedAt?: string;
 }
 
+// CLIENTES DE LIBRETA DE FIADOS / CRÉDITO VECINO (Personas Normales que compran con Boleta)
+export interface CreditCustomer {
+  id?: number;
+  name: string; // Nombre y Apellido de la persona normal (ej: Carlos Fuentes)
+  alias?: string; // Apodo o referencia vecinal (ej: Don Carlos, Pasaje Los Robles #142)
+  rut?: string; // RUT personal (opcional para boleta de compra)
+  phone?: string; // Teléfono / WhatsApp para avisos de cobro
+  address?: string; // Dirección de casa o pasaje
+  creditLimit: number; // Cupo máximo de fiado autorizado por el dueño ($)
+  currentDebt: number; // Deuda pendiente actual ($)
+  creditStatus?: 'AL_DIA' | 'CON_DEUDA' | 'BLOQUEADO';
+  paymentDueDay?: number; // Día del mes pactado para pagar (ej: 5, 15, 30)
+  paymentDueDate?: string; // Fecha acordada de pago puntual (YYYY-MM-DD)
+  creditNotes?: string; // Notas o acuerdos especiales pactados por el dueño
+  authorizedBy?: string; // Dueño o administrador que autorizó el crédito
+  authorizedAt?: string; // Fecha en que se le otorgó el crédito
+  lastPurchaseDate?: string; // Fecha de la última compra con boleta a fiado
+  lastPaymentDate?: string; // Fecha del último pago o abono registrado
+  companyId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface CreditPayment {
   id?: number;
   customerId: number;

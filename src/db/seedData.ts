@@ -1,5 +1,5 @@
 import { db, cleanupOrphanedRecords, migrateFromLegacyDatabaseIfNeeded } from './database';
-import type { Company, Product, Sale, ReceptionGuide, DeliveryGuide, PurchaseRequest, Incident, ProductMovement } from '../types';
+import type { Company, Product, Sale, ReceptionGuide, DeliveryGuide, PurchaseRequest, Incident, ProductMovement, Customer, CreditCustomer } from '../types';
 
 export const INITIAL_COMPANIES: Company[] = [
   {
@@ -856,24 +856,56 @@ export async function initDatabaseIfEmpty() {
     await db.productMovements.bulkPut(demoMovements);
   }
 
-    // 6. Clientes con Crédito Autorizado / Libreta de Fiados (Inicialización / Demo)
-  const creditCustsCount = await db.customers.filter(c => Boolean(c.hasCredit)).count();
-  if (creditCustsCount === 0) {
-    const demoCreditCustomers = [
+    // 6. Clientes con Factura Electrónica SII (Empresas y Personas con Giro)
+  const countInvoiceCustomers = await db.customers.count();
+  if (countInvoiceCustomers === 0) {
+    const demoInvoiceCustomers: Customer[] = [
       {
         companyId: 'market-almacen',
-        businessName: 'Carlos Fuentes Morales (Don Carlos)',
-        name: 'Carlos Fuentes Morales (Don Carlos)',
+        rut: '76.123.456-7',
+        businessName: 'DISTRIBUIDORA LOS ANDES SPA',
+        tradeName: 'Los Andes SpA',
+        industry: 'Comercio Mayorista de Alimentos y Abarrotes',
+        address: 'Av. Industrial #850, Galpón 4',
+        city: 'Santiago',
+        email: 'dte@losandesspa.cl',
+        phone: '+56222334455',
+        contactName: 'Rodrigo Araya (Adquisiciones)',
+        createdAt: new Date().toISOString()
+      },
+      {
+        companyId: 'market-almacen',
+        rut: '77.890.123-4',
+        businessName: 'CONSTRUCTORA EL ROBLE LIMITADA',
+        tradeName: 'Constructora El Roble',
+        industry: 'Construcción y Obras Menores',
+        address: 'Calle Las Canteras #120',
+        city: 'Santiago',
+        email: 'facturas@constructoraelroble.cl',
+        phone: '+56977889900',
+        contactName: 'Marcelo Gómez (Jefe de Finanzas)',
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await db.customers.bulkAdd(demoInvoiceCustomers);
+  }
+
+  // 7. Clientes de Libreta de Fiados / Cuentas de Vecinos (Personas Normales que compran con Boleta)
+  const countCreditCustomers = await db.creditCustomers.count();
+  if (countCreditCustomers === 0) {
+    const demoCreditCustomers: CreditCustomer[] = [
+      {
+        companyId: 'market-almacen',
+        name: 'Carlos Fuentes Morales',
+        alias: 'Don Carlos (Pasaje Los Robles #142)',
         rut: '12.345.678-9',
         address: 'Pasaje Los Robles #142, Barrio Sur',
         phone: '+56987654321',
-        activity: 'Vecino del Barrio',
-        hasCredit: true,
         creditLimit: 80000,
         currentDebt: 24500,
-        creditStatus: 'ACTIVO',
+        creditStatus: 'CON_DEUDA',
         paymentDueDay: 5,
-        creditNotes: 'Vecino de confianza de años. Paga los días 5 de cada mes.',
+        creditNotes: 'Vecino de confianza de años. Paga los días 5 de cada mes al cobrar su jubilación.',
         authorizedBy: 'Dueño del Local',
         authorizedAt: new Date(Date.now() - 30 * 86400000).toISOString(),
         lastPurchaseDate: new Date(Date.now() - 2 * 86400000).toISOString(),
@@ -882,16 +914,14 @@ export async function initDatabaseIfEmpty() {
       },
       {
         companyId: 'market-almacen',
-        businessName: 'Gloria Valenzuela Silva (Sra. Gloria)',
-        name: 'Gloria Valenzuela Silva (Sra. Gloria)',
+        name: 'Gloria Valenzuela Silva',
+        alias: 'Sra. Gloria (Profesora Escuela Los Robles)',
         rut: '15.678.901-2',
         address: 'Calle Los Ciruelos #510',
         phone: '+56911223344',
-        activity: 'Profesora Colegio Vecinal',
-        hasCredit: true,
         creditLimit: 50000,
-        currentDebt: 0, // Cliente al día ($0 saldo)
-        creditStatus: 'ACTIVO',
+        currentDebt: 0, // ¡Cliente al día!
+        creditStatus: 'AL_DIA',
         paymentDueDay: 30,
         creditNotes: 'Cliente ejemplar, siempre al día. Paga a fin de mes.',
         authorizedBy: 'Dueño del Local',
@@ -902,18 +932,16 @@ export async function initDatabaseIfEmpty() {
       },
       {
         companyId: 'market-almacen',
-        businessName: 'Pedro Morales Rojas (Don Pedro)',
-        name: 'Pedro Morales Rojas (Don Pedro)',
+        name: 'Pedro Morales Rojas',
+        alias: 'Don Pedro (Taller Mecánico)',
         rut: '9.876.543-1',
         address: 'Av. Libertador #1040',
         phone: '+56999887766',
-        activity: 'Comerciante Local',
-        hasCredit: true,
         creditLimit: 60000,
         currentDebt: 18900,
-        creditStatus: 'ACTIVO',
+        creditStatus: 'CON_DEUDA',
         paymentDueDay: 15,
-        creditNotes: 'Paga quincenal los días 15.',
+        creditNotes: 'Paga quincenal los días 15 de cada mes sin falta.',
         authorizedBy: 'Dueño del Local',
         authorizedAt: new Date(Date.now() - 20 * 86400000).toISOString(),
         lastPurchaseDate: new Date(Date.now() - 3 * 86400000).toISOString(),
@@ -921,15 +949,40 @@ export async function initDatabaseIfEmpty() {
         createdAt: new Date(Date.now() - 40 * 86400000).toISOString()
       }
     ];
-    await db.customers.bulkAdd(demoCreditCustomers as any);
+    await db.creditCustomers.bulkAdd(demoCreditCustomers as any);
   }
 
-    // Asegurar que todo cliente tenga businessName
-  const allCusts = await db.customers.toArray();
-  for (const c of allCusts) {
-    if (!c.businessName && (c as any).name) {
-      await db.customers.update(c.id!, { businessName: (c as any).name });
+  // Si había clientes fiados guardados en la tabla antigua db.customers con hasCredit, migrarlos a db.creditCustomers
+  const legacyCreditCusts = await db.customers.filter(c => Boolean((c as any).hasCredit)).toArray();
+  for (const leg of legacyCreditCusts) {
+    const exists = await db.creditCustomers.where('phone').equals(leg.phone || '').first();
+    if (!exists) {
+      await db.creditCustomers.add({
+        companyId: leg.companyId || 'market-almacen',
+        name: (leg as any).name || leg.businessName,
+        alias: leg.tradeName || 'Vecino',
+        rut: leg.rut,
+        address: leg.address,
+        phone: leg.phone,
+        creditLimit: (leg as any).creditLimit || 50000,
+        currentDebt: (leg as any).currentDebt || 0,
+        creditStatus: (leg as any).creditStatus || ((leg as any).currentDebt > 0 ? 'CON_DEUDA' : 'AL_DIA'),
+        paymentDueDay: (leg as any).paymentDueDay || 5,
+        paymentDueDate: (leg as any).paymentDueDate,
+        creditNotes: (leg as any).creditNotes || 'Vecino autorizado',
+        authorizedBy: (leg as any).authorizedBy || 'Dueño del Local',
+        authorizedAt: (leg as any).authorizedAt || new Date().toISOString(),
+        lastPurchaseDate: (leg as any).lastPurchaseDate,
+        lastPaymentDate: (leg as any).lastPaymentDate,
+        createdAt: leg.createdAt || new Date().toISOString()
+      });
     }
+    // Quitar campos de fiado de la tabla de empresas con factura
+    await db.customers.update(leg.id!, {
+      hasCredit: false,
+      creditLimit: undefined,
+      currentDebt: 0
+    } as any);
   }
 
   await cleanupOrphanedRecords();

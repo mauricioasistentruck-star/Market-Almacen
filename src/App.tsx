@@ -344,7 +344,6 @@ export const App: React.FC = () => {
       <CreditAccountsModal
         isOpen={isCreditAccountsOpen}
         onClose={() => setIsCreditAccountsOpen(false)}
-        onOpenCustomerManager={() => setIsCustomerModalOpen(true)}
       />
 
       <InventoryTakingModal

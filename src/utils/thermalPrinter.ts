@@ -1,4 +1,4 @@
-import type { Sale, Company, SiiConfig, Customer, CreditPayment } from '../types';
+import type { Sale, Company, SiiConfig, Customer, CreditCustomer, CreditPayment } from '../types';
 import { formatCLP, formatRut, getDteLabel, getPaymentMethodLabel } from './salesPdfGenerator';
 
 export interface ThermalPrinterConfig {
@@ -359,7 +359,7 @@ export function printTestThermalTicket80mm(company?: Company, config?: SiiConfig
  */
 export function printCreditPaymentTicket80mm(
   payment: CreditPayment,
-  customer: Customer,
+  customer: CreditCustomer | Customer,
   company?: Company
 ): void {
   const config = getThermalPrinterConfig();

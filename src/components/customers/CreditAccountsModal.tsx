@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   History,
   Settings,
+  Sliders,
+  Wallet,
   Phone,
   MessageCircle,
   Printer,
@@ -59,6 +61,48 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
   // Modales secundarios
   const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<CreditCustomer | null>(null);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<CreditCustomer | null>(null);
+  const [historyCupoInput, setHistoryCupoInput] = useState('');
+  const [historyDueDayInput, setHistoryDueDayInput] = useState('5');
+  const [cupoSaveSuccess, setCupoSaveSuccess] = useState(false);
+
+  const handleOpenHistory = (customer: CreditCustomer) => {
+    setSelectedCustomerForHistory(customer);
+    setHistoryCupoInput(String(customer.creditLimit || 50000));
+    setHistoryDueDayInput(String(customer.paymentDueDay || 5));
+    setCupoSaveSuccess(false);
+  };
+
+  const handleQuickCupoAdjust = (delta: number) => {
+    const curr = parseInt(historyCupoInput) || 0;
+    const next = Math.max(0, curr + delta);
+    setHistoryCupoInput(String(next));
+  };
+
+  const handleSaveHistoryCupo = async () => {
+    if (!selectedCustomerForHistory?.id) return;
+    const newLimit = Math.max(0, parseInt(historyCupoInput) || 0);
+    const newDueDay = Math.min(31, Math.max(1, parseInt(historyDueDayInput) || 5));
+
+    try {
+      await db.creditCustomers.update(selectedCustomerForHistory.id, {
+        creditLimit: newLimit,
+        paymentDueDay: newDueDay,
+        updatedAt: new Date().toISOString()
+      });
+
+      const updated = {
+        ...selectedCustomerForHistory,
+        creditLimit: newLimit,
+        paymentDueDay: newDueDay
+      };
+      setSelectedCustomerForHistory(updated);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+      setCupoSaveSuccess(true);
+      setTimeout(() => setCupoSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error al guardar nuevo cupo:', err);
+    }
+  };
   const [selectedCustomerForConfig, setSelectedCustomerForConfig] = useState<CreditCustomer | null>(null);
   const [isNewCreditCustomerOpen, setIsNewCreditCustomerOpen] = useState(false);
 
@@ -727,7 +771,7 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
                       {/* Botón Historial de Cuenta (Kardex) */}
                       <button
                         type="button"
-                        onClick={() => setSelectedCustomerForHistory(customer)}
+                        onClick={() => handleOpenHistory(customer)}
                         className="w-full py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <History className="w-3.5 h-3.5 text-blue-500" />
@@ -998,27 +1042,183 @@ export const CreditAccountsModal: React.FC<CreditAccountsModalProps> = ({
               </button>
             </div>
 
-            {/* Resumen Superior del Cliente */}
-            <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/40 flex items-center justify-between text-xs font-bold px-5">
-              <div>
-                <span className="text-slate-500 block text-[10px]">DEUDA VIGENTE ACTUAL</span>
-                <span className="text-lg font-mono font-black text-rose-600">
-                  {formatCLP(selectedCustomerForHistory.currentDebt || 0)}
-                </span>
+            {/* Resumen Superior y Gestión de Cupo (Aumentar / Disminuir Cupo Personalizado) */}
+            <div className="p-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-slate-50 dark:from-slate-800 dark:via-slate-850 dark:to-slate-800 border-b border-blue-100 dark:border-slate-800 space-y-3">
+              {/* Tarjetas de Métricas de la Cuenta */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 shadow-2xs">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-black uppercase tracking-wider">
+                    DEUDA VIGENTE ACTUAL
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-black text-rose-600 block">
+                    {formatCLP(selectedCustomerForHistory.currentDebt || 0)}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/50 shadow-2xs">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-black uppercase tracking-wider">
+                    CUPO DISPONIBLE
+                  </span>
+                  <span className={`text-base sm:text-lg font-mono font-black block ${
+                    ((selectedCustomerForHistory.creditLimit || 50000) - (selectedCustomerForHistory.currentDebt || 0)) < 0
+                      ? 'text-rose-600'
+                      : 'text-emerald-600'
+                  }`}>
+                    {formatCLP(Math.max(0, (selectedCustomerForHistory.creditLimit || 50000) - (selectedCustomerForHistory.currentDebt || 0)))}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/50 shadow-2xs">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-black uppercase tracking-wider">
+                    CUPO AUTORIZADO
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white block">
+                    {formatCLP(selectedCustomerForHistory.creditLimit || 50000)}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 shadow-2xs">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-black uppercase tracking-wider">
+                    DÍA DE PAGO PACTADO
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-amber-800 dark:text-amber-300 block">
+                    {selectedCustomerForHistory.paymentDueDay ? `Días ${selectedCustomerForHistory.paymentDueDay} del mes` : 'A convenir'}
+                  </span>
+                </div>
               </div>
-              <div className="text-right text-slate-600 dark:text-slate-400">
-                <p>Cupo Autorizado: {formatCLP(selectedCustomerForHistory.creditLimit || 50000)}</p>
-                <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                  {selectedCustomerForHistory.paymentDueDay ? `Fecha de pago: Días ${selectedCustomerForHistory.paymentDueDay}` : 'Pago a convenir'}
-                </p>
+
+              {/* Panel de Ajuste Rápido de Cupo (Aumentar / Disminuir) */}
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white">
+                    <Sliders className="w-4 h-4 text-blue-600" />
+                    <span>Ajustar Cupo Autorizado de este Vecino:</span>
+                  </div>
+                  {cupoSaveSuccess && (
+                    <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-fadeIn">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>¡Cupo y condiciones actualizados!</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700 min-w-[150px]">
+                    <span className="text-xs font-mono font-bold text-slate-400">$</span>
+                    <input
+                      type="number"
+                      value={historyCupoInput}
+                      onChange={(e) => setHistoryCupoInput(e.target.value)}
+                      className="w-full bg-transparent text-xs sm:text-sm font-mono font-black text-slate-900 dark:text-white focus:outline-none"
+                      placeholder="Monto de cupo"
+                    />
+                  </div>
+
+                  {/* Botones de disminución y aumento rápido de cupo */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <button
+                      type="button"
+                      title="Disminuir cupo en $20.000"
+                      onClick={() => handleQuickCupoAdjust(-20000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 cursor-pointer transition active:scale-95"
+                    >
+                      -$20.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Disminuir cupo en $10.000"
+                      onClick={() => handleQuickCupoAdjust(-10000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 cursor-pointer transition active:scale-95"
+                    >
+                      -$10.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Disminuir cupo en $5.000"
+                      onClick={() => handleQuickCupoAdjust(-5000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 cursor-pointer transition active:scale-95"
+                    >
+                      -$5.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Aumentar cupo en $5.000"
+                      onClick={() => handleQuickCupoAdjust(5000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition active:scale-95"
+                    >
+                      +$5.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Aumentar cupo en $10.000"
+                      onClick={() => handleQuickCupoAdjust(10000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition active:scale-95"
+                    >
+                      +$10.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Aumentar cupo en $20.000"
+                      onClick={() => handleQuickCupoAdjust(20000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition active:scale-95"
+                    >
+                      +$20.000
+                    </button>
+                    <button
+                      type="button"
+                      title="Aumentar cupo en $50.000"
+                      onClick={() => handleQuickCupoAdjust(50000)}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-black bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition active:scale-95"
+                    >
+                      +$50.000
+                    </button>
+                  </div>
+
+                  {/* Día de pago */}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <span className="text-[11px] font-bold text-slate-500">Día de pago:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={historyDueDayInput}
+                      onChange={(e) => setHistoryDueDayInput(e.target.value)}
+                      className="w-12 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-black text-center"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveHistoryCupo}
+                      className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95 transition"
+                    >
+                      Guardar Cupo
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Listado Cronológico de Movimientos */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
               {customerHistoryMovements.length === 0 ? (
-                <div className="py-12 text-center text-slate-500">
-                  <p className="font-bold">No hay compras ni abonos registrados para este vecino.</p>
+                <div className="py-8 px-4 text-center space-y-3">
+                  {(selectedCustomerForHistory.currentDebt || 0) > 0 ? (
+                    <div className="max-w-md mx-auto p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-center space-y-1.5">
+                      <span className="text-[11px] font-black uppercase text-amber-900 dark:text-amber-200 block">
+                        Saldo Inicial Registrado en Libreta de Fiado
+                      </span>
+                      <span className="text-xl font-mono font-black text-rose-600 block">
+                        {formatCLP(selectedCustomerForHistory.currentDebt || 0)}
+                      </span>
+                      <p className="text-xs text-amber-800 dark:text-amber-300">
+                        El vecino cuenta con este saldo deudor registrado en su cuenta. Las compras con boleta y abonos futuros que registre se detallarán automáticamente en este kardex.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-slate-500 dark:text-slate-400">
+                      <p className="font-bold text-sm">Este vecino no tiene movimientos registrados aún.</p>
+                      <p className="text-xs">Al realizar compras a fiado con boleta o abonos, aparecerán detallados cronológicamente aquí.</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 customerHistoryMovements.map(m => (

@@ -82,6 +82,29 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
   const [creditSearchQuery, setCreditSearchQuery] = useState('');
   const [allowOwnerOverride, setAllowOwnerOverride] = useState(false);
 
+  // Decisión de Sobrecupo: 'BLOCK' (No vender pasando cupo), 'ALLOW_CONTINUOUS' (Seguir dando fiado), 'ALLOW_LAST_SALE' (Última venta permitida y bloquear)
+  const [overdraftDecision, setOverdraftDecision] = useState<'BLOCK' | 'ALLOW_CONTINUOUS' | 'ALLOW_LAST_SALE'>('BLOCK');
+  const [isIncreasingCupoInCheckout, setIsIncreasingCupoInCheckout] = useState(false);
+  const [newCupoCheckoutInput, setNewCupoCheckoutInput] = useState('');
+
+  const handleApplyNewCupoInCheckout = async () => {
+    if (!selectedCreditCustomer || !selectedCreditCustomer.id) return;
+    const newLimit = Math.max(0, parseInt(newCupoCheckoutInput) || 0);
+    try {
+      await db.creditCustomers.update(selectedCreditCustomer.id, {
+        creditLimit: newLimit,
+        updatedAt: new Date().toISOString()
+      });
+      const updated = { ...selectedCreditCustomer, creditLimit: newLimit };
+      setSelectedCreditCustomer(updated);
+      setCreditCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+      setIsIncreasingCupoInCheckout(false);
+      setOverdraftDecision('BLOCK');
+    } catch (err) {
+      console.error('Error al actualizar cupo en checkout:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       db.creditCustomers.toArray().then(all => {
@@ -96,6 +119,8 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
       setSelectedCreditCustomer(null);
       setCreditSearchQuery('');
       setAllowOwnerOverride(false);
+      setOverdraftDecision('BLOCK');
+      setIsIncreasingCupoInCheckout(false);
     }
   }, [isOpen, selectedCompanyId]);
 
@@ -357,13 +382,15 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
         return;
       }
       if (selectedCreditCustomer.creditStatus === 'BLOQUEADO') {
-        setErrorMessage('El crédito de este cliente se encuentra bloqueado o suspendido. Solo el dueño del local puede autorizarlo.');
+        setErrorMessage('El crédito de este cliente se encuentra BLOQUEADO. No se le puede fiar hasta que el dueño lo reactive o abone a su cuenta.');
         return;
       }
       const availableCredit = Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0));
-      if (finalTotal > availableCredit && !isOwner && !allowOwnerOverride) {
-        setErrorMessage(`Esta compra excede el cupo disponible del cliente (${formatCLP(availableCredit)}). Requiere autorización directa del dueño del local.`);
-        return;
+      if (finalTotal > availableCredit) {
+        if (overdraftDecision === 'BLOCK') {
+          setErrorMessage(`Esta compra excede el cupo disponible del cliente por ${formatCLP(finalTotal - availableCredit)}. Seleccione si autoriza el sobrecupo continuo o como última venta permitida.`);
+          return;
+        }
       }
     }
 
@@ -457,9 +484,24 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
       if (activeTab === 'FIADO' && selectedCreditCustomer && selectedCreditCustomer.id) {
         try {
           const newDebt = (selectedCreditCustomer.currentDebt || 0) + finalTotal;
+          const availableCredit = Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0));
+          const isOverdraft = finalTotal > availableCredit;
+
+          let newStatus = selectedCreditCustomer.creditStatus || 'CON_DEUDA';
+          let updatedNotes = selectedCreditCustomer.creditNotes || '';
+
+          if (isOverdraft && overdraftDecision === 'ALLOW_LAST_SALE') {
+            newStatus = 'BLOQUEADO';
+            const blockNote = `[ÚLTIMA VENTA AUTORIZADA ${dateStr}] Sobrecupo de ${formatCLP(finalTotal - availableCredit)} (Total debido: ${formatCLP(newDebt)}). Cuenta BLOQUEADA para nuevos fiados hasta abonar o pagar.`;
+            updatedNotes = updatedNotes ? `${updatedNotes} | ${blockNote}` : blockNote;
+          } else {
+            newStatus = 'CON_DEUDA';
+          }
+
           await db.creditCustomers.update(selectedCreditCustomer.id, {
             currentDebt: newDebt,
-            creditStatus: 'CON_DEUDA',
+            creditStatus: newStatus,
+            creditNotes: updatedNotes,
             lastPurchaseDate: now.toISOString(),
             updatedAt: now.toISOString()
           });
@@ -1069,26 +1111,129 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
                         <span>⛔ El crédito de este cliente ha sido suspendido por el dueño del local. No es posible fiar.</span>
                       </div>
                     ) : isExceeded ? (
-                      <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-xs font-bold space-y-1.5 border border-amber-300">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                          <span>Esta compra ({formatCLP(finalTotal)}) excede el cupo disponible ({formatCLP(availableCredit)}).</span>
+                      <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 text-xs font-bold space-y-3 border-2 border-amber-400 dark:border-amber-700 shadow-sm animate-fadeIn">
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 bg-amber-500 text-white rounded-lg shrink-0 mt-0.5">
+                            <AlertTriangle className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-black text-xs sm:text-sm text-amber-900 dark:text-amber-100 block">
+                              ⚠️ Esta compra supera el cupo disponible del cliente
+                            </span>
+                            <p className="text-[11.5px] text-amber-800 dark:text-amber-300 font-medium">
+                              Total compra: <strong className="font-mono">{formatCLP(finalTotal)}</strong> · Cupo disponible: <strong className="font-mono">{formatCLP(availableCredit)}</strong> · Sobrecupo: <strong className="font-mono text-rose-600 font-black">{formatCLP(finalTotal - availableCredit)}</strong>
+                            </p>
+                          </div>
                         </div>
-                        {isOwner ? (
-                          <label className="flex items-center gap-2 pt-1 cursor-pointer text-[11px] font-black text-blue-900 dark:text-blue-200">
-                            <input
-                              type="checkbox"
-                              checked={allowOwnerOverride}
-                              onChange={(e) => setAllowOwnerOverride(e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded"
-                            />
-                            <span>Autorizar sobregiro extraordinario como Dueño del local</span>
-                          </label>
-                        ) : (
-                          <p className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
-                            🔒 Solo el dueño del local puede autorizar compras por encima del límite de fiado.
-                          </p>
-                        )}
+
+                        {/* SELECTOR DE DECISIÓN DEL USUARIO */}
+                        <div className="space-y-2 pt-1">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                            Decisión del Usuario / Dueño para esta Venta:
+                          </span>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {/* OPCIÓN 1: NO VENDER PASANDO EL CUPO */}
+                            <button
+                              type="button"
+                              onClick={() => setOverdraftDecision('BLOCK')}
+                              className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                overdraftDecision === 'BLOCK'
+                                  ? 'bg-rose-100 dark:bg-rose-950/70 border-rose-500 text-rose-950 dark:text-rose-100 shadow-xs ring-2 ring-rose-400'
+                                  : 'bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 hover:border-rose-300 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 text-xs font-black text-rose-600">
+                                <Ban className="w-3.5 h-3.5" />
+                                <span>No Vender Pasando Cupo</span>
+                              </div>
+                              <p className="text-[10px] font-normal leading-tight opacity-90">
+                                Bloquear venta a fiado. El vecino debe abonar o retirar productos.
+                              </p>
+                            </button>
+
+                            {/* OPCIÓN 2: SEGUIR DANDO FIADO CON SOBRECUPO */}
+                            <button
+                              type="button"
+                              onClick={() => setOverdraftDecision('ALLOW_CONTINUOUS')}
+                              className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                overdraftDecision === 'ALLOW_CONTINUOUS'
+                                  ? 'bg-amber-100 dark:bg-amber-950/70 border-amber-500 text-amber-950 dark:text-amber-100 shadow-xs ring-2 ring-amber-400'
+                                  : 'bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 hover:border-amber-300 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-300">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>Seguir Dando Fiado</span>
+                              </div>
+                              <p className="text-[10px] font-normal leading-tight opacity-90">
+                                Autorizar sobrecupo continuo. La cuenta sigue abierta para más fiados.
+                              </p>
+                            </button>
+
+                            {/* OPCIÓN 3: GENERAR COMO ÚLTIMA VENTA Y BLOQUEAR */}
+                            <button
+                              type="button"
+                              onClick={() => setOverdraftDecision('ALLOW_LAST_SALE')}
+                              className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                overdraftDecision === 'ALLOW_LAST_SALE'
+                                  ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-500 text-purple-950 dark:text-purple-100 shadow-xs ring-2 ring-purple-400'
+                                  : 'bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 hover:border-purple-300 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 text-xs font-black text-purple-700 dark:text-purple-300">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>Última Venta Permitida</span>
+                              </div>
+                              <p className="text-[10px] font-normal leading-tight opacity-90">
+                                Permitir esta compra con sobrecupo y BLOQUEAR cuenta para futuros fiados.
+                              </p>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* ACCESO RÁPIDO: AUMENTAR CUPO DEL CLIENTE EN CAJA */}
+                        <div className="pt-2 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                            ¿Prefiere aumentar el cupo de este vecino permanentemente?
+                          </span>
+                          {!isIncreasingCupoInCheckout ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsIncreasingCupoInCheckout(true);
+                                setNewCupoCheckoutInput(String(Math.ceil((currentDebt + finalTotal) / 10000) * 10000));
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition shadow-2xs"
+                            >
+                              + Aumentar Cupo a {formatCLP(Math.ceil((currentDebt + finalTotal) / 10000) * 10000)}
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1.5 animate-fadeIn">
+                              <span className="text-xs font-mono font-bold">$</span>
+                              <input
+                                type="number"
+                                value={newCupoCheckoutInput}
+                                onChange={(e) => setNewCupoCheckoutInput(e.target.value)}
+                                className="w-24 px-2 py-1 rounded-lg border border-blue-400 text-xs font-mono font-black bg-white dark:bg-slate-900"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleApplyNewCupoInCheckout}
+                                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black cursor-pointer"
+                              >
+                                Aplicar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsIncreasingCupoInCheckout(false)}
+                                className="px-1.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between">
@@ -1298,14 +1443,40 @@ export const SaleCheckoutModal: React.FC<SaleCheckoutModalProps> = ({
               disabled={
                 isProcessing ||
                 cartItems.length === 0 ||
-                (activeTab === 'EFECTIVO' && numAmountPaid < cashRoundedTotal)
+                (activeTab === 'EFECTIVO' && numAmountPaid < cashRoundedTotal) ||
+                (activeTab === 'FIADO' && (
+                  !selectedCreditCustomer ||
+                  selectedCreditCustomer.creditStatus === 'BLOQUEADO' ||
+                  (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0)) && overdraftDecision === 'BLOCK')
+                ))
               }
-              className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm sm:text-base transition shadow-lg shadow-emerald-500/20 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+              className={`flex-1 py-3 px-6 rounded-2xl text-white font-black text-sm sm:text-base transition shadow-lg active:scale-98 flex items-center justify-center gap-2 cursor-pointer ${
+                activeTab === 'FIADO' && selectedCreditCustomer && (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0))) && overdraftDecision === 'ALLOW_LAST_SALE'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 shadow-purple-500/20'
+                  : activeTab === 'FIADO' && selectedCreditCustomer && (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0))) && overdraftDecision === 'ALLOW_CONTINUOUS'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/20'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/20'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               {isProcessing ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
                   <span>Procesando Cobro...</span>
+                </>
+              ) : activeTab === 'FIADO' && selectedCreditCustomer && (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0))) && overdraftDecision === 'ALLOW_LAST_SALE' ? (
+                <>
+                  <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+                  <span>Confirmar (ÚLTIMA VENTA Y BLOQUEAR FIADO)</span>
+                </>
+              ) : activeTab === 'FIADO' && selectedCreditCustomer && (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0))) && overdraftDecision === 'ALLOW_CONTINUOUS' ? (
+                <>
+                  <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
+                  <span>Confirmar (SOBRECUPO AUTORIZADO)</span>
+                </>
+              ) : activeTab === 'FIADO' && selectedCreditCustomer && (finalTotal > Math.max(0, (selectedCreditCustomer.creditLimit || 50000) - (selectedCreditCustomer.currentDebt || 0))) && overdraftDecision === 'BLOCK' ? (
+                <>
+                  <Ban className="w-5 h-5 stroke-[2.5]" />
+                  <span>Venta Bloqueada (Excede Cupo)</span>
                 </>
               ) : (
                 <>

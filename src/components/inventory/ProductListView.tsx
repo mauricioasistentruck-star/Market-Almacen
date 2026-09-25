@@ -16,6 +16,7 @@ import {
   Boxes,
   Plus,
   Package,
+  ArrowRightLeft,
   ArrowDownLeft,
   ArrowUpRight,
   Sliders,
@@ -36,6 +37,7 @@ interface ProductListViewProps {
   onOpenMovement: (product?: Product, defaultType?: 'ENTRADA' | 'SALIDA' | 'AJUSTE') => void;
   onPrintBarcode?: (product: Product) => void;
   onOpenScanner?: () => void;
+  onOpenTransfers?: (product?: Product) => void;
   refreshTrigger?: number;
 }
 
@@ -45,6 +47,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   onOpenMovement,
   onPrintBarcode,
   onOpenScanner,
+  onOpenTransfers,
   refreshTrigger
 }) => {
   const { themeClasses } = useTheme();
@@ -248,6 +251,19 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         <div className="w-full lg:w-auto flex flex-col gap-2">
           {/* Fila 1: Acciones Principales */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+
+            {!isReadOnly && onOpenTransfers && (
+              <button
+                type="button"
+                onClick={() => onOpenTransfers()}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/25 transition active:scale-95 cursor-pointer"
+                title="Consultar stock en otras sucursales y solicitar traspaso de mercadería"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span>Stock en Otras Sucursales</span>
+              </button>
+            )}
+
             {!isReadOnly && (
               <button
                 type="button"

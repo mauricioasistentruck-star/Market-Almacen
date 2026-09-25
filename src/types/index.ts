@@ -786,3 +786,49 @@ export interface Expense {
   registeredBy?: string;
   createdAt: string;
 }
+
+
+export interface Branch {
+  id: string;
+  companyId: string;
+  code: string;
+  name: string;
+  address: string;
+  commune?: string;
+  phone?: string;
+  managerName?: string;
+  isMain?: boolean;
+  active?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BranchTransferItem {
+  productId?: number;
+  productCode: string;
+  productName: string;
+  category?: string;
+  quantity: number;
+  unit?: string;
+}
+
+export interface BranchTransfer {
+  id?: number;
+  transferFolio: string;
+  sourceBranchId: string;
+  sourceBranchName: string;
+  destinationBranchId: string;
+  destinationBranchName: string;
+  companyId: string;
+  status: 'SOLICITADO' | 'DESPACHADO' | 'RECEPCIONADO' | 'CANCELADO';
+  requestedBy?: string;
+  dispatchedBy?: string;
+  receivedBy?: string;
+  deliveryGuideFolio?: string;
+  receptionGuideFolio?: string;
+  notes?: string;
+  items: BranchTransferItem[];
+  createdAt: string;
+  dispatchedAt?: string;
+  receivedAt?: string;
+}

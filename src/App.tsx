@@ -29,6 +29,9 @@ import { StockMovementModal } from './components/inventory/StockMovementModal';
 import { DeliveryGuideModal } from './components/guides/DeliveryGuideModal';
 import { ReceptionGuideModal } from './components/guides/ReceptionGuideModal';
 import { CompanyManagerModal } from './components/companies/CompanyManagerModal';
+import { BranchesErpModal } from './components/companies/BranchesErpModal';
+import { BranchStockTransferModal } from './components/inventory/BranchStockTransferModal';
+
 import { UserManagerModal } from './components/auth/UserManagerModal';
 import { ImportModal } from './components/import/ImportModal';
 import { MasterBackupModal } from './components/MasterBackupModal';
@@ -111,6 +114,10 @@ export const App: React.FC = () => {
   const [isReceptionGuideOpen, setIsReceptionGuideOpen] = useState(false);
 
   const [isCompanyManagerOpen, setIsCompanyManagerOpen] = useState(false);
+  const [isBranchesErpOpen, setIsBranchesErpOpen] = useState(false);
+  const [isStockTransferOpen, setIsStockTransferOpen] = useState(false);
+  const [transferInitialProductId, setTransferInitialProductId] = useState<number | undefined>(undefined);
+
   const [isUserManagerOpen, setIsUserManagerOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
@@ -170,6 +177,8 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         onOpenConsultant={() => setIsConsultantOpen(true)}
         onOpenCompanies={() => setIsCompanyManagerOpen(true)}
+        onOpenBranchesErp={() => setIsBranchesErpOpen(true)}
+        onOpenTransfers={() => setIsStockTransferOpen(true)}
         onOpenImport={() => setIsImportOpen(true)}
         onOpenUserManager={() => setIsUserManagerOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
@@ -310,6 +319,23 @@ export const App: React.FC = () => {
         isOpen={isCompanyManagerOpen}
         onClose={() => setIsCompanyManagerOpen(false)}
       />
+      {/* Modal ERP Multi-Sucursal para el Dueño */}
+      <BranchesErpModal
+        isOpen={isBranchesErpOpen}
+        onClose={() => setIsBranchesErpOpen(false)}
+        onOpenTransferModal={() => setIsStockTransferOpen(true)}
+      />
+
+      {/* Modal de Traspasos de Stock entre Sucursales */}
+      <BranchStockTransferModal
+        isOpen={isStockTransferOpen}
+        onClose={() => {
+          setIsStockTransferOpen(false);
+          setTransferInitialProductId(undefined);
+        }}
+        initialProductId={transferInitialProductId}
+      />
+
 
       <ImportModal
         isOpen={isImportOpen}

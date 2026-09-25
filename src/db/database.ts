@@ -23,7 +23,9 @@ import type {
   InventoryTakingSection,
   InventoryTakingCountItem,
   InventoryTakingSession,
-  Expense
+  Expense,
+  Branch,
+  BranchTransfer
 } from '../types';
 
 export class MarketAlmacenDatabase extends Dexie {
@@ -48,6 +50,8 @@ export class MarketAlmacenDatabase extends Dexie {
   creditCustomers!: Table<CreditCustomer, number>;
   creditPayments!: Table<CreditPayment, number>;
   inventorySections!: Table<InventoryTakingSection, string>;
+  branches!: Table<Branch, string>;
+  branchTransfers!: Table<BranchTransfer, number>;
   inventoryCounts!: Table<InventoryTakingCountItem, number>;
   inventorySessions!: Table<InventoryTakingSession, number>;
   expenses!: Table<Expense, number>;
@@ -89,6 +93,11 @@ export class MarketAlmacenDatabase extends Dexie {
       customers: '++id, rut, businessName, industry, address, city, email, phone, hasCredit, creditStatus, companyId, createdAt',
       creditCustomers: '++id, rut, name, alias, phone, address, creditStatus, paymentDueDay, companyId, createdAt',
       creditPayments: '++id, customerId, customerRut, customerName, date, amount, previousDebt, remainingDebt, paymentMethod, registeredBy, companyId, createdAt'
+    });
+
+    this.version(5).stores({
+      branches: 'id, companyId, code, name, isMain, active, createdAt',
+      branchTransfers: '++id, transferFolio, sourceBranchId, destinationBranchId, companyId, status, createdAt'
     });
   }
 }

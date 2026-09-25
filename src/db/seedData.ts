@@ -1,5 +1,5 @@
 import { db, cleanupOrphanedRecords, migrateFromLegacyDatabaseIfNeeded } from './database';
-import type { Company, Product, Sale, ReceptionGuide, DeliveryGuide, PurchaseRequest, Incident, ProductMovement, Customer, CreditCustomer } from '../types';
+import type { Company, Product, Sale, ReceptionGuide, DeliveryGuide, PurchaseRequest, Incident, ProductMovement, Customer, CreditCustomer, Branch, BranchTransfer } from '../types';
 
 export const INITIAL_COMPANIES: Company[] = [
   {
@@ -888,6 +888,82 @@ export async function initDatabaseIfEmpty() {
       }
     ];
     await db.customers.bulkAdd(demoInvoiceCustomers);
+  }
+
+
+  // 8. Sucursales de la Empresa (ERP Multi-Sucursal)
+  const countBranches = await db.branches.count();
+  if (countBranches === 0) {
+    const demoBranches: Branch[] = [
+      {
+        id: 'suc-providencia-01',
+        companyId: 'market-almacen',
+        code: 'SUC-01',
+        name: 'Casa Matriz - Providencia',
+        address: 'Av. Providencia #1240',
+        commune: 'Providencia',
+        phone: '+56 2 2234 5678',
+        managerName: 'Juan Carlos Soto (Administrador General)',
+        isMain: true,
+        active: true,
+        createdAt: '2026-01-10T08:00:00.000Z'
+      },
+      {
+        id: 'suc-maipu-02',
+        companyId: 'market-almacen',
+        code: 'SUC-02',
+        name: 'Sucursal Poniente - Maipú',
+        address: 'Av. Pajaritos #2450',
+        commune: 'Maipú',
+        phone: '+56 2 2541 9876',
+        managerName: 'Patricia Morales (Jefa de Local)',
+        isMain: false,
+        active: true,
+        createdAt: '2026-02-15T08:00:00.000Z'
+      },
+      {
+        id: 'suc-centro-03',
+        companyId: 'market-almacen',
+        code: 'SUC-03',
+        name: 'Sucursal Centro - Alameda',
+        address: 'Av. Libertador B. O\'Higgins #980',
+        commune: 'Santiago',
+        phone: '+56 2 2633 4512',
+        managerName: 'Rodrigo Espinoza (Encargado Turno)',
+        isMain: false,
+        active: true,
+        createdAt: '2026-03-01T08:00:00.000Z'
+      }
+    ];
+    await db.branches.bulkAdd(demoBranches as any);
+  }
+
+  // 9. Traspaso Demo Inicial
+  const countTransfers = await db.branchTransfers.count();
+  if (countTransfers === 0) {
+    const demoTransfer: BranchTransfer = {
+      transferFolio: 'TRASP-101',
+      sourceBranchId: 'suc-providencia-01',
+      sourceBranchName: 'Casa Matriz - Providencia',
+      destinationBranchId: 'suc-maipu-02',
+      destinationBranchName: 'Sucursal Poniente - Maipú',
+      companyId: 'market-almacen',
+      status: 'RECEPCIONADO',
+      requestedBy: 'Patricia Morales',
+      dispatchedBy: 'Juan Carlos Soto',
+      receivedBy: 'Patricia Morales',
+      deliveryGuideFolio: 'GD-TRASP-0042',
+      receptionGuideFolio: 'GR-TRASP-0018',
+      notes: 'Traspaso urgente de reposición de bebidas y abarrotes fin de semana.',
+      items: [
+        { productCode: '7801610001234', productName: 'Bebida Coca-Cola Original 1.5 L', quantity: 24, unit: 'unidades' },
+        { productCode: '7802100004567', productName: 'Aceite Vegetal Chef 900 ml', quantity: 15, unit: 'unidades' }
+      ],
+      createdAt: '2026-09-22T10:30:00.000Z',
+      dispatchedAt: '2026-09-22T11:45:00.000Z',
+      receivedAt: '2026-09-22T14:15:00.000Z'
+    };
+    await db.branchTransfers.add(demoTransfer);
   }
 
   // 7. Clientes de Libreta de Fiados / Cuentas de Vecinos (Personas Normales que compran con Boleta)

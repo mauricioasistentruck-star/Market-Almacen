@@ -183,6 +183,10 @@ Es fundamental comprender la arquitectura del sistema:
 
 ## CAPÍTULO 7: LIBRETA DE FIADOS & CUENTAS DE VECINOS (COMPRAS CON BOLETA, VER CUENTAS, AJUSTE DE CUPO Y CONTROL DE SOBRECUPO)
 
+
+> **NOTA DE FLEXIBILIDAD Y POLÍTICA COMERCIAL:**
+> El módulo de **Crédito / Libreta de Fiados es 100% OPCIONAL** y queda a criterio exclusivo de cada empresa o comerciante. Si un local opera exclusivamente al contado y tarjeta (o decide por política interna no dar crédito a vecinos), simplemente no utiliza este menú ni asigna cupos. La aplicación continuará funcionando con máxima fluidez con boletas, facturas, efectivo, Transbank y transferencias, sin ninguna obligación de activar el módulo de fiados.
+
 ### 7.1 La Libreta de Fiados Electrónica
 En el menú de administración del local, presione **`[ Libreta de Fiados & Cuentas ]`**:
 * Reemplaza el cuaderno de papel por una base de datos segura y auditable de vecinos de confianza.
@@ -383,7 +387,7 @@ Market Almacén se adapta dinámicamente a las necesidades comerciales específi
 
 ---
 
-## CAPÍTULO 15: INSTRUCCIONES PARA INSTALAR Y EJECUTAR LA APLICACIÓN EN DIFERENTES DISPOSITIVOS
+## CAPÍTULO 17: INSTRUCCIONES PARA INSTALAR Y EJECUTAR LA APLICACIÓN EN DIFERENTES DISPOSITIVOS
 
 *(Penúltimo Capítulo Obligatorio)*
 
@@ -421,7 +425,7 @@ Terminales comerciales profesionales (marcas Sunmi V2/T2, PAX, Nexgo, Morefun) q
 
 ---
 
-## CAPÍTULO 16: VENTAJAS Y DESVENTAJAS DE USAR LA APLICACIÓN
+## CAPÍTULO 18: VENTAJAS Y DESVENTAJAS DE USAR LA APLICACIÓN
 
 *(Último Capítulo Obligatorio)*
 

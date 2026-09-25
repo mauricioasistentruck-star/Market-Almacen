@@ -144,15 +144,21 @@ Ejemplos de aplicación diaria en distintos tipos de negocios:
 *(Último Capítulo Obligatorio)*
 
 * **Ventajas Principales:**
-  * **100% Offline-First:** No se detiene la venta ni el cobro si se corta internet o falla la señal telefónica.
+  * **100% Offline-First:** No se detiene la venta ni el cobro en caja si se corta internet o falla la señal telefónica.
+  * **Respaldo Automático a la Nube (Supabase cada 3-5 Segundos):** Toda la información financiera, de fiados, clientes e inventario se respalda continuamente en la nube. Máxima protección ante robo, daño físico o extravío del equipo.
+  * **Sistema ERP Multi-Sucursal en Vivo:** Permite al Dueño conmutar de sucursal con 1 solo clic, ver y cargar el stock exclusivo de cada sede, registrar colaboradores por local y emitir informes consolidados de la cadena o independientes por sucursal.
+  * **Traspasos de Stock Formalizados:** Consulta de existencias entre locales y emisión de Guías de Despacho y Recepción por traspaso.
   * **Sin Pagos Mensuales ni Comisiones:** Es propiedad del comerciante; sin arriendos de software ni costos por transacción.
-  * **Velocidad Extrema:** Búsquedas, pesaje y cobro en milisegundos gracias a la base de datos indexada local.
-  * **Control Preciso de Fiados:** Reemplaza el cuaderno de papel con cupos, fechas de pago pactadas y control de sobrecupos inteligente.
+  * **Velocidad Extrema:** Búsquedas, pesaje en balanza y cobro en milisegundos gracias a la base de datos indexada local.
+  * **Libreta de Fiados Inteligente (100% Opcional):** Control estricto de cupos, fechas de pago pactadas y control de sobrecupos con boleta.
   * **Separación Tributaria:** Facturación a empresas separada de Boletas a personas.
   * **Impresión Térmica Silenciosa:** Tickets directos a 80mm/58mm sin ventanas emergentes.
-* **Desventajas y Consideraciones:**
-  * **Responsabilidad de Respaldo Local:** Al residir la base de datos en el equipo, el comerciante debe exportar respaldos periódicos en Excel para protegerse ante fallas físicas del hardware.
-  * **Sin Sincronización Multi-Sucursal Automática por Defecto:** Cada equipo opera de forma autónoma; para consolidar múltiples tiendas remotas se requiere habilitar el módulo de sincronización cloud centralizada.
+
+* **Desventajas y Consideraciones Operativas:**
+  * **Activación de Sucursales Requiere Autorización de Superadmin:** El menú para crear y administrar sucursales adicionales bajo la misma empresa debe solicitarse previamente al Superadmin del sistema.
+  * **Requerimiento de Internet para Sincronización Remota en Vivo:** Si bien cada tienda vende normalmente sin internet de forma local, para que los datos viajen a la nube de Supabase y el dueño monitoree otra sucursal en tiempo real a la distancia, se requiere conexión a internet en los locales.
+  * **Hardware Periférico Estándar:** Requiere contar con impresora térmica USB/Bluetooth (80mm/58mm) y balanza digital compatible para agilizar el despacho en mostrador.
+  * **Capacitación Básica de Cajeros:** Requiere una breve inducción de 1 a 2 turnos para personal no habituado a terminales táctiles y balanzas digitales.
 
 ---
-*Guía Rápida Market Almacén — Edición 2026. Resumen de Operación y Protocolos de Mostrador.*
+*Guía Rápida Market Almacén - Edición 2026. Resumen de Operación y Protocolos de Mostrador.*

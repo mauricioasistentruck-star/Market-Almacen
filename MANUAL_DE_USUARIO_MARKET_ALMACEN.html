@@ -311,9 +311,11 @@
         <li class="toc-item"><a href="#capitulo-11">11. Guías de Despacho y Compras</a></li>
         <li class="toc-item"><a href="#capitulo-12">12. Control de Mermas y Vencimientos</a></li>
         <li class="toc-item"><a href="#capitulo-13">13. Toma de Inventario Físico y Excel</a></li>
-        <li class="toc-item"><a href="#capitulo-14">14. Adaptabilidad Multi-Rubro con Ejemplos</a></li>
-        <li class="toc-item"><a href="#capitulo-15"><strong>15. Instalación en Dispositivos (PC/APK)</strong></a></li>
-        <li class="toc-item"><a href="#capitulo-16"><strong>16. Ventajas y Desventajas de Usar la App</strong></a></li>
+        <li class="toc-item"><a href="#capitulo-14">14. Respaldo Automático en Nube (Supabase) y Offline</a></li>
+        <li class="toc-item"><a href="#capitulo-15">15. Sistema ERP Multi-Sucursal y Traspasos</a></li>
+        <li class="toc-item"><a href="#capitulo-16">16. Adaptabilidad Multi-Rubro con Ejemplos</a></li>
+        <li class="toc-item"><a href="#capitulo-17"><strong>17. Instalación en Dispositivos (PC/APK)</strong></a></li>
+        <li class="toc-item"><a href="#capitulo-18"><strong>18. Ventajas y Desventajas de Usar la App</strong></a></li>
       </ul>
     </div>
 
@@ -325,16 +327,18 @@
 <p>4. <strong>CAPÍTULO 4:</strong> Modo Liquidación, Precios Rebajados y Generador de Packs / Promociones</p>
 <p>5. <strong>CAPÍTULO 5:</strong> Pantalla de Cobro (Checkout), Medios de Pago e Impresión Térmica Automática 80mm/58mm</p>
 <p>6. <strong>CAPÍTULO 6:</strong> Facturación Electrónica SII (Empresas con Giro y Razón Social)</p>
-<p>7. <strong>CAPÍTULO 7:</strong> Libreta de Fiados & Cuentas de Vecinos (Compras con Boleta, Ver Cuentas, Aumento/Disminución de Cupo y Control de Sobrecupo)</p>
+<p>7. <strong>CAPÍTULO 7:</strong> Libreta de Fiados & Cuentas de Vecinos (Compras con Boleta, Ver Cuentas, Aumento/Disminución de Cupo y Control de Sobrecupo - Módulo Opcional)</p>
 <p>8. <strong>CAPÍTULO 8:</strong> Arqueo de Caja y Cierre Z por Turno Multicaja</p>
 <p>9. <strong>CAPÍTULO 9:</strong> Historial de Ventas, Auditoría de Documentos, Anulaciones y Menú de Informes</p>
 <p>10. <strong>CAPÍTULO 10:</strong> Gestión de Inventario, Catálogo de Productos, Códigos de Barra y Kardex</p>
 <p>11. <strong>CAPÍTULO 11:</strong> Guías de Despacho, Recepción de Mercadería y Compras a Proveedores</p>
 <p>12. <strong>CAPÍTULO 12:</strong> Control de Mermas, Vencimientos y Pérdidas de Stock</p>
 <p>13. <strong>CAPÍTULO 13:</strong> Toma de Inventario Físico en Tiempo Real y Respaldos en Excel</p>
-<p>14. <strong>CAPÍTULO 14:</strong> Adaptabilidad Multi-Rubro: Casos Prácticos y Ejemplos de Configuración</p>
-<p>15. <strong>CAPÍTULO 15:</strong> Instrucciones para Instalar y Ejecutar la Aplicación en Diferentes Dispositivos <em>(Penúltimo Capítulo Obligatorio)</em></p>
-<p>16. <strong>CAPÍTULO 16:</strong> Ventajas y Desventajas de Usar la Aplicación <em>(Último Capítulo Obligatorio)</em></p>
+<p>14. <strong>CAPÍTULO 14:</strong> Arquitectura Híbrida: Respaldo Automático a la Nube (Supabase cada 3-5 Segundos) y Operación Offline-First</p>
+<p>15. <strong>CAPÍTULO 15:</strong> Sistema ERP Multi-Sucursal y Traspasos de Mercadería (Activación por Superadmin, Conmutador de Sede, Carga de Stock, Registro de Empleados e Informes Consolidados o Separados)</p>
+<p>16. <strong>CAPÍTULO 16:</strong> Adaptabilidad Multi-Rubro: Casos Prácticos y Ejemplos de Configuración</p>
+<p>17. <strong>CAPÍTULO 17:</strong> Instrucciones para Instalar y Ejecutar la Aplicación en Diferentes Dispositivos <em>(Penúltimo Capítulo Obligatorio)</em></p>
+<p>18. <strong>CAPÍTULO 18:</strong> Ventajas y Desventajas de Usar la Aplicación <em>(Último Capítulo Obligatorio)</em></p>
 </section>
 <section class="chapter-section" id="1-1-prop-sito-y-filosof-a-del-software">
   <span class="chapter-badge">Módulo Operativo</span>
@@ -737,6 +741,97 @@
   <img src="./public/manual_images/13_01_menu_respaldo_excel.png" alt="Figura 13.2: Módulo de respaldo y exportación de inventario y cuentas a planillas Excel." />
   <p class="figure-caption">Figura 13.2: Módulo de respaldo y exportación de inventario y cuentas a planillas Excel.</p>
 </div>
+</section>
+<section class="chapter-section" id="14-1-m-xima-autonom-a-paradigma-offline-first-local">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">14.1 Máxima Autonomía: Paradigma Offline-First Local</h2>
+<p><strong>Market Almacén</strong> ha sido diseñado bajo una estricta filosofía <strong>Offline-First</strong> utilizando el motor de base de datos indexada local ultrarrápida (IndexedDB vía Dexie):</p>
+<ul>
+  <li><strong>Cero Interrupciones en Mostrador:</strong> El cajero puede escanear códigos de barra, pesar frutas, verduras o cecinas en la balanza digital, imprimir tickets y cobrar en efectivo o tarjetas <strong>incluso si se corta internet o la red telefónica del local</strong>.</li>
+  <li><strong>Fin de los Tiempos de Espera:</strong> Las operaciones se resuelven en milisegundos en el propio hardware de la tienda. Jamás existirá una pantalla bloqueada con un aviso de <em>"Cargando datos..."</em> o <em>"Error de red"</em> en momentos de alta afluencia de clientes.</li>
+</ul>
+</section>
+<section class="chapter-section" id="14-2-respaldo-continuo-a-la-nube-supabase-cada-3-a-5-segundos">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">14.2 Respaldo Continuo a la Nube (Supabase) Cada 3 a 5 Segundos</h2>
+<p>La aplicación integra un servicio continuo en segundo plano (<code>cloudSync</code>) conectado a la infraestructura de <strong>Supabase</strong> (PostgreSQL en la nube):</p>
+<ul>
+  <li><strong>Sincronización Automática Transparente:</strong> Cada vez que se emite una boleta o factura, se abona una deuda en la libreta de fiados, entra una guía de recepción de mercadería o se modifica un precio de costo/venta, los registros se transmiten a la nube en un lapso de <strong>3 a 5 segundos</strong> (frecuencia configurada en 4.000 ms).</li>
+  <li><strong>Protección Total ante Daño Físico, Robo o Extravío:</strong></li>
+</ul>
+<p>  * Si la computadora del mostrador sufre un siniestro (ej: derrame de líquidos, falla de disco duro), o si el teléfono/tablet es robado o extraviado, <strong>la totalidad de la información contable, financiera y de inventario está 100% resguardada en la nube virtual</strong>.</p>
+<p>  * Al reemplazar el equipo y acceder a la aplicación desde cualquier navegador o teléfono Android, el sistema descarga la última instantánea sincronizada en segundos, dejando el negocio operativo sin pérdida de dinero ni información.</p>
+</section>
+<section class="chapter-section" id="15-1-solicitud-y-activaci-n-del-m-dulo-por-el-superadmin">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.1 Solicitud y Activación del Módulo por el SuperAdmin</h2>
+<ul>
+  <li><strong>Habilitación Centralizada:</strong> El menú y los permisos para administrar y activar sucursales bajo una misma empresa deben ser <strong>solicitados y habilitados por el Superadmin</strong> del sistema.</li>
+  <li><strong>Segregación Fiscal:</strong> Esta medida garantiza el estricto cumplimiento tributario ante el SII y el correcto licenciamiento de cada punto de venta bajo el RUT de la empresa matriz.</li>
+</ul>
+</section>
+<section class="chapter-section" id="15-2-creaci-n-y-registro-de-nuevas-sucursales-asociadas">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.2 Creación y Registro de Nuevas Sucursales Asociadas</h2>
+<p>Una vez habilitado el módulo por el Superadmin, el Dueño o Administrador de la sucursal principal accede al <strong>Panel ERP Multi-Sucursal</strong> desde el menú de usuario y dispone de la pestaña <strong><code>[ Administrar Sucursales ]</code></strong>:</p>
+<ul>
+  <li><strong>Formulario de Alta de Sucursal:</strong> Permite registrar nuevas filiales asociadas a la misma razón social indicando:</li>
+</ul>
+<p>  * <strong>Código Único de Sucursal:</strong> (ej: <code>SUC-01</code>, <code>SUC-02</code>, <code>SUC-03</code>).</p>
+<p>  <em> <strong>Nombre Comercial del Local:</strong> (ej: </em>Casa Matriz Providencia<em>, </em>Sucursal Poniente Maipú<em>, </em>Sucursal Centro Santiago*).</p>
+<p>  * <strong>Dirección, Comuna y Teléfono:</strong> Datos de contacto y ubicación de la sede física.</p>
+<p>  * <strong>Encargado / Jefe de Local:</strong> Nombre del responsable a cargo del turno.</p>
+<p>  * <strong>Designación de Casa Matriz:</strong> Casilla para definir cuál es el local principal de la cadena.</p>
+</section>
+<section class="chapter-section" id="15-3-conmutador-instant-neo-de-sucursal-para-el-due-o-cambio-en-1-clic-">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.3 Conmutador Instantáneo de Sucursal para el Dueño (Cambio en 1 Clic)</h2>
+<p>El Administrador o Dueño de la sucursal principal tiene total libertad para <strong>ver y cambiar de sucursal a su gusto</strong> en cualquier momento:</p>
+<ul>
+  <li>Tanto en la cabecera del panel ERP como en cada tarjeta de sucursal, se incluye el botón <strong><code>[ Activar y Cambiar a esta Sucursal ]</code></strong>.</li>
+  <li>Al conmutar de sucursal:</li>
+</ul>
+<p>  * <strong>Carga de Stock Específico:</strong> El sistema conmuta la vista para ver y cargar todo el inventario y stock exclusivo de esa sucursal, permitiendo auditar existencias locales y reponer mercadería.</p>
+<p>  * <strong>Registro y Asignación de Empleados:</strong> En la pestaña <strong><code>[ Personal & Turnos ]</code></strong>, el Dueño puede registrar colaboradores (cajeros, bodegueros, jefes de turno) asignándolos directamente a esa sede.</p>
+</section>
+<section class="chapter-section" id="15-4-actualizaci-n-en-vivo-y-en-tiempo-real-stock-y-movimientos-">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.4 Actualización en Vivo y en Tiempo Real (Stock y Movimientos)</h2>
+<ul>
+  <li>Gracias a la sincronización en la nube con Supabase, <strong>cada sucursal actualiza su contenido en vivo y en tiempo real</strong>.</li>
+  <li>El dueño puede monitorear desde su teléfono o computador los movimientos de caja, las ventas que se están cerrando en la otra sucursal y los niveles de existencia en góndola a kilómetros de distancia.</li>
+</ul>
+</section>
+<section class="chapter-section" id="15-5-informes-consolidados-de-la-cadena-o-independientes-por-sucursal">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.5 Informes Consolidados de la Cadena o Independientes por Sucursal</h2>
+<p>El sistema permite emitir reportes contables y de rendimiento con selector de alcance:</p>
+<p>1. <strong>Informe Consolidado (Ambas / Todas las Sucursales):</strong> Suma la facturación global, el valor de inventario total de la cadena, el índice de mermas consolidado y la dotación completa de personal.</p>
+<p>2. <strong>Informe Separado por Sucursal:</strong> Desglosa en detalle las ventas netas, ticket promedio, cantidad de boletas/facturas emitidas, pérdidas por merma y dotación de una sede específica.</p>
+<p>3. <strong>Exportación Inmediata:</strong> Ambos modos cuentan con exportación directa en formato PDF y compatibilidad con Excel.</p>
+<div class="figure-card">
+  <img src="./public/manual_images/16_01_erp_multisucursal_dashboard.png" alt="Figura 15.1: Panel ERP Multi-Sucursal para el Dueño con conmutador de sedes, métricas consolidadas o por separado y dotación por local." />
+  <p class="figure-caption">Figura 15.1: Panel ERP Multi-Sucursal para el Dueño con conmutador de sedes, métricas consolidadas o por separado y dotación por local.</p>
+</div>
+</section>
+<section class="chapter-section" id="15-6-traspasos-inter-sucursal-con-gu-as-de-despacho-y-recepci-n">
+  <span class="chapter-badge">Módulo Operativo</span>
+  <h2 class="chapter-title">15.6 Traspasos Inter-Sucursal con Guías de Despacho y Recepción</h2>
+<p>Para mantener la debida formalidad tributaria y el cuadre exacto de existencias entre locales, los traslados no se hacen "al ojo", sino a través de documentos oficiales del sistema:</p>
+<p>1. <strong>Generación del Traspaso:</strong></p>
+<p>   * Se selecciona la <strong>Sucursal de Origen</strong> (que despacha los productos) y la <strong>Sucursal de Destino</strong> (que los recibirá).</p>
+<p>   * Se agregan los productos y las cantidades exactas a transferir.</p>
+<p>   * Se ingresa el nombre del chofer/transportista y la patente del vehículo.</p>
+<p>2. <strong>Emisión de Guía de Despacho por Traspaso:</strong></p>
+<p>   * Al confirmar, el sistema descuenta automáticamente las unidades del inventario de la sucursal de origen y emite una <strong>Guía de Despacho / Entrega por Traspaso</strong> (folio ej: <code>GD-TRASP-0042</code>) que acompaña la carga física en el vehículo.</p>
+<p>   * El traspaso queda marcado con estado <strong><code>EN TRÁNSITO</code></strong>.</p>
+<p>3. <strong>Confirmación de Recepción en Destino:</strong></p>
+<p>   * Al llegar la mercadería al local de destino, el encargado del local presiona <strong><code>[ Confirmar Recepción ]</code></strong>.</p>
+<p>   * El sistema genera la <strong>Guía de Recepción por Traspaso</strong> (folio ej: <code>GR-TRASP-0018</code>), suma las cantidades al inventario de la sucursal receptora y cierra el ciclo de auditoría en estado <strong><code>RECEPCIONADO</code></strong>.</p>
+<div class="figure-card">
+  <img src="./public/manual_images/16_02_traspaso_mercaderia_guias.png" alt="Figura 15.2: Módulo de Traspasos de Stock Inter-Sucursal con generación automática de Guías de Despacho y Recepción." />
+  <p class="figure-caption">Figura 15.2: Módulo de Traspasos de Stock Inter-Sucursal con generación automática de Guías de Despacho y Recepción.</p>
+</div>
 <p>Market Almacén se adapta dinámicamente a las necesidades comerciales específicas de diferentes negocios con un solo clic:</p>
 <div class="figure-card">
   <img src="./public/manual_images/14_01_seleccion_giro_rubro.png" alt="Figura 14.1: Selector de giro y rubro comercial que adapta terminología, balanza e impuestos del negocio." />
@@ -800,36 +895,42 @@
 <p><em>(Último Capítulo Obligatorio)</em></p>
 <p>Para una toma de decisiones informada por parte del comerciante o dueño del negocio, a continuación se presenta un análisis técnico y operativo transparente de las ventajas y desventajas del sistema:</p>
 </section>
-<section class="chapter-section" id="16-1-ventajas-competitivas">
+<section class="chapter-section" id="18-1-ventajas-competitivas">
   <span class="chapter-badge">Módulo Operativo</span>
-  <h2 class="chapter-title">16.1 Ventajas Competitivas</h2>
-<p>1. <strong>Autonomía Total Offline-First:</strong></p>
-<p>   * La aplicación almacena sus datos en el dispositivo. Si se corta el suministro de internet en el barrio o falla la señal telefónica, <strong>el local puede seguir vendiendo, emitiendo comprobantes y cobrando sin interrupciones</strong>.</p>
-<p>2. <strong>Cero Cobros Mensuales ni Comisiones:</strong></p>
-<p>   * A diferencia de los sistemas de suscripción en la nube (SaaS) que cobran mensualidades crecientes o porcentajes por transacción, Market Almacén es propiedad del comerciante, reduciendo los costos fijos a cero.</p>
-<p>3. <strong>Velocidad Extrema en Hora Punta:</strong></p>
-<p>   * Las búsquedas en catálogo y el procesamiento del carrito se resuelven en milisegundos gracias a la base de datos indexada local. No existen tiempos de espera de carga web ("cargando datos...").</p>
-<p>4. <strong>Control Inteligente de Fiados con Boleta:</strong></p>
-<p>   * Resuelve el desorden de los cuadernos de papel permitiendo fijar cupos precisos, días de pago del mes, historial kardex de abonos con ticket térmico y toma de decisiones ante sobrecupos (bloquear, autorizar continuo o autorizar como última venta).</p>
-<p>5. <strong>Separación Tributaria Rigurosa:</strong></p>
-<p>   * Separa estrictamente la Facturación a empresas de las Boletas y Fiados a vecinos, evitando contingencias fiscales ante el Servicio de Impuestos Internos (SII).</p>
-<p>6. <strong>Generador de Packs con Descuento Real de Stock:</strong></p>
-<p>   * Permite armar promociones sin descuadrar el inventario de las materias primas individuales.</p>
-<p>7. <strong>Impresión Térmica Silenciosa:</strong></p>
-<p>   * No abre ventanas emergentes del sistema operativo que distraen o traban la atención en caja.</p>
+  <h2 class="chapter-title">18.1 Ventajas Competitivas</h2>
+<p>1. <strong>Autonomía Total Offline-First con Respaldo en la Nube:</strong></p>
+<p>   * La aplicación almacena sus datos localmente para asegurar velocidad de milisegundos en caja sin caídas. A la vez, se sincroniza automáticamente cada 3 a 5 segundos con <strong>Supabase en la nube</strong>, brindando protección total contra robo, extravío o avería física del equipo.</p>
+<p>2. <strong>Sistema ERP Multi-Sucursal en Tiempo Real:</strong></p>
+<p>   * Permite al dueño o administrador gestionar múltiples locales bajo una misma empresa, alternar de sucursal con 1 solo clic, cargar su stock específico, asignar a sus empleados y monitorear existencias y ventas inter-tiendas en vivo.</p>
+<p>3. <strong>Informes Consolidados o Separados en PDF y Excel:</strong></p>
+<p>   * Capacidad de auditar todas las sucursales en un solo balance unificado de cadena o generar informes independientes por local para control presupuestario y tributario.</p>
+<p>4. <strong>Traspaso de Mercadería Formalizado con Guías:</strong></p>
+<p>   * Control estricto de transferencias de stock entre sucursales mediante Guías de Despacho (descuenta origen) y Guías de Recepción (suma destino) con chofer y patente.</p>
+<p>5. <strong>Cero Cobros Mensuales ni Comisiones por Transacción:</strong></p>
+<p>   * A diferencia de los sistemas de suscripción en la nube (SaaS) que cobran altas mensualidades o porcentajes por venta, Market Almacén es propiedad del comerciante, eliminando costos fijos recurrentes.</p>
+<p>6. <strong>Velocidad Extrema en Hora Punta:</strong></p>
+<p>   * Las búsquedas en catálogo, la balanza digital y el procesamiento del checkout se ejecutan al instante gracias al motor indexado local.</p>
+<p>7. <strong>Control Inteligente de Fiados con Boleta y Gestión de Sobrecupo:</strong></p>
+<p>   * Módulo 100% opcional según el rubro. Permite fijar cupos máximos, registrar abonos con ticket térmico y decidir operativamente ante sobrecupos (bloquear venta, autorizar sobrecupo continuo o autorizar como última venta).</p>
+<p>8. <strong>Separación Tributaria Rigurosa ante el SII:</strong></p>
+<p>   * Separa estrictamente la Facturación Electrónica a empresas de las Boletas y Fiados a vecinos, resguardando la integridad fiscal del negocio.</p>
+<p>9. <strong>Generador de Packs y Ofertas con Descuento Real de Stock:</strong></p>
+<p>   * Permite crear promociones combinadas sin descuadrar el inventario individual de las materias primas.</p>
+<p>10. <strong>Impresión Térmica Silenciosa ESC/POS:</strong></p>
+<p>    * Emisión directa a impresoras de 80mm y 58mm sin ventanas emergentes del sistema operativo.</p>
 </section>
-<section class="chapter-section" id="16-2-desventajas-y-consideraciones-operativas">
+<section class="chapter-section" id="18-2-desventajas-y-consideraciones-operativas">
   <span class="chapter-badge">Módulo Operativo</span>
-  <h2 class="chapter-title">16.2 Desventajas y Consideraciones Operativas</h2>
-<p>1. <strong>Responsabilidad del Respaldo de Datos en el Usuario:</strong></p>
-<p>   * Al residir la base de datos de forma local en el dispositivo del local, si el equipo sufre un daño físico catastrófico (ej: derrame de líquidos, robo del equipo o daño de disco duro), los datos podrían perderse si el administrador no realiza <strong>respaldos periódicos en Excel o JSON</strong> en un pendrive o correo.</p>
-<p>2. <strong>Sin Sincronización Multi-Sucursal Automática por Defecto:</strong></p>
-<p>   * En la modalidad autónoma local, cada caja o terminal opera con su propia base de datos independiente. Si el negocio cuenta con múltiples sucursales en distintas ciudades, se requiere conectar el módulo de backend unificado en la nube para consolidar inventarios inter-tiendas.</p>
-<p>3. <strong>Dependencia de la Calidad del Hardware de Caja:</strong></p>
-<p>   * Si se utiliza un computador muy antiguo con poca memoria RAM o navegadores desactualizados, la fluidez visual de las animaciones puede verse reducida respecto a terminales modernos.</p>
-<p>4. <strong>Curva de Aprendizaje Inicial en Personal No Habituado a Balanza Digital:</strong></p>
-<p>   * En locales con personal de edad avanzada acostumbrado exclusivamente al cuaderno y a la calculadora manual, se requiere una capacitación inicial de 1 a 2 turnos para dominar los atajos de teclado y la selección de gramajes.</p>
-<p><em>Manual Oficial de Operación Market Almacén — Versión Integral 2026. Todos los derechos reservados.</em></p>
+  <h2 class="chapter-title">18.2 Desventajas y Consideraciones Operativas</h2>
+<p>1. <strong>Habilitación de Sucursales Sujeta a Autorización del SuperAdmin:</strong></p>
+<p>   * Para activar el menú de administración multi-sucursal y vincular nuevas sedes a una empresa, se debe solicitar previamente la habilitación al <strong>Superadmin</strong> del sistema, garantizando la correcta configuración tributaria y contractual.</p>
+<p>2. <strong>Requerimiento de Conectividad para Sincronización Remota en Tiempo Real:</strong></p>
+<p>   <em> Aunque cada sucursal opera al 100% sin internet en el mostrador (modo offline-first local), para que los datos viajen a la nube de Supabase (cada 3-5s) y el dueño pueda visualizar las ventas y el stock de otra sucursal </em>en tiempo real a la distancia*, es indispensable que los locales cuenten con conexión a internet (WiFi, red móvil 4G/5G o cable de red).</p>
+<p>3. <strong>Dependencia de Hardware Periférico Homologado:</strong></p>
+<p>   * Para aprovechar al máximo las capacidades de venta rápida y pesaje en balanza, se requiere hardware estándar compatible (impresora térmica USB/Bluetooth de 58/80mm, lector de código de barras USB y balanza digital con puerto serial/USB).</p>
+<p>4. <strong>Período de Capacitación Inicial para Personal No Habituado a Sistemas Digitales:</strong></p>
+<p>   * En comercios donde el personal acostumbra operar exclusivamente con calculadora manual o cuaderno de fiados de papel, se requiere una capacitación inicial de 1 a 2 turnos para adquirir soltura en la interfaz táctil y los atajos de teclado.</p>
+<p><em>Manual Oficial de Operación Market Almacén - Versión Integral 2026. Todos los derechos reservados.</em></p>
 
     </section>
 

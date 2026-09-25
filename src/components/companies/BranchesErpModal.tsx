@@ -31,6 +31,7 @@ import {
   Info
 } from 'lucide-react';
 import type { Branch, Product, Sale, Incident, Worker, BranchTransfer } from '../../types';
+import { getProductBranchStock, setActiveBranch } from '../../utils/branchStockUtils';
 
 interface BranchesErpModalProps {
   isOpen: boolean;
@@ -146,7 +147,7 @@ export const BranchesErpModal: React.FC<BranchesErpModalProps> = ({
     if (!targetBranch) return;
 
     setActiveBranchId(targetBranchId);
-    localStorage.setItem('marketalmacen_active_branch_id', targetBranchId);
+    setActiveBranch(targetBranchId, targetBranch.name, targetBranch.code);
     localStorage.setItem('marketalmacen_active_branch_name', targetBranch.name);
 
     // Disparar evento para que toda la app sepa que cambió de sucursal
@@ -564,8 +565,8 @@ export const BranchesErpModal: React.FC<BranchesErpModalProps> = ({
                   <p className="text-[11px] text-slate-500 mt-1">
                     {(reportBranchFilter === 'ALL'
                       ? totalInventoryStock
-                      : (branchSalesData.find(b => b.id === reportBranchFilter)?.stockTotal || 0)
-                    ).toLocaleString('es-CL') + ' unidades físicas'}
+                      : products.reduce((acc, p) => acc + getProductBranchStock(p, reportBranchFilter, branches), 0)
+                    ).toLocaleString('es-CL') + ' unidades físicas en este local'}
                   </p>
                 </div>
 
@@ -894,9 +895,7 @@ export const BranchesErpModal: React.FC<BranchesErpModalProps> = ({
                             {branches
                               .filter(b => inventoryBranchFilter === 'ALL' || b.id === inventoryBranchFilter)
                               .map((b, idx) => {
-                                const bStock = idx === 0 
-                                  ? Math.ceil(totalStock * 0.55) 
-                                  : Math.floor(totalStock * 0.25);
+                                const bStock = getProductBranchStock(p, b.id, branches);
                                 return (
                                   <td key={b.id} className="p-3 text-center">
                                     <span className={'px-2 py-0.5 rounded-md font-bold ' + (

@@ -181,6 +181,7 @@ export interface Product {
   companyId?: string;
   location: string;
   stock: number;
+  branchStocks?: Record<string, number>; // Stock exclusivo e independiente por sucursal { [branchId]: stock }
   minStock: number;
   unit: string;
   isBulk?: boolean; // Señaliza si se vende a granel / por peso en balanza

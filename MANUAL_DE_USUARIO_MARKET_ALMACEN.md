@@ -405,7 +405,7 @@ Una vez habilitado el módulo por el Superadmin, el Dueño o Administrador de la
 El Administrador o Dueño de la sucursal principal tiene total libertad para **ver y cambiar de sucursal a su gusto** en cualquier momento:
 * Tanto en la cabecera del panel ERP como en cada tarjeta de sucursal, se incluye el botón **`[ Activar y Cambiar a esta Sucursal ]`**.
 * Al conmutar de sucursal:
-  * **Carga de Stock Específico:** El sistema conmuta la vista para ver y cargar todo el inventario y stock exclusivo de esa sucursal, permitiendo auditar existencias locales y reponer mercadería.
+  * **Visualización de Stock Exclusivo por Local (Sin Sumatoria Global):** Al seleccionar o cambiar de sucursal, tanto en el inventario como en el terminal POS se visualiza **única y exclusivamente el stock que tiene esa sucursal para cada producto**. El sistema jamás muestra el stock completo sumando todos los artículos de las demás sucursales, garantizando que el cajero solo pueda vender lo que físicamente existe en las góndolas y bodega de su local.
   * **Registro y Asignación de Empleados:** En la pestaña **`[ Personal & Turnos ]`**, el Dueño puede registrar colaboradores (cajeros, bodegueros, jefes de turno) asignándolos directamente a esa sede.
 
 ### 15.4 Actualización en Vivo y en Tiempo Real (Stock y Movimientos)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../db/database';
 import type { Product } from '../../types';
+import { getProductBranchStock, getActiveBranchId } from '../../utils/branchStockUtils';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import {
@@ -199,11 +200,11 @@ export const ProductConsultantModal: React.FC<ProductConsultantModalProps> = ({
                       Stock en Tienda
                     </span>
                     <span className={`text-xl sm:text-2xl font-black font-mono block mt-0.5 ${
-                      (selectedProduct.stock || 0) <= (selectedProduct.minStock || 0)
+                      (getProductBranchStock(selectedProduct, getActiveBranchId()) || 0) <= (selectedProduct.minStock || 0)
                         ? 'text-red-600 dark:text-red-400'
                         : 'text-blue-600 dark:text-blue-400'
                     }`}>
-                      {selectedProduct.stock} <span className="text-xs font-bold text-slate-500">{selectedProduct.unit || 'UN'}</span>
+                      {getProductBranchStock(selectedProduct, getActiveBranchId())} <span className="text-xs font-bold text-slate-500">{selectedProduct.unit || 'UN'}</span>
                     </span>
                     <span className="text-[10px] font-bold text-slate-500 block mt-1">
                       Mínimo: {selectedProduct.minStock || 0} {selectedProduct.unit || 'UN'}
@@ -276,7 +277,7 @@ export const ProductConsultantModal: React.FC<ProductConsultantModalProps> = ({
                           ${Math.round(p.price || 0).toLocaleString('es-CL')}
                         </span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-slate-700 dark:text-slate-300">
-                          Stock: {p.stock}
+                          Stock: {getProductBranchStock(p, getActiveBranchId())}
                         </span>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Product, Worker } from '../../types';
+import type { Product, Worker, Branch } from '../../types';
+import { getProductBranchStock, getActiveBranchId, setActiveBranch } from '../../utils/branchStockUtils';
 import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
@@ -28,7 +29,8 @@ import {
   MapPin,
   Tag,
   Barcode,
-  History
+  History,
+  Store
 } from 'lucide-react';
 
 interface ProductListViewProps {
@@ -61,6 +63,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [selectedCondition, setSelectedCondition] = useState('ALL');
   const [onlyCriticalStock, setOnlyCriticalStock] = useState(false);
   const [onlyFilters, setOnlyFilters] = useState(false);
+  const [activeBranchId, setActiveBranchIdState] = useState<string>(() => getActiveBranchId());
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   // Pagination for performance
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +81,26 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
   useEffect(() => {
     loadProducts();
+    loadBranches();
   }, [refreshTrigger, selectedCompanyId]);
+
+  const loadBranches = async () => {
+    if (!selectedCompanyId) return;
+    try {
+      const bList = await db.branches.filter(b => selectedCompanyId === 'ALL' || b.companyId === selectedCompanyId).toArray();
+      setBranches(bList);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    const handleBranchChanged = (e: any) => {
+      if (e.detail?.branchId) {
+        setActiveBranchIdState(e.detail.branchId);
+      }
+    };
+    window.addEventListener('marketalmacen-branch-changed', handleBranchChanged);
+    return () => window.removeEventListener('marketalmacen-branch-changed', handleBranchChanged);
+  }, []);
 
   const loadProducts = async () => {
     const all = await db.products.toArray();
@@ -161,7 +184,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         if (group && !group.matcher(p.location || '')) return false;
       }
 
-      if (onlyCriticalStock && (p.stock > p.minStock)) return false;
+      const bStock = getProductBranchStock(p, activeBranchId, branches);
+      if (onlyCriticalStock && (bStock > p.minStock)) return false;
 
       if (onlyFilters) {
         const isFilter = (p.category && p.category.toLowerCase().includes('filtro')) ||
@@ -245,6 +269,36 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             <span>Empresa:</span>
             <span className="text-slate-800 dark:text-slate-200 font-extrabold">{selectedCompany?.name || 'MARKET ALMACÉN SpA'}</span>
           </p>
+
+          {/* Selector de Sucursal Activa: Muestra SOLO el stock de la sucursal seleccionada */}
+          {branches.length > 0 && (
+            <div className="pt-1 flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs">
+                <Store className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="font-bold text-slate-600 dark:text-slate-300">Stock de Sucursal:</span>
+                <select
+                  value={activeBranchId}
+                  onChange={(e) => {
+                    const bId = e.target.value;
+                    const b = branches.find(item => item.id === bId);
+                    setActiveBranchIdState(bId);
+                    setActiveBranch(bId, b?.name, b?.code);
+                  }}
+                  className="bg-white dark:bg-slate-900 font-black text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded-lg border border-slate-300 dark:border-slate-700 outline-none cursor-pointer"
+                  title="Cambiar sucursal para ver solo el stock físico de ese local"
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code}) {b.isMain ? '★ Matriz' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-blue-700 dark:text-blue-300 font-bold hidden sm:inline">
+                  • Mostrando solo existencias en este local (no suma de la cadena)
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
                 {/* Action Buttons Toolbar - Compact & Organized */}
@@ -427,7 +481,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             </div>
           ) : (
             paginatedProducts.map((p) => {
-              const isCritical = (p.stock || 0) <= (p.minStock || 0);
+              const branchStock = getProductBranchStock(p, activeBranchId, branches);
+              const isCritical = (branchStock || 0) <= (p.minStock || 0);
               return (
                 <div
                   key={p.id}
@@ -461,7 +516,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                     <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg border font-mono ${
                       isCritical ? 'bg-red-100 text-red-700 border-red-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                     }`}>
-                      {p.stock} {p.unit || 'UN'}
+                      {branchStock} {p.unit || 'UN'}
                     </span>
                   </div>
                 </div>
@@ -494,7 +549,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                 </tr>
               ) : (
                 paginatedProducts.map((p) => {
-                  const isCritical = (p.stock || 0) <= (p.minStock || 0);
+                  const branchStock = getProductBranchStock(p, activeBranchId, branches);
+                  const isCritical = (branchStock || 0) <= (p.minStock || 0);
                   return (
                     <tr
                       key={p.id}
@@ -557,7 +613,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                                 : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
                             }`}
                           >
-                            {p.stock} {p.unit || 'Unid'}
+                            {branchStock} {p.unit || 'Unid'}
                           </span>
                         </div>
                       </td>

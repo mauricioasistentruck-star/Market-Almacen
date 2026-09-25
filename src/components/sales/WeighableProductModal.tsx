@@ -6,6 +6,7 @@ import { db } from '../../db/database';
 import { formatCLP } from '../../utils/salesPdfGenerator';
 import { getWeighableCategoriesForRubro, type RubroWeighableCategory } from '../../utils/rubroPresets';
 import type { Product, SaleItem } from '../../types';
+import { getProductBranchStock, getActiveBranchId } from '../../utils/branchStockUtils';
 import {
   X,
   Scale,
@@ -420,7 +421,7 @@ export const WeighableProductModal: React.FC<WeighableProductModalProps> = ({
               </span>
               {selectedStockProduct && (
                 <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
-                  Stock: {selectedStockProduct.stock} {selectedStockProduct.unit || 'Kg'}
+                  Stock: {getProductBranchStock(selectedStockProduct, getActiveBranchId())} {selectedStockProduct.unit || 'Kg'}
                 </span>
               )}
             </div>

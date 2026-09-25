@@ -146,7 +146,7 @@ Ejemplos de aplicación diaria en distintos tipos de negocios:
 * **Ventajas Principales:**
   * **100% Offline-First:** No se detiene la venta ni el cobro en caja si se corta internet o falla la señal telefónica.
   * **Respaldo Automático a la Nube (Supabase cada 3-5 Segundos):** Toda la información financiera, de fiados, clientes e inventario se respalda continuamente en la nube. Máxima protección ante robo, daño físico o extravío del equipo.
-  * **Sistema ERP Multi-Sucursal en Vivo:** Permite al Dueño conmutar de sucursal con 1 solo clic, ver y cargar el stock exclusivo de cada sede, registrar colaboradores por local y emitir informes consolidados de la cadena o independientes por sucursal.
+  * **Sistema ERP Multi-Sucursal en Vivo con Stock Exclusivo:** Permite al Dueño conmutar de sucursal con 1 clic. Cada sucursal muestra **única y exclusivamente su propio stock disponible**, sin sumar las existencias de otras tiendas, permitiendo además registrar colaboradores por local y generar informes independientes o consolidados.
   * **Traspasos de Stock Formalizados:** Consulta de existencias entre locales y emisión de Guías de Despacho y Recepción por traspaso.
   * **Sin Pagos Mensuales ni Comisiones:** Es propiedad del comerciante; sin arriendos de software ni costos por transacción.
   * **Velocidad Extrema:** Búsquedas, pesaje en balanza y cobro en milisegundos gracias a la base de datos indexada local.

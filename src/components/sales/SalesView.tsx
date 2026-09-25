@@ -3,7 +3,8 @@ import { useTheme } from '../../utils/themeContext';
 import { useCompany } from '../../utils/companyContext';
 import { useAuth } from '../../utils/authContext';
 import { db } from '../../db/database';
-import type { Product, Sale, SaleItem, Customer, DTEType } from '../../types';
+import type { Product, Sale, SaleItem, Customer, DTEType, Branch } from '../../types';
+import { getProductBranchStock, getActiveBranchId, setActiveBranch } from '../../utils/branchStockUtils';
 import { getChileLocalDateString } from '../../utils/chileanCurrencyAndDates';
 import { formatCLP, generateSaleInvoicePDF } from '../../utils/salesPdfGenerator';
 import { getWeighableCategoriesForRubro, type RubroWeighableCategory } from '../../utils/rubroPresets';
@@ -21,6 +22,7 @@ import { ProductConsultantModal } from '../inventory/ProductConsultantModal';
 import type jsPDF from 'jspdf';
 import {
   Printer,
+  Store,
   Package,
   X,
   ShoppingCart,
@@ -146,6 +148,8 @@ export const SalesView: React.FC<SalesViewProps> = ({
 
   // Datos de base de datos
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeBranchId, setActiveBranchIdState] = useState<string>(() => getActiveBranchId());
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('GENERAL');
@@ -477,8 +481,9 @@ export const SalesView: React.FC<SalesViewProps> = ({
       return;
     }
 
-    if (product.stock <= 0) {
-      alert('Este producto no tiene stock disponible.');
+    const branchStock = getProductBranchStock(product, activeBranchId, branches);
+    if (branchStock <= 0) {
+      alert(`El producto "${product.name}" no tiene stock disponible en la sucursal actual.`);
       return;
     }
 
@@ -697,6 +702,31 @@ export const SalesView: React.FC<SalesViewProps> = ({
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 pl-1 border-l border-slate-200 dark:border-slate-700">
             <span>{currentClock || 'Market Almacén POS'}</span>
           </div>
+
+          {/* Selector de Sucursal Activa en POS */}
+          {branches.length > 0 && (
+            <div className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 shadow-2xs">
+              <Store className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="font-bold text-slate-500 text-[10px] hidden sm:inline">Local:</span>
+              <select
+                value={activeBranchId}
+                onChange={(e) => {
+                  const bId = e.target.value;
+                  const b = branches.find(item => item.id === bId);
+                  setActiveBranchIdState(bId);
+                  setActiveBranch(bId, b?.name, b?.code);
+                }}
+                className="bg-transparent font-black text-slate-800 dark:text-slate-100 text-[11px] outline-none cursor-pointer"
+                title="Cambiar sucursal para consultar y vender el stock exclusivo de este local"
+              >
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
 
         </div>
@@ -1061,7 +1091,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
                       <div className="w-full flex items-center justify-between pt-2 mt-auto border-t border-slate-100 dark:border-slate-800/80 text-xs">
                         <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                           <ShoppingCart className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{product.stock}</span>
+                          <span>{getProductBranchStock(product, activeBranchId, branches)}</span>
                         </div>
 
                         <div className="font-mono font-black text-purple-700 dark:text-purple-400 text-xs sm:text-sm">

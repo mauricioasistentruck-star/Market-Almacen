@@ -235,18 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
-            {/* Botón Sucursales ERP */}
-            {onOpenBranchesErp && (
-              <button
-                type="button"
-                onClick={onOpenBranchesErp}
-                className="h-9 sm:h-10 flex items-center gap-1.5 px-3 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-black shadow-2xs transition cursor-pointer"
-                title="Panel ERP Multi-Sucursal (Ventas, inventario y personal de todas las sucursales)"
-              >
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>Sucursales ERP</span>
-              </button>
-            )}
+
 
             
 
